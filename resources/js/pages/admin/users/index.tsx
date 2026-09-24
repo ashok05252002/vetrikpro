@@ -1,0 +1,111 @@
+import DeleteButton from '@/components/admin/delete-button';
+import PageHeader from '@/components/admin/page-header';
+import Pagination from '@/components/admin/pagination';
+import SearchFilter from '@/components/admin/search-filter';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import AppLayout from '@/layouts/app-layout';
+import type { BreadcrumbItem, Option, Paginated, User, UserRole } from '@/types';
+import { Head, Link } from '@inertiajs/react';
+import { Pencil, Plus } from 'lucide-react';
+
+const breadcrumbs: BreadcrumbItem[] = [
+    { title: 'Dashboard', href: '/dashboard' },
+    { title: 'Users', href: '/admin/users' },
+];
+
+const roleVariant: Record<UserRole, 'default' | 'secondary' | 'outline'> = {
+    admin: 'default',
+    hr: 'secondary',
+    employee: 'outline',
+};
+
+interface Props {
+    users: Paginated<User>;
+    roles: Option[];
+    filters: { search?: string; role?: string };
+}
+
+export default function UsersIndex({ users, roles, filters }: Props) {
+    const roleLabel = (role: UserRole) => roles.find((r) => r.value === role)?.label ?? role;
+
+    return (
+        <AppLayout breadcrumbs={breadcrumbs}>
+            <Head title="Users" />
+
+            <div className="flex flex-col gap-4 p-4">
+                <PageHeader
+                    title="Users"
+                    description="Login accounts and their roles. Create an account here before giving someone an employee profile."
+                    action={
+                        <Button asChild>
+                            <Link href={route('admin.users.create')}>
+                                <Plus className="size-4" /> New user
+                            </Link>
+                        </Button>
+                    }
+                />
+
+                <SearchFilter url={route('admin.users.index')} initial={filters.search ?? ''} placeholder="Search name or email…" />
+
+                <div className="rounded-xl border">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Name</TableHead>
+                                <TableHead>Email</TableHead>
+                                <TableHead>Role</TableHead>
+                                <TableHead>Employee</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead className="text-right">Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {users.data.length === 0 && (
+                                <TableRow>
+                                    <TableCell colSpan={6} className="text-muted-foreground py-10 text-center">
+                                        No users found.
+                                    </TableCell>
+                                </TableRow>
+                            )}
+
+                            {users.data.map((user) => (
+                                <TableRow key={user.id}>
+                                    <TableCell className="font-medium">{user.name}</TableCell>
+                                    <TableCell className="text-muted-foreground">{user.email}</TableCell>
+                                    <TableCell>
+                                        <Badge variant={roleVariant[user.role]}>{roleLabel(user.role)}</Badge>
+                                    </TableCell>
+                                    <TableCell className="text-muted-foreground">{user.employee?.employee_code ?? '—'}</TableCell>
+                                    <TableCell>
+                                        <span className={user.is_active ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'}>
+                                            {user.is_active ? 'Active' : 'Disabled'}
+                                        </span>
+                                    </TableCell>
+                                    <TableCell>
+                                        <div className="flex justify-end gap-1">
+                                            <Button asChild variant="ghost" size="sm">
+                                                <Link href={route('admin.users.edit', user.id)}>
+                                                    <Pencil className="size-4" />
+                                                    <span className="sr-only">Edit</span>
+                                                </Link>
+                                            </Button>
+                                            <DeleteButton
+                                                url={route('admin.users.destroy', user.id)}
+                                                label={user.name}
+                                                description="The account and any linked employee profile will be removed permanently."
+                                            />
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
+
+                <Pagination meta={users} />
+            </div>
+        </AppLayout>
+    );
+}
