@@ -25,6 +25,8 @@ export interface SharedData {
     name: string;
     quote: { message: string; author: string };
     auth: Auth;
+    company: Company;
+    display: DisplaySettings;
     flash: { success: string | null; error: string | null };
     [key: string]: unknown;
 }
@@ -159,4 +161,19 @@ export interface PipelineStage {
     value: TaskStatus;
     label: string;
     count: number;
+}
+
+export interface Company {
+    name: string;
+    /** Public URL, or null when no logo has been uploaded. */
+    logo: string | null;
+}
+
+export type DateFormat = 'dmy' | 'mdy' | 'ymd';
+
+export interface DisplaySettings {
+    timezone: string;
+    dateFormat: DateFormat;
+    /** ISO 4217 code, e.g. INR. */
+    currency: string;
 }

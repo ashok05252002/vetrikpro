@@ -1,6 +1,6 @@
 import PriorityBadge from '@/components/work/priority-badge';
 import UserAvatar from '@/components/work/user-avatar';
-import { relativeDue } from '@/lib/dates';
+import { useFormat } from '@/hooks/use-format';
 import { cn } from '@/lib/utils';
 import type { TaskSummary } from '@/types';
 import { useSortable } from '@dnd-kit/sortable';
@@ -17,6 +17,7 @@ interface Props {
 }
 
 export default function TaskCard({ task, draggable = true, overlay = false }: Props) {
+    const format = useFormat();
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
         id: task.id,
         disabled: !draggable,
@@ -51,7 +52,7 @@ export default function TaskCard({ task, draggable = true, overlay = false }: Pr
 
                 {task.due_date && (
                     <span className={cn('text-xs', task.is_overdue ? 'text-destructive font-medium' : 'text-muted-foreground')}>
-                        {relativeDue(task.due_date)}
+                        {format.due(task.due_date)}
                     </span>
                 )}
 

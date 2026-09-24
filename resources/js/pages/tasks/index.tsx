@@ -8,8 +8,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import PriorityBadge from '@/components/work/priority-badge';
 import StageBadge from '@/components/work/stage-badge';
 import UserAvatar from '@/components/work/user-avatar';
+import { useFormat } from '@/hooks/use-format';
 import AppLayout from '@/layouts/app-layout';
-import { relativeDue } from '@/lib/dates';
 import { cn } from '@/lib/utils';
 import type { BreadcrumbItem, Option, Paginated, TaskSummary } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
@@ -36,6 +36,7 @@ interface Props {
 }
 
 export default function TasksIndex({ tasks, statuses, priorities, filters, canSeeAll }: Props) {
+    const format = useFormat();
     const [search, setSearch] = useState(filters.search ?? '');
     const firstRender = useRef(true);
 
@@ -183,7 +184,7 @@ export default function TasksIndex({ tasks, statuses, priorities, filters, canSe
                                                 task.is_overdue ? 'text-destructive font-medium' : 'text-muted-foreground',
                                             )}
                                         >
-                                            {relativeDue(task.due_date)}
+                                            {format.due(task.due_date)}
                                         </TableCell>
                                     </TableRow>
                                 ))}

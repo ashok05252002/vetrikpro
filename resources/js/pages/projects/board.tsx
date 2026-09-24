@@ -5,8 +5,8 @@ import { stageColor } from '@/components/work/stage-badge';
 import TaskCard from '@/components/work/task-card';
 import TaskDialog from '@/components/work/task-dialog';
 import UserAvatar from '@/components/work/user-avatar';
+import { useFormat } from '@/hooks/use-format';
 import AppLayout from '@/layouts/app-layout';
-import { formatDate } from '@/lib/dates';
 import { cn } from '@/lib/utils';
 import type { BoardColumn, BreadcrumbItem, Option, ProjectSummary, TaskStatus, TaskSummary, User } from '@/types';
 import {
@@ -63,6 +63,7 @@ function Column({ column, canCreate, onAdd, children }: { column: BoardColumn; c
 }
 
 export default function Board({ project, columns: initialColumns, statuses, priorities, assignees, can }: Props) {
+    const format = useFormat();
     const [columns, setColumns] = useState(initialColumns);
     const [activeTask, setActiveTask] = useState<TaskSummary | null>(null);
     const [dialogOpen, setDialogOpen] = useState(false);
@@ -176,7 +177,7 @@ export default function Board({ project, columns: initialColumns, statuses, prio
 
                         <div className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
                             <span>Owner: {project.owner?.name ?? 'Unassigned'}</span>
-                            {project.due_date && <span>Due {formatDate(project.due_date)}</span>}
+                            {project.due_date && <span>Due {format.date(project.due_date)}</span>}
                             <span className="flex items-center gap-1">
                                 {project.members?.slice(0, 5).map((member) => (
                                     <span key={member.id} title={member.name}>

@@ -45,6 +45,19 @@ return [
             'throw' => false,
         ],
 
+        /*
+         * User-uploaded imagery, written straight into public/ so no
+         * `storage:link` symlink stands between a deploy and every image.
+         * Paths are stored relative to this disk, never as URLs.
+         */
+        'uploads' => [
+            'driver' => 'local',
+            'root' => public_path('uploads'),
+            'url' => '/uploads',
+            'visibility' => 'public',
+            'throw' => false,
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),

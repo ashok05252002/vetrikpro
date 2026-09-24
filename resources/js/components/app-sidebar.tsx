@@ -3,7 +3,7 @@ import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { Briefcase, Building2, FolderKanban, IdCard, LayoutGrid, ListChecks, Users } from 'lucide-react';
+import { Briefcase, Building2, FolderKanban, IdCard, LayoutGrid, ListChecks, Settings, Users } from 'lucide-react';
 import AppLogo from './app-logo';
 
 /** Everyone signed in gets these. */
@@ -24,7 +24,11 @@ const adminNavItems: NavItem[] = [
 
 export function AppSidebar() {
     const { auth } = usePage<SharedData>().props;
-    const canManagePeople = auth.user?.role === 'admin' || auth.user?.role === 'hr';
+    const isAdmin = auth.user?.role === 'admin';
+    const canManagePeople = isAdmin || auth.user?.role === 'hr';
+
+    // Organisation settings are the administrator's alone.
+    const adminItems = isAdmin ? [...adminNavItems, { title: 'Settings', url: '/admin/settings', icon: Settings }] : adminNavItems;
 
     return (
         <Sidebar collapsible="icon" variant="inset">
@@ -42,7 +46,7 @@ export function AppSidebar() {
 
             <SidebarContent>
                 <NavMain label="Workspace" items={workNavItems} />
-                {canManagePeople && <NavMain label="Administration" items={adminNavItems} />}
+                {canManagePeople && <NavMain label="Administration" items={adminItems} />}
             </SidebarContent>
 
             <SidebarFooter>

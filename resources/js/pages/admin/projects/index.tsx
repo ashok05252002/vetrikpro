@@ -6,8 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import Meter from '@/components/viz/meter';
+import { useFormat } from '@/hooks/use-format';
 import AppLayout from '@/layouts/app-layout';
-import { formatDate } from '@/lib/dates';
 import type { BreadcrumbItem, Option, Paginated, ProjectSummary } from '@/types';
 import { Head, Link } from '@inertiajs/react';
 import { LayoutGrid, Pencil, Plus } from 'lucide-react';
@@ -24,6 +24,7 @@ interface Props {
 }
 
 export default function AdminProjectsIndex({ projects, statuses, filters }: Props) {
+    const format = useFormat();
     const statusLabel = (value?: string) => statuses.find((s) => s.value === value)?.label ?? value;
 
     return (
@@ -86,7 +87,7 @@ export default function AdminProjectsIndex({ projects, statuses, filters }: Prop
                                             <Meter value={project.progress ?? 0} label={`${project.name}: ${project.progress}% complete`} />
                                         </div>
                                     </TableCell>
-                                    <TableCell className="text-muted-foreground">{formatDate(project.due_date)}</TableCell>
+                                    <TableCell className="text-muted-foreground">{format.date(project.due_date)}</TableCell>
                                     <TableCell>
                                         <div className="flex justify-end gap-1">
                                             <Button asChild variant="ghost" size="sm">

@@ -2,6 +2,7 @@ import PageHeader from '@/components/admin/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useFormat } from '@/hooks/use-format';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem, Employee } from '@/types';
 import { Head, Link } from '@inertiajs/react';
@@ -18,6 +19,8 @@ function Field({ label, value }: { label: string; value: string | null | undefin
 }
 
 export default function ShowEmployee({ employee }: { employee: Employee }) {
+    const format = useFormat();
+
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Dashboard', href: '/dashboard' },
         { title: 'Employees', href: '/admin/employees' },
@@ -59,8 +62,8 @@ export default function ShowEmployee({ employee }: { employee: Employee }) {
                                         </Badge>
                                     </dd>
                                 </div>
-                                <Field label="Date of joining" value={employee.date_of_joining} />
-                                <Field label="Monthly salary" value={employee.salary} />
+                                <Field label="Date of joining" value={format.date(employee.date_of_joining)} />
+                                <Field label="Monthly salary" value={format.money(employee.salary)} />
                             </dl>
                         </CardContent>
                     </Card>
@@ -73,7 +76,7 @@ export default function ShowEmployee({ employee }: { employee: Employee }) {
                             <dl className="grid grid-cols-2 gap-4">
                                 <Field label="Email" value={employee.user?.email} />
                                 <Field label="Phone" value={employee.phone} />
-                                <Field label="Date of birth" value={employee.date_of_birth} />
+                                <Field label="Date of birth" value={format.date(employee.date_of_birth)} />
                                 <Field label="Gender" value={employee.gender ? genderLabels[employee.gender] : null} />
                                 <div className="col-span-2">
                                     <Field label="Address" value={employee.address} />

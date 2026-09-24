@@ -4,8 +4,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import Meter from '@/components/viz/meter';
+import { useFormat } from '@/hooks/use-format';
 import AppLayout from '@/layouts/app-layout';
-import { formatDate } from '@/lib/dates';
 import type { BreadcrumbItem, Option, ProjectSummary } from '@/types';
 import { Head, Link } from '@inertiajs/react';
 import { FolderKanban, Plus, Users } from 'lucide-react';
@@ -20,6 +20,7 @@ interface Props {
 }
 
 export default function ProjectsIndex({ projects, statuses, filters, canCreate }: Props) {
+    const format = useFormat();
     const statusLabel = (value?: string) => statuses.find((s) => s.value === value)?.label ?? value;
 
     return (
@@ -93,7 +94,7 @@ export default function ProjectsIndex({ projects, statuses, filters, canCreate }
                                                 <Users className="size-3.5" />
                                                 {project.members_count} member{project.members_count === 1 ? '' : 's'}
                                             </span>
-                                            {project.due_date && <span>Due {formatDate(project.due_date)}</span>}
+                                            {project.due_date && <span>Due {format.date(project.due_date)}</span>}
                                         </div>
                                     </CardContent>
                                 </Link>

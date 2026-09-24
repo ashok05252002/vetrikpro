@@ -5,8 +5,8 @@ import PipelineBar from '@/components/viz/pipeline-bar';
 import StatTile from '@/components/viz/stat-tile';
 import PriorityBadge from '@/components/work/priority-badge';
 import StageBadge from '@/components/work/stage-badge';
+import { useFormat } from '@/hooks/use-format';
 import AppLayout from '@/layouts/app-layout';
-import { relativeDue } from '@/lib/dates';
 import type { BreadcrumbItem, PipelineStage, ProjectSummary, SharedData, TaskSummary } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/react';
 import { AlertTriangle, ArrowRight, Building2, CalendarClock, FolderKanban, IdCard, ListChecks, Users } from 'lucide-react';
@@ -34,6 +34,7 @@ interface Props {
 
 export default function Dashboard({ stats, taskPipeline, myTasks, projects, managesPeople }: Props) {
     const { auth } = usePage<SharedData>().props;
+    const format = useFormat();
     const totalTasks = taskPipeline.reduce((sum, stage) => sum + stage.count, 0);
 
     return (
@@ -128,7 +129,7 @@ export default function Dashboard({ stats, taskPipeline, myTasks, projects, mana
                                             <span
                                                 className={`w-28 text-right text-xs ${task.is_overdue ? 'text-destructive font-medium' : 'text-muted-foreground'}`}
                                             >
-                                                {task.due_date ? relativeDue(task.due_date) : 'No due date'}
+                                                {task.due_date ? format.due(task.due_date) : 'No due date'}
                                             </span>
                                         </Link>
                                     </li>

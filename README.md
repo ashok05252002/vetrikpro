@@ -107,11 +107,51 @@ Admin and HR only:
 | `/admin/designations` | Job titles, optionally scoped to a department |
 | `/admin/projects` | Create projects, set an owner, choose members |
 
+Administrator only (stricter than the rest of `/admin` — HR is refused):
+
+| Path | Purpose |
+| --- | --- |
+| `/admin/settings` | Company name, logo, contact details, regional defaults |
+
+## Settings
+
+Organisation-wide settings live in a key/value `settings` table, read through a
+declared schema in `app/Support/Settings.php`. **That schema is the single source
+of truth** for a key's type, default and group — adding a setting means one entry
+there plus a field on the admin form. Unknown keys sent to `set()` are ignored, so
+a stray form field cannot create a phantom setting. Values are cached and the
+cache is flushed on write.
+
+**The company name is the one that shows up everywhere.** It drives the sidebar,
+the sign-in screen, and `config('app.name')` — so the browser tab title and the
+default mail "from" name follow it too, without touching `.env`. The provider that
+sets it is guarded on the table existing, so a fresh `migrate` still works.
+
+**The logo** is written to `public/uploads` on its own `uploads` disk, so no
+`storage:link` symlink stands between a deploy and the image. The **path is stored
+relative to the disk, never as a URL**, which would otherwise still name localhost
+after a move to a real domain. Replacing or removing a logo deletes the old file.
+
+**Regional settings are display-only, on purpose.** `display.timezone` deliberately
+does *not* touch `config('app.timezone')`: timestamps are stored in the app
+timezone, so changing it would silently reinterpret every row already written.
+Timezone, date format and currency affect rendering and nothing else, applied
+through the `useFormat()` hook.
+
+| Group | Keys |
+| --- | --- |
+| Company | `company.name` (required), `company.legal_name`, `company.tax_id` |
+| Contact | `company.email`, `company.phone`, `company.website`, `company.address` — stored, not yet rendered anywhere |
+| Branding | `company.logo` |
+| Regional | `display.timezone`, `display.date_format`, `display.currency` |
+
 ## Authorization
 
 Two mechanisms, deliberately:
 
-- **Middleware** (`manages-people`) gates the whole `/admin` prefix to admin and HR.
+- **Middleware** (`manages-people`) gates the whole `/admin` prefix to admin and
+  HR; a second alias (`admin`) gates `/admin/settings` to administrators alone,
+  since the company's own identity is not HR's to change.
 - **Policies** (`ProjectPolicy`, `TaskPolicy`) scope project and task access per
   record, so an employee sees only their own projects. `TaskPolicy::move` is
   deliberately looser than `update`: whoever a task is assigned to may advance
@@ -123,8 +163,10 @@ Two mechanisms, deliberately:
 php artisan test
 ```
 
-81 tests covering auth, authorization, CRUD, validation, board mechanics
-(column moves, position reindexing, `completed_at`) and the relational cascades.
+97 tests covering auth, authorization, CRUD, validation, board mechanics
+(column moves, position reindexing, `completed_at`), settings (defaults, unknown-key
+rejection, logo replace/remove, the name reaching the browser title) and the
+relational cascades.
 
 ## Quality
 

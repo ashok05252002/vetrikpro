@@ -7,7 +7,9 @@ use App\Models\Department;
 use App\Models\Designation;
 use App\Models\Employee;
 use App\Models\User;
+use App\Support\Settings;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class DatabaseSeeder extends Seeder
 {
@@ -104,6 +106,19 @@ class DatabaseSeeder extends Seeder
                 'status' => 'active',
             ],
         );
+
+        // Organisation settings. Only written if nothing is stored yet, so a
+        // reseed never overwrites a name someone has actually set.
+        $settings = app(Settings::class);
+
+        if (DB::table('settings')->doesntExist()) {
+            $settings->set([
+                'company.name' => 'Vetrik Private Limited',
+                'display.timezone' => 'Asia/Kolkata',
+                'display.date_format' => 'dmy',
+                'display.currency' => 'INR',
+            ]);
+        }
 
         $this->call(WorkSeeder::class);
     }

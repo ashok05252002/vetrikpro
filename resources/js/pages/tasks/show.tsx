@@ -9,8 +9,8 @@ import PriorityBadge from '@/components/work/priority-badge';
 import StageBadge from '@/components/work/stage-badge';
 import TaskDialog from '@/components/work/task-dialog';
 import UserAvatar from '@/components/work/user-avatar';
+import { useFormat } from '@/hooks/use-format';
 import AppLayout from '@/layouts/app-layout';
-import { formatDateTime, relativeDue } from '@/lib/dates';
 import { cn } from '@/lib/utils';
 import type { BreadcrumbItem, Option, TaskDetail, User } from '@/types';
 import { Head, Link, router, useForm } from '@inertiajs/react';
@@ -35,6 +35,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 export default function ShowTask({ task, statuses, priorities, assignees, can }: Props) {
+    const format = useFormat();
     const [editing, setEditing] = useState(false);
 
     const { data, setData, post, processing, errors, reset } = useForm({ body: '' });
@@ -125,7 +126,7 @@ export default function ShowTask({ task, statuses, priorities, assignees, can }:
                                             <div className="min-w-0 flex-1 space-y-1">
                                                 <p className="flex flex-wrap items-baseline gap-x-2">
                                                     <span className="text-sm font-medium">{entry.user.name}</span>
-                                                    <span className="text-muted-foreground text-xs">{formatDateTime(entry.created_at)}</span>
+                                                    <span className="text-muted-foreground text-xs">{format.dateTime(entry.created_at)}</span>
                                                 </p>
                                                 <p className="text-sm whitespace-pre-wrap">{entry.body}</p>
                                             </div>
@@ -186,12 +187,12 @@ export default function ShowTask({ task, statuses, priorities, assignees, can }:
                                 </Field>
 
                                 <Field label="Due">
-                                    <span className={cn(task.is_overdue && 'text-destructive font-medium')}>{relativeDue(task.due_date)}</span>
+                                    <span className={cn(task.is_overdue && 'text-destructive font-medium')}>{format.due(task.due_date)}</span>
                                 </Field>
 
                                 <Field label="Created by">{task.creator?.name ?? '—'}</Field>
 
-                                {task.completed_at && <Field label="Completed">{formatDateTime(task.completed_at)}</Field>}
+                                {task.completed_at && <Field label="Completed">{format.dateTime(task.completed_at)}</Field>}
                             </dl>
                         </CardContent>
                     </Card>
