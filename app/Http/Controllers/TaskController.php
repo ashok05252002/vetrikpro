@@ -8,9 +8,11 @@ use App\Http\Requests\TaskRequest;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
+use App\Services\BoardOrdering;
+use App\Support\ProjectPeople;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -43,7 +45,8 @@ class TaskController extends Controller
             ->paginate(15)
             ->withQueryString()
             ->through(fn (Task $task) => [
-                ...$task->only('id', 'title', 'status', 'priority', 'due_date'),
+                ...$task->only('id', 'number', 'title', 'status', 'priority', 'due_date'),
+                'reference' => $task->reference(),
                 'project' => $task->project?->only('id', 'name', 'code'),
                 'assignee' => $task->assignee?->only('id', 'name'),
                 'comments_count' => $task->comments_count,
@@ -76,7 +79,8 @@ class TaskController extends Controller
 
         return Inertia::render('tasks/show', [
             'task' => [
-                ...$task->only('id', 'project_id', 'title', 'description', 'status', 'priority', 'due_date', 'completed_at'),
+                ...$task->only('id', 'project_id', 'number', 'title', 'description', 'status', 'priority', 'due_date', 'completed_at'),
+                'reference' => $task->reference(),
                 'project' => $task->project?->only('id', 'name', 'code'),
                 'assignee' => $task->assignee?->only('id', 'name'),
                 'creator' => $task->creator?->only('id', 'name'),
@@ -90,7 +94,7 @@ class TaskController extends Controller
             ],
             'statuses' => TaskStatus::options(),
             'priorities' => TaskPriority::options(),
-            'assignees' => $this->assigneesFor($task->project),
+            'assignees' => $task->project ? ProjectPeople::assignable($task->project) : [],
             'can' => [
                 'update' => $request->user()->can('update', $task),
                 'delete' => $request->user()->can('delete', $task),
@@ -106,8 +110,12 @@ class TaskController extends Controller
         $this->authorize('create', $task);
 
         $task->created_by = $request->user()->id;
-        $task->position = Task::nextPosition($task->project_id, $task->status);
-        $task->save();
+
+        // In a transaction so the per-project number is allocated under lock.
+        DB::transaction(function () use ($task) {
+            $task->position = BoardOrdering::nextPosition($task, $task->status);
+            $task->save();
+        });
 
         return back()->with('success', "Task “{$task->title}” created.");
     }
@@ -133,24 +141,7 @@ class TaskController extends Controller
             'position' => ['required', 'integer', 'min:0'],
         ]);
 
-        $status = TaskStatus::from($data['status']);
-
-        // Reindex the destination column so positions stay dense and stable.
-        $siblings = Task::where('project_id', $task->project_id)
-            ->where('status', $status)
-            ->whereKeyNot($task->id)
-            ->orderBy('position')
-            ->pluck('id')
-            ->all();
-
-        array_splice($siblings, min($data['position'], count($siblings)), 0, [$task->id]);
-
-        foreach ($siblings as $index => $id) {
-            Task::whereKey($id)->update(['position' => $index]);
-        }
-
-        // Go through the model so completed_at stays in step with the column.
-        $task->update(['status' => $status, 'position' => array_search($task->id, $siblings, true)]);
+        BoardOrdering::place($task, TaskStatus::from($data['status']), $data['position']);
 
         return back();
     }
@@ -164,23 +155,5 @@ class TaskController extends Controller
         $task->delete();
 
         return to_route('projects.show', $project)->with('success', "Task “{$title}” deleted.");
-    }
-
-    /**
-     * @return Collection<int, array<string, mixed>>
-     */
-    private function assigneesFor(?Project $project)
-    {
-        if ($project === null) {
-            return collect();
-        }
-
-        return $project->members()
-            ->get(['users.id', 'users.name'])
-            ->push($project->owner)
-            ->filter()
-            ->unique('id')
-            ->map->only('id', 'name')
-            ->values();
     }
 }

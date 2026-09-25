@@ -76,7 +76,10 @@ export default function ShowTask({ task, statuses, priorities, assignees, can }:
                             )}
                             {task.is_overdue && <Badge variant="destructive">Overdue</Badge>}
                         </div>
-                        <h1 className="text-xl font-semibold tracking-tight">{task.title}</h1>
+                        <h1 className="text-xl font-semibold tracking-tight">
+                            {task.reference && <span className="text-muted-foreground mr-2 font-mono text-base font-normal">{task.reference}</span>}
+                            {task.title}
+                        </h1>
                     </div>
 
                     {(can.update || can.delete) && (

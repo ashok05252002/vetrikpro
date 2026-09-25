@@ -144,6 +144,9 @@ export interface ProjectSummary {
 
 export interface TaskSummary {
     id: number;
+    /** Per-project number; `reference` is the display form, e.g. "T-12". */
+    number?: number;
+    reference?: string;
     title: string;
     status: TaskStatus;
     priority: TaskPriority;
@@ -171,10 +174,11 @@ export interface TaskDetail extends TaskSummary {
     comments: TaskComment[];
 }
 
-export interface BoardColumn {
-    value: TaskStatus;
+/** One column of a Kanban board: a status and the cards in it, in order. */
+export interface BoardColumn<S extends string = TaskStatus, T = TaskSummary> {
+    value: S;
     label: string;
-    tasks: TaskSummary[];
+    items: T[];
 }
 
 /** One workflow stage and how many tasks sit in it. */
@@ -258,4 +262,31 @@ export interface EmployeeDocument {
     is_expired: boolean;
     uploaded_by: string | null;
     uploaded_at: string;
+}
+
+export type TestPointStatus = 'to_test' | 'testing' | 'passed' | 'failed';
+
+export interface TestPointSummary {
+    id: number;
+    project_id: number;
+    number: number;
+    reference: string;
+    title: string;
+    status: TestPointStatus;
+    priority: TaskPriority;
+    position?: number;
+    assignee?: Pick<User, 'id' | 'name'> | null;
+    task?: { id: number; reference: string; title: string } | null;
+    last_tested_at: string | null;
+}
+
+export interface TestPointDetail extends TestPointSummary {
+    steps: string | null;
+    expected_result: string | null;
+    actual_result: string | null;
+    assigned_to: number | null;
+    task_id: number | null;
+    created_at: string;
+    creator?: Pick<User, 'id' | 'name'> | null;
+    last_tester?: Pick<User, 'id' | 'name'> | null;
 }

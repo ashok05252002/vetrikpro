@@ -1,152 +1,140 @@
+import FilterBar from '@/components/admin/filter-bar';
+import Pagination from '@/components/admin/pagination';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { stageColor } from '@/components/work/stage-badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import KanbanBoard from '@/components/work/kanban-board';
+import PriorityBadge from '@/components/work/priority-badge';
+import StageBadge, { stageColor } from '@/components/work/stage-badge';
 import TaskCard from '@/components/work/task-card';
 import TaskDialog from '@/components/work/task-dialog';
+import UserAvatar from '@/components/work/user-avatar';
+import ViewToggle, { type WorkView } from '@/components/work/view-toggle';
+import { useFormat } from '@/hooks/use-format';
 import ProjectWorkspaceLayout from '@/layouts/project/workspace-layout';
-import { cn } from '@/lib/utils';
-import type { BoardColumn, Option, ProjectWorkspaceHeader, TaskStatus, TaskSummary, User } from '@/types';
-import {
-    DndContext,
-    DragOverlay,
-    KeyboardSensor,
-    PointerSensor,
-    closestCorners,
-    useDroppable,
-    useSensor,
-    useSensors,
-    type DragEndEvent,
-    type DragStartEvent,
-} from '@dnd-kit/core';
-import { SortableContext, arrayMove, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { router } from '@inertiajs/react';
+import type { BoardColumn, Option, Paginated, ProjectWorkspaceHeader, TaskStatus, TaskSummary, User } from '@/types';
+import { Link } from '@inertiajs/react';
 import { Plus } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useState } from 'react';
 
 interface Props {
     project: ProjectWorkspaceHeader;
-    columns: BoardColumn[];
+    view: WorkView;
+    columns?: BoardColumn<TaskStatus, TaskSummary>[];
+    list?: Paginated<TaskSummary>;
     statuses: Option[];
     priorities: Option[];
     assignees: Pick<User, 'id' | 'name'>[];
-    can: { createTask: boolean; updateProject: boolean };
+    filters: { search?: string; status?: string; priority?: string; assignee?: string };
+    can: { createTask: boolean };
 }
 
-/** A board column: a droppable area wrapping a vertical sortable list. */
-function Column({ column, canCreate, onAdd, children }: { column: BoardColumn; canCreate: boolean; onAdd: () => void; children: React.ReactNode }) {
-    const { setNodeRef, isOver } = useDroppable({ id: `column:${column.value}` });
+function TaskList({
+    list,
+    filters,
+    project,
+    statuses,
+    priorities,
+    assignees,
+}: {
+    list: Paginated<TaskSummary>;
+    filters: Props['filters'];
+    project: ProjectWorkspaceHeader;
+    statuses: Option[];
+    priorities: Option[];
+    assignees: Props['assignees'];
+}) {
+    const format = useFormat();
 
     return (
-        <section className="bg-muted/40 flex min-w-72 flex-1 flex-col rounded-xl">
-            <header className="flex items-center gap-2 px-3 pt-3 pb-2">
-                <span aria-hidden className="size-2.5 rounded-full" style={{ background: stageColor[column.value] }} />
-                <h2 className="text-sm font-medium">{column.label}</h2>
-                <span className="text-muted-foreground text-xs tabular-nums">{column.tasks.length}</span>
+        <>
+            <FilterBar
+                url={route('projects.show', project.id)}
+                filters={filters}
+                keep={{ view: 'list' }}
+                searchPlaceholder="Title or number, e.g. T-12…"
+                selects={[
+                    { name: 'status', placeholder: 'Any stage', options: statuses },
+                    { name: 'priority', placeholder: 'Any priority', options: priorities },
+                    { name: 'assignee', placeholder: 'Anyone', options: assignees.map((a) => ({ value: String(a.id), label: a.name })) },
+                ]}
+            />
 
-                {canCreate && (
-                    <Button variant="ghost" size="sm" className="ml-auto size-7 p-0" onClick={onAdd} aria-label={`Add task to ${column.label}`}>
-                        <Plus className="size-4" />
-                    </Button>
-                )}
-            </header>
-
-            <div ref={setNodeRef} className={cn('flex min-h-32 flex-1 flex-col gap-2 rounded-b-xl p-2 transition-colors', isOver && 'bg-muted')}>
-                {children}
-
-                {column.tasks.length === 0 && <p className="text-muted-foreground px-1 py-6 text-center text-xs">Nothing here.</p>}
+            <div className="rounded-xl border">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead className="w-20">#</TableHead>
+                            <TableHead>Task</TableHead>
+                            <TableHead>Stage</TableHead>
+                            <TableHead className="hidden sm:table-cell">Priority</TableHead>
+                            <TableHead className="hidden md:table-cell">Assignee</TableHead>
+                            <TableHead className="hidden lg:table-cell">Due</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {list.data.length === 0 && (
+                            <TableRow>
+                                <TableCell colSpan={6} className="text-muted-foreground py-10 text-center">
+                                    No tasks match.
+                                </TableCell>
+                            </TableRow>
+                        )}
+                        {list.data.map((task) => (
+                            <TableRow key={task.id}>
+                                <TableCell className="text-muted-foreground font-mono text-xs">{task.reference}</TableCell>
+                                <TableCell>
+                                    <Link href={route('tasks.show', task.id)} className="font-medium hover:underline">
+                                        {task.title}
+                                    </Link>
+                                </TableCell>
+                                <TableCell>
+                                    <StageBadge status={task.status} />
+                                </TableCell>
+                                <TableCell className="hidden sm:table-cell">
+                                    <PriorityBadge priority={task.priority} />
+                                </TableCell>
+                                <TableCell className="hidden md:table-cell">
+                                    {task.assignee ? (
+                                        <span className="flex items-center gap-2 text-sm">
+                                            <UserAvatar name={task.assignee.name} /> {task.assignee.name}
+                                        </span>
+                                    ) : (
+                                        <span className="text-muted-foreground">Unassigned</span>
+                                    )}
+                                </TableCell>
+                                <TableCell className="hidden lg:table-cell">
+                                    {task.due_date ? (
+                                        <span className={task.is_overdue ? 'text-destructive font-medium' : 'text-muted-foreground'}>
+                                            {format.date(task.due_date)}
+                                        </span>
+                                    ) : (
+                                        <span className="text-muted-foreground">—</span>
+                                    )}
+                                    {task.is_overdue && (
+                                        <Badge variant="destructive" className="ml-2">
+                                            Overdue
+                                        </Badge>
+                                    )}
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
             </div>
-        </section>
+
+            <Pagination meta={list} />
+        </>
     );
 }
 
-export default function Board({ project, columns: initialColumns, statuses, priorities, assignees, can }: Props) {
-    const [columns, setColumns] = useState(initialColumns);
-    const [activeTask, setActiveTask] = useState<TaskSummary | null>(null);
+export default function Board({ project, view, columns, list, statuses, priorities, assignees, filters, can }: Props) {
     const [dialogOpen, setDialogOpen] = useState(false);
     const [dialogStatus, setDialogStatus] = useState<string>('todo');
 
-    // Server is the source of truth: re-sync whenever Inertia sends new props.
-    useEffect(() => setColumns(initialColumns), [initialColumns]);
-
-    const sensors = useSensors(
-        // A small distance threshold keeps a click on the card from starting a drag.
-        useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
-    );
-
-    const taskIndex = useMemo(() => {
-        const map = new Map<number, { task: TaskSummary; status: TaskStatus }>();
-        columns.forEach((column) => column.tasks.forEach((task) => map.set(task.id, { task, status: column.value })));
-        return map;
-    }, [columns]);
-
-    const columnOf = (id: string | number): TaskStatus | null => {
-        if (typeof id === 'string' && id.startsWith('column:')) {
-            return id.slice('column:'.length) as TaskStatus;
-        }
-        return taskIndex.get(Number(id))?.status ?? null;
-    };
-
-    const handleDragStart = ({ active }: DragStartEvent) => {
-        setActiveTask(taskIndex.get(Number(active.id))?.task ?? null);
-    };
-
-    const handleDragEnd = ({ active, over }: DragEndEvent) => {
-        setActiveTask(null);
-
-        if (!over) {
-            return;
-        }
-
-        const from = columnOf(active.id);
-        const to = columnOf(over.id);
-
-        if (!from || !to) {
-            return;
-        }
-
-        const taskId = Number(active.id);
-        const source = columns.find((c) => c.value === from)!;
-        const target = columns.find((c) => c.value === to)!;
-        const task = source.tasks.find((t) => t.id === taskId)!;
-
-        // Dropping on the column itself appends; dropping on a card inserts there.
-        const overIndex = target.tasks.findIndex((t) => t.id === Number(over.id));
-        const position = overIndex === -1 ? target.tasks.length : overIndex;
-
-        if (from === to) {
-            const oldIndex = source.tasks.findIndex((t) => t.id === taskId);
-            if (oldIndex === position) {
-                return;
-            }
-
-            setColumns((current) => current.map((c) => (c.value === from ? { ...c, tasks: arrayMove(c.tasks, oldIndex, position) } : c)));
-        } else {
-            // Move optimistically so the card doesn't snap back while the request runs.
-            setColumns((current) =>
-                current.map((c) => {
-                    if (c.value === from) {
-                        return { ...c, tasks: c.tasks.filter((t) => t.id !== taskId) };
-                    }
-                    if (c.value === to) {
-                        const next = [...c.tasks];
-                        next.splice(position, 0, { ...task, status: to });
-                        return { ...c, tasks: next };
-                    }
-                    return c;
-                }),
-            );
-        }
-
-        router.patch(
-            route('tasks.move', taskId),
-            { status: to, position },
-            {
-                preserveScroll: true,
-                preserveState: true,
-                // On failure, the reload puts the server's truth back on screen.
-                onError: () => router.reload({ only: ['columns', 'project'] }),
-            },
-        );
+    const openNew = (status: string) => {
+        setDialogStatus(status);
+        setDialogOpen(true);
     };
 
     return (
@@ -155,47 +143,30 @@ export default function Board({ project, columns: initialColumns, statuses, prio
             tab="tasks"
             actions={
                 can.createTask && (
-                    <Button
-                        size="sm"
-                        onClick={() => {
-                            setDialogStatus('todo');
-                            setDialogOpen(true);
-                        }}
-                    >
+                    <Button size="sm" onClick={() => openNew('todo')}>
                         <Plus className="size-4" /> New task
                     </Button>
                 )
             }
         >
-            <DndContext
-                sensors={sensors}
-                collisionDetection={closestCorners}
-                onDragStart={handleDragStart}
-                onDragEnd={handleDragEnd}
-                onDragCancel={() => setActiveTask(null)}
-            >
-                <div className="flex flex-1 gap-4 overflow-x-auto pb-4">
-                    {columns.map((column) => (
-                        <Column
-                            key={column.value}
-                            column={column}
-                            canCreate={can.createTask}
-                            onAdd={() => {
-                                setDialogStatus(column.value);
-                                setDialogOpen(true);
-                            }}
-                        >
-                            <SortableContext items={column.tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
-                                {column.tasks.map((task) => (
-                                    <TaskCard key={task.id} task={task} />
-                                ))}
-                            </SortableContext>
-                        </Column>
-                    ))}
-                </div>
+            <div className="flex justify-end">
+                <ViewToggle url={route('projects.show', project.id)} view={view} />
+            </div>
 
-                <DragOverlay>{activeTask && <TaskCard task={activeTask} overlay draggable={false} />}</DragOverlay>
-            </DndContext>
+            {view === 'board' && columns && (
+                <KanbanBoard<TaskStatus, TaskSummary>
+                    columns={columns}
+                    moveUrl={(id) => route('tasks.move', id)}
+                    reloadOnError={['columns', 'project']}
+                    columnMark={(status) => <span aria-hidden className="size-2.5 rounded-full" style={{ background: stageColor[status] }} />}
+                    onAdd={can.createTask ? openNew : undefined}
+                    renderCard={(task, { overlay }) => <TaskCard task={task} overlay={overlay} draggable={!overlay} />}
+                />
+            )}
+
+            {view === 'list' && list && (
+                <TaskList list={list} filters={filters} project={project} statuses={statuses} priorities={priorities} assignees={assignees} />
+            )}
 
             <TaskDialog
                 open={dialogOpen}

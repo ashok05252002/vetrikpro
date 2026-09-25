@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
+use App\Models\Concerns\HasProjectNumber;
 use Database\Factories\TaskFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -14,7 +15,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Task extends Model
 {
     /** @use HasFactory<TaskFactory> */
-    use HasFactory;
+    use HasFactory, HasProjectNumber;
+
+    public const REFERENCE_PREFIX = 'T';
 
     protected $fillable = [
         'project_id',
@@ -65,6 +68,11 @@ class Task extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    public function testPoints(): HasMany
+    {
+        return $this->hasMany(TestPoint::class);
+    }
+
     public function comments(): HasMany
     {
         return $this->hasMany(TaskComment::class)->oldest();
@@ -82,15 +90,5 @@ class Task extends Model
         return $query->whereNotNull('due_date')
             ->where('due_date', '<', today())
             ->where('status', '!=', TaskStatus::Done);
-    }
-
-    /**
-     * Next position at the bottom of a board column.
-     */
-    public static function nextPosition(int $projectId, TaskStatus $status): int
-    {
-        return (int) static::where('project_id', $projectId)
-            ->where('status', $status)
-            ->max('position') + 1;
     }
 }

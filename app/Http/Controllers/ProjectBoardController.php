@@ -7,6 +7,8 @@ use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
 use App\Models\Project;
 use App\Models\Task;
+use App\Support\Cards;
+use App\Support\ProjectPeople;
 use App\Support\ProjectWorkspace;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -55,45 +57,50 @@ class ProjectBoardController extends Controller
     }
 
     /**
-     * The Kanban board for one project.
+     * The project's Tasks tab: the Kanban board, or the same tasks as a
+     * filterable, paginated list (?view=list).
      */
     public function show(Request $request, Project $project): Response
     {
         $this->authorize('view', $project);
 
-        $project->load(['owner:id,name', 'members:id,name,email']);
+        $view = $request->string('view')->value() === 'list' ? 'list' : 'board';
+        $base = $project->tasks()->with('assignee:id,name')->withCount('comments');
 
-        $tasks = $project->tasks()
-            ->with('assignee:id,name')
-            ->withCount('comments')
-            ->orderBy('position')
-            ->get()
-            ->map(fn (Task $task) => [
-                ...$task->only('id', 'title', 'status', 'priority', 'due_date', 'position'),
-                'assignee' => $task->assignee?->only('id', 'name'),
-                'comments_count' => $task->comments_count,
-                'is_overdue' => $task->isOverdue(),
-            ]);
+        $payload = $view === 'board'
+            ? [
+                // Grouped by column so the board renders without regrouping client-side.
+                'columns' => collect(TaskStatus::cases())->map(fn (TaskStatus $status) => [
+                    'value' => $status->value,
+                    'label' => $status->label(),
+                    'items' => (clone $base)->where('status', $status)->orderBy('position')->get()->map(fn (Task $t) => Cards::task($t))->values(),
+                ]),
+            ]
+            : [
+                'list' => (clone $base)
+                    ->when($request->string('search')->trim()->value(), function ($q, string $search) {
+                        $number = Task::parseReference($search);
+                        $q->where(fn ($w) => $w->where('title', 'like', "%{$search}%")->when($number, fn ($n) => $n->orWhere('number', $number)));
+                    })
+                    ->when($request->string('status')->value(), fn ($q, string $status) => $q->where('status', $status))
+                    ->when($request->string('priority')->value(), fn ($q, string $priority) => $q->where('priority', $priority))
+                    ->when($request->integer('assignee'), fn ($q, int $id) => $q->where('assigned_to', $id))
+                    ->orderBy('number')
+                    ->paginate(20)
+                    ->withQueryString()
+                    ->through(fn (Task $t) => Cards::task($t)),
+            ];
 
         return Inertia::render('projects/board', [
             'project' => ProjectWorkspace::header($project, $request->user()),
-            // Grouped by column so the board renders without regrouping client-side.
-            'columns' => collect(TaskStatus::cases())->map(fn (TaskStatus $status) => [
-                'value' => $status->value,
-                'label' => $status->label(),
-                'tasks' => $tasks->where('status', $status->value)->values(),
-            ]),
+            'view' => $view,
+            ...$payload,
             'statuses' => TaskStatus::options(),
             'priorities' => TaskPriority::options(),
-            'assignees' => $project->members
-                ->push($project->owner)
-                ->filter()
-                ->unique('id')
-                ->map->only('id', 'name')
-                ->values(),
+            'assignees' => ProjectPeople::assignable($project),
+            'filters' => $request->only('search', 'status', 'priority', 'assignee'),
             'can' => [
                 'createTask' => $request->user()->can('create', new Task(['project_id' => $project->id])),
-                'updateProject' => $request->user()->can('update', $project),
             ],
         ]);
     }

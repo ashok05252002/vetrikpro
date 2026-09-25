@@ -8,8 +8,10 @@ use App\Models\Project;
 use App\Models\Role;
 use App\Models\Task;
 use App\Models\TaskComment;
+use App\Models\TestPoint;
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Demo projects and tasks, so the board and dashboard have something to show
@@ -98,6 +100,33 @@ class WorkSeeder extends Seeder
                         'position' => $index,
                     ],
                 );
+            }
+        }
+
+        // A few testing points on the attendance project, across every column.
+        $attendance = Project::where('code', 'ATT')->first();
+
+        if ($attendance && $attendance->testPoints()->doesntExist()) {
+            $points = [
+                ['Check-in is refused outside office hours', 'passed'],
+                ['Late marks appear on the monthly report', 'failed'],
+                ['Manager sees the whole team for the day', 'testing'],
+                ['Regularisation request reaches the manager', 'to_test'],
+            ];
+
+            foreach ($points as $position => [$title, $status]) {
+                DB::transaction(fn () => TestPoint::create([
+                    'project_id' => $attendance->id,
+                    'task_id' => $attendance->tasks()->orderBy('number')->skip($position)->value('id'),
+                    'title' => $title,
+                    'steps' => "1. Sign in as an employee\n2. Open Attendance\n3. Try the action",
+                    'expected_result' => 'The app behaves as the requirement describes.',
+                    'status' => $status,
+                    'priority' => 'medium',
+                    'assigned_to' => $staff->first()?->id,
+                    'created_by' => $admin->id,
+                    'position' => 0,
+                ]));
             }
         }
 

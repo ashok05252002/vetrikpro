@@ -43,6 +43,7 @@ export default function TaskCard({ task, draggable = true, overlay = false }: Pr
                 )}
 
                 <Link href={route('tasks.show', task.id)} className="min-w-0 flex-1 text-sm font-medium hover:underline">
+                    {task.reference && <span className="text-muted-foreground mr-1.5 font-mono text-xs font-normal">{task.reference}</span>}
                     {task.title}
                 </Link>
             </div>

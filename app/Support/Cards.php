@@ -1,0 +1,42 @@
+<?php
+
+namespace App\Support;
+
+use App\Models\Task;
+use App\Models\TestPoint;
+
+/**
+ * The compact shape a task or test point takes on a board card, in a list row
+ * and wherever one is referenced (a merge request's linked work). One shape
+ * per kind, so every screen shows the same thing.
+ */
+final class Cards
+{
+    /**
+     * @return array<string, mixed>
+     */
+    public static function task(Task $task): array
+    {
+        return [
+            ...$task->only('id', 'project_id', 'number', 'title', 'status', 'priority', 'due_date', 'position'),
+            'reference' => $task->reference(),
+            'assignee' => $task->assignee?->only('id', 'name'),
+            'comments_count' => $task->comments_count ?? null,
+            'is_overdue' => $task->isOverdue(),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public static function testPoint(TestPoint $point): array
+    {
+        return [
+            ...$point->only('id', 'project_id', 'number', 'title', 'status', 'priority', 'position'),
+            'reference' => $point->reference(),
+            'assignee' => $point->assignee?->only('id', 'name'),
+            'task' => $point->task ? ['id' => $point->task->id, 'reference' => $point->task->reference(), 'title' => $point->task->title] : null,
+            'last_tested_at' => $point->last_tested_at,
+        ];
+    }
+}

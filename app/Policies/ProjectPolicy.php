@@ -17,9 +17,7 @@ class ProjectPolicy
 
     public function view(User $user, Project $project): bool
     {
-        return $user->can('projects.view_all')
-            || $project->owner_id === $user->id
-            || $project->hasMember($user);
+        return $project->isAccessibleBy($user);
     }
 
     public function create(User $user): bool

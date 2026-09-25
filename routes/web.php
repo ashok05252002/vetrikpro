@@ -3,6 +3,8 @@
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProjectBoardController;
 use App\Http\Controllers\Projects\ProjectMemberController;
+use App\Http\Controllers\Projects\ReferenceLookupController;
+use App\Http\Controllers\Projects\TestPointController;
 use App\Http\Controllers\TaskCommentController;
 use App\Http\Controllers\TaskController;
 use Illuminate\Support\Facades\Route;
@@ -31,6 +33,18 @@ Route::middleware(['auth'])->group(function () {
         Route::post('members', [ProjectMemberController::class, 'store'])->name('members.store');
         Route::patch('members/{user}', [ProjectMemberController::class, 'update'])->name('members.update');
         Route::delete('members/{user}', [ProjectMemberController::class, 'destroy'])->name('members.destroy');
+
+        Route::get('lookups/{kind}', ReferenceLookupController::class)->whereIn('kind', ['tasks', 'test-points'])->name('lookups');
+
+        // A test point is only ever reached through its own project.
+        Route::scopeBindings()->group(function () {
+            Route::get('testing', [TestPointController::class, 'index'])->name('testing.index');
+            Route::post('testing', [TestPointController::class, 'store'])->name('testing.store');
+            Route::get('testing/{testPoint}', [TestPointController::class, 'show'])->name('testing.show');
+            Route::put('testing/{testPoint}', [TestPointController::class, 'update'])->name('testing.update');
+            Route::patch('testing/{testPoint}/move', [TestPointController::class, 'move'])->name('testing.move');
+            Route::delete('testing/{testPoint}', [TestPointController::class, 'destroy'])->name('testing.destroy');
+        });
     });
 
     Route::get('tasks', [TaskController::class, 'index'])->name('tasks.index');

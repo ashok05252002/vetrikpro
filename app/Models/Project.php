@@ -58,6 +58,18 @@ class Project extends Model
         return $this->members()->whereKey($user->id)->exists();
     }
 
+    /**
+     * Whether someone may work in this project at all: see its boards, add and
+     * edit its tasks and test points. The single rule every project-scoped
+     * policy starts from.
+     */
+    public function isAccessibleBy(User $user): bool
+    {
+        return $user->can('projects.view_all')
+            || $this->owner_id === $user->id
+            || $this->hasMember($user);
+    }
+
     public function isDevAdmin(User $user): bool
     {
         return $this->devAdmins()->whereKey($user->id)->exists();
@@ -66,6 +78,11 @@ class Project extends Model
     public function tasks(): HasMany
     {
         return $this->hasMany(Task::class);
+    }
+
+    public function testPoints(): HasMany
+    {
+        return $this->hasMany(TestPoint::class);
     }
 
     /**

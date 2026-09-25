@@ -6,6 +6,7 @@ use App\Enums\TaskStatus;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
+use App\Services\BoardOrdering;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia;
 use Tests\TestCase;
@@ -59,7 +60,7 @@ class TaskTest extends TestCase
         $project = Project::factory()->create();
         Task::factory()->create(['project_id' => $project->id, 'status' => TaskStatus::Todo, 'position' => 0]);
 
-        $this->assertSame(1, Task::nextPosition($project->id, TaskStatus::Todo));
+        $this->assertSame(1, BoardOrdering::nextPosition(new Task(['project_id' => $project->id]), TaskStatus::Todo));
     }
 
     public function test_my_tasks_lists_only_your_own_by_default()

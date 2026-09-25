@@ -38,8 +38,8 @@ class TaskBoardTest extends TestCase
                 $page->component('projects/board');
 
                 $this->assertSame(['todo', 'in_progress', 'in_review', 'done'], $columns->pluck('value')->all());
-                $this->assertCount(2, $columns->firstWhere('value', 'todo')['tasks']);
-                $this->assertCount(1, $columns->firstWhere('value', 'done')['tasks']);
+                $this->assertCount(2, $columns->firstWhere('value', 'todo')['items']);
+                $this->assertCount(1, $columns->firstWhere('value', 'done')['items']);
             });
     }
 

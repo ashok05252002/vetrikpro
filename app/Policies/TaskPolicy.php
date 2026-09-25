@@ -46,20 +46,10 @@ class TaskPolicy
         return $user->can('projects.manage') || $task->project->owner_id === $user->id;
     }
 
-    /**
-     * Anyone who may work on every project reaches it; everyone else needs to
-     * own or belong to the project the task sits in.
-     */
     private function onProject(User $user, Task $task): bool
     {
         $project = $task->relationLoaded('project') ? $task->project : $task->project()->first();
 
-        if ($project === null) {
-            return $user->can('projects.view_all');
-        }
-
-        return $user->can('projects.view_all')
-            || $project->owner_id === $user->id
-            || $project->members()->whereKey($user->id)->exists();
+        return $project === null ? $user->can('projects.view_all') : $project->isAccessibleBy($user);
     }
 }
