@@ -3,22 +3,23 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import PriorityBadge from '@/components/work/priority-badge';
 import StageBadge from '@/components/work/stage-badge';
+import StatusHistory, { type StatusChangeRow } from '@/components/work/status-history';
 import TestPointDialog from '@/components/work/test-point-dialog';
 import TestStatusBadge from '@/components/work/test-status';
 import { useFormat } from '@/hooks/use-format';
 import ProjectWorkspaceLayout from '@/layouts/project/workspace-layout';
-import type { Option, ProjectWorkspaceHeader, TaskStatus, TestPointDetail, User } from '@/types';
+import type { Option, ProjectWorkspaceHeader, TaskStatus, TestPointDetail, TestPointStatus, User } from '@/types';
 import { Link } from '@inertiajs/react';
 import { Pencil } from 'lucide-react';
 import { useState } from 'react';
 
 interface Props {
     project: ProjectWorkspaceHeader;
-    point: TestPointDetail & { task: (TestPointDetail['task'] & { status?: TaskStatus }) | null };
+    point: TestPointDetail & { task: (TestPointDetail['task'] & { status?: TaskStatus }) | null; history: StatusChangeRow[] };
     statuses: Option[];
     priorities: Option[];
     assignees: Pick<User, 'id' | 'name'>[];
-    can: { update: boolean; delete: boolean };
+    can: { update: boolean; delete: boolean; changeStatus: boolean };
 }
 
 function Block({ title, text }: { title: string; text: string | null }) {
@@ -91,6 +92,15 @@ export default function TestPointPage({ project, point, statuses, priorities, as
                 <Block title="Expected result" text={point.expected_result} />
                 <Block title="Actual result" text={point.actual_result} />
             </div>
+
+            <Card>
+                <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">Status history</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <StatusHistory history={point.history} badge={(status) => <TestStatusBadge status={status as TestPointStatus} />} />
+                </CardContent>
+            </Card>
 
             <p className="text-muted-foreground text-xs">
                 Created {format.date(point.created_at)}

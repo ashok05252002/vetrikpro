@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Projects;
 use App\Enums\TaskPriority;
 use App\Enums\TestPointStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\TaskController;
 use App\Http\Requests\TestPointRequest;
 use App\Models\Project;
 use App\Models\TestPoint;
@@ -32,14 +33,15 @@ class TestPointController extends Controller
         $this->authorize('view', $project);
 
         $view = $request->string('view')->value() === 'list' ? 'list' : 'board';
-        $base = $project->testPoints()->with(['assignee:id,name', 'task:id,number,title']);
+        $base = $project->testPoints()->with(['assignee:id,name', 'task:id,number,title', 'project:id,owner_id']);
+        $viewer = $request->user();
 
         $payload = $view === 'board'
             ? [
                 'columns' => collect(TestPointStatus::cases())->map(fn (TestPointStatus $status) => [
                     'value' => $status->value,
                     'label' => $status->label(),
-                    'items' => (clone $base)->where('status', $status)->orderBy('position')->get()->map(fn ($p) => Cards::testPoint($p))->values(),
+                    'items' => (clone $base)->where('status', $status)->orderBy('position')->get()->map(fn ($p) => Cards::testPoint($p, $viewer))->values(),
                 ]),
             ]
             : [
@@ -47,7 +49,7 @@ class TestPointController extends Controller
                     ->orderBy('number')
                     ->paginate(20)
                     ->withQueryString()
-                    ->through(fn (TestPoint $p) => Cards::testPoint($p)),
+                    ->through(fn (TestPoint $p) => Cards::testPoint($p, $viewer)),
             ];
 
         return Inertia::render('projects/testing', [
@@ -73,7 +75,8 @@ class TestPointController extends Controller
         return Inertia::render('projects/test-point', [
             'project' => ProjectWorkspace::header($project, $request->user()),
             'point' => [
-                ...Cards::testPoint($testPoint),
+                ...Cards::testPoint($testPoint, $request->user()),
+                'history' => Cards::history($testPoint),
                 ...$testPoint->only('steps', 'expected_result', 'actual_result', 'assigned_to', 'task_id', 'created_at'),
                 'creator' => $testPoint->creator?->only('id', 'name'),
                 'last_tester' => $testPoint->lastTester?->only('id', 'name'),
@@ -83,6 +86,7 @@ class TestPointController extends Controller
             'assignees' => ProjectPeople::assignable($project),
             'can' => [
                 'update' => $request->user()->can('update', $testPoint),
+                'changeStatus' => $request->user()->can('move', $testPoint),
                 'delete' => $request->user()->can('delete', $testPoint),
             ],
         ]);
@@ -107,6 +111,7 @@ class TestPointController extends Controller
     public function update(TestPointRequest $request, Project $project, TestPoint $testPoint): RedirectResponse
     {
         $this->authorize('update', $testPoint);
+        TaskController::guardStatus($request->user(), $testPoint, $request->validated('status'));
 
         $testPoint->update($request->validated());
 

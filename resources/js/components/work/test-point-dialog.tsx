@@ -21,6 +21,8 @@ interface Props {
     assignees: Pick<User, 'id' | 'name'>[];
     point?: TestPointDetail | null;
     defaultStatus?: string;
+    /** False locks the status: only the creator, tester, owner or an admin may change it. */
+    canChangeStatus?: boolean;
 }
 
 export default function TestPointDialog({
@@ -32,6 +34,7 @@ export default function TestPointDialog({
     assignees,
     point = null,
     defaultStatus = 'to_test',
+    canChangeStatus = true,
 }: Props) {
     const editing = Boolean(point);
     const [task, setTask] = useState<Reference[]>([]);
@@ -153,7 +156,11 @@ export default function TestPointDialog({
                         <div className="grid gap-4 sm:grid-cols-3">
                             <div className="grid gap-2">
                                 <Label htmlFor="tp-status">Status</Label>
-                                <Select value={data.status} onValueChange={(value) => setData('status', value)}>
+                                <Select
+                                    value={data.status}
+                                    onValueChange={(value) => setData('status', value)}
+                                    disabled={Boolean(point) && !canChangeStatus}
+                                >
                                     <SelectTrigger id="tp-status">
                                         <SelectValue />
                                     </SelectTrigger>

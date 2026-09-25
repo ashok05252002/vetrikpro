@@ -65,7 +65,8 @@ class ProjectBoardController extends Controller
         $this->authorize('view', $project);
 
         $view = $request->string('view')->value() === 'list' ? 'list' : 'board';
-        $base = $project->tasks()->with('assignee:id,name')->withCount('comments');
+        $base = $project->tasks()->with(['assignee:id,name', 'project:id,owner_id'])->withCount('comments');
+        $viewer = $request->user();
 
         $payload = $view === 'board'
             ? [
@@ -73,7 +74,7 @@ class ProjectBoardController extends Controller
                 'columns' => collect(TaskStatus::cases())->map(fn (TaskStatus $status) => [
                     'value' => $status->value,
                     'label' => $status->label(),
-                    'items' => (clone $base)->where('status', $status)->orderBy('position')->get()->map(fn (Task $t) => Cards::task($t))->values(),
+                    'items' => (clone $base)->where('status', $status)->orderBy('position')->get()->map(fn (Task $t) => Cards::task($t, $viewer))->values(),
                 ]),
             ]
             : [
@@ -88,7 +89,7 @@ class ProjectBoardController extends Controller
                     ->orderBy('number')
                     ->paginate(20)
                     ->withQueryString()
-                    ->through(fn (Task $t) => Cards::task($t)),
+                    ->through(fn (Task $t) => Cards::task($t, $viewer)),
             ];
 
         return Inertia::render('projects/board', [

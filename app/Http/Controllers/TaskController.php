@@ -7,13 +7,16 @@ use App\Enums\TaskStatus;
 use App\Http\Requests\TaskRequest;
 use App\Models\Project;
 use App\Models\Task;
+use App\Models\TestPoint;
 use App\Models\User;
 use App\Services\BoardOrdering;
+use App\Support\Cards;
 use App\Support\ProjectPeople;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -84,6 +87,7 @@ class TaskController extends Controller
                 'project' => $task->project?->only('id', 'name', 'code'),
                 'assignee' => $task->assignee?->only('id', 'name'),
                 'creator' => $task->creator?->only('id', 'name'),
+                'history' => Cards::history($task),
                 'is_overdue' => $task->isOverdue(),
                 'created_at' => $task->created_at,
                 'comments' => $task->comments->map(fn ($comment) => [
@@ -97,6 +101,7 @@ class TaskController extends Controller
             'assignees' => $task->project ? ProjectPeople::assignable($task->project) : [],
             'can' => [
                 'update' => $request->user()->can('update', $task),
+                'changeStatus' => $request->user()->can('move', $task),
                 'delete' => $request->user()->can('delete', $task),
             ],
         ]);
@@ -123,6 +128,7 @@ class TaskController extends Controller
     public function update(TaskRequest $request, Task $task): RedirectResponse
     {
         $this->authorize('update', $task);
+        self::guardStatus($request->user(), $task, $request->validated('status'));
 
         $task->update($request->validated());
 
@@ -144,6 +150,23 @@ class TaskController extends Controller
         BoardOrdering::place($task, TaskStatus::from($data['status']), $data['position']);
 
         return back();
+    }
+
+    /**
+     * Editing the wording is open to project members; changing the status
+     * through the same form is not.
+     *
+     * @throws ValidationException
+     */
+    public static function guardStatus(User $user, Task|TestPoint $card, ?string $status): void
+    {
+        $current = $card->status instanceof \BackedEnum ? $card->status->value : $card->status;
+
+        if ($status !== null && $status !== $current && ! $card->statusChangeableBy($user)) {
+            throw ValidationException::withMessages([
+                'status' => 'Only the creator, the assignee, the project owner or an administrator can change the status.',
+            ]);
+        }
     }
 
     public function destroy(Task $task): RedirectResponse

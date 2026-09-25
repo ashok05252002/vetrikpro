@@ -68,7 +68,7 @@ class TaskBoardTest extends TestCase
 
         $a = Task::factory()->create(['project_id' => $project->id, 'status' => TaskStatus::Todo, 'position' => 0]);
         $b = Task::factory()->create(['project_id' => $project->id, 'status' => TaskStatus::Todo, 'position' => 1]);
-        $moving = Task::factory()->create(['project_id' => $project->id, 'status' => TaskStatus::InProgress, 'position' => 0]);
+        $moving = Task::factory()->create(['project_id' => $project->id, 'status' => TaskStatus::InProgress, 'position' => 0, 'assigned_to' => $member->id]);
 
         $this->actingAs($member)
             ->patch(route('tasks.move', $moving), ['status' => 'todo', 'position' => 1])
@@ -86,7 +86,7 @@ class TaskBoardTest extends TestCase
     {
         $member = User::factory()->create();
         $project = $this->projectWithMember($member);
-        $task = Task::factory()->create(['project_id' => $project->id, 'status' => TaskStatus::Todo]);
+        $task = Task::factory()->create(['project_id' => $project->id, 'status' => TaskStatus::Todo, 'assigned_to' => $member->id]);
 
         $this->actingAs($member)->patch(route('tasks.move', $task), ['status' => 'done', 'position' => 0]);
 
@@ -97,7 +97,7 @@ class TaskBoardTest extends TestCase
     {
         $member = User::factory()->create();
         $project = $this->projectWithMember($member);
-        $task = Task::factory()->done()->create(['project_id' => $project->id]);
+        $task = Task::factory()->done()->create(['project_id' => $project->id, 'assigned_to' => $member->id]);
 
         $this->actingAs($member)->patch(route('tasks.move', $task), ['status' => 'in_review', 'position' => 0]);
 
@@ -130,7 +130,7 @@ class TaskBoardTest extends TestCase
     {
         $member = User::factory()->create();
         $project = $this->projectWithMember($member);
-        $task = Task::factory()->create(['project_id' => $project->id]);
+        $task = Task::factory()->create(['project_id' => $project->id, 'assigned_to' => $member->id]);
 
         $this->actingAs($member)
             ->patch(route('tasks.move', $task), ['status' => 'shipped', 'position' => 0])

@@ -28,12 +28,14 @@ class TaskPolicy
     }
 
     /**
-     * Moving a card between board columns is deliberately looser than a full
-     * edit: whoever the task is assigned to may advance their own work.
+     * Changing the status — dragging on the board or picking it in the edit
+     * dialog — is for the task's creator, its assignee, the project owner and
+     * administrators only. Other members can see and edit the wording, but
+     * not move the work along.
      */
     public function move(User $user, Task $task): bool
     {
-        return $this->update($user, $task) || $task->assigned_to === $user->id;
+        return $task->statusChangeableBy($user);
     }
 
     public function comment(User $user, Task $task): bool

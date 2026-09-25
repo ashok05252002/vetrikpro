@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\TaskPriority;
 use App\Enums\TestPointStatus;
 use App\Models\Concerns\HasProjectNumber;
+use App\Models\Concerns\HasStatusWorkflow;
 use Database\Factories\TestPointFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -13,7 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class TestPoint extends Model
 {
     /** @use HasFactory<TestPointFactory> */
-    use HasFactory, HasProjectNumber;
+    use HasFactory, HasProjectNumber, HasStatusWorkflow;
 
     public const REFERENCE_PREFIX = 'TP';
 

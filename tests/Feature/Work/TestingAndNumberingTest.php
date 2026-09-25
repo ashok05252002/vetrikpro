@@ -146,7 +146,7 @@ class TestingAndNumberingTest extends TestCase
     {
         $project = Project::factory()->create();
         $tester = $this->memberOf($project);
-        $point = TestPoint::factory()->create(['project_id' => $project->id]);
+        $point = TestPoint::factory()->create(['project_id' => $project->id, 'assigned_to' => $tester->id]);
 
         $this->actingAs($tester)
             ->patch(route('projects.testing.move', [$project, $point]), ['status' => 'passed', 'position' => 0]);
@@ -161,7 +161,7 @@ class TestingAndNumberingTest extends TestCase
     {
         $project = Project::factory()->create();
         $tester = $this->memberOf($project);
-        $point = TestPoint::factory()->create(['project_id' => $project->id]);
+        $point = TestPoint::factory()->create(['project_id' => $project->id, 'assigned_to' => $tester->id]);
 
         $this->actingAs($tester)->patch(route('projects.testing.move', [$project, $point]), ['status' => 'failed', 'position' => 0]);
         $this->actingAs($tester)->patch(route('projects.testing.move', [$project, $point]), ['status' => 'testing', 'position' => 0]);
@@ -173,7 +173,7 @@ class TestingAndNumberingTest extends TestCase
     {
         $project = Project::factory()->create();
         $member = $this->memberOf($project);
-        $points = collect(range(0, 2))->map(fn ($i) => TestPoint::factory()->create(['project_id' => $project->id, 'position' => $i]));
+        $points = collect(range(0, 2))->map(fn ($i) => TestPoint::factory()->create(['project_id' => $project->id, 'position' => $i, 'assigned_to' => $member->id]));
 
         $this->actingAs($member)->patch(route('projects.testing.move', [$project, $points[2]]), ['status' => 'to_test', 'position' => 0]);
 

@@ -175,6 +175,8 @@ export interface TaskSummary {
     assignee?: Pick<User, 'id' | 'name'> | null;
     comments_count?: number;
     is_overdue?: boolean;
+    /** Whether the viewer may change the status (creator, assignee, project owner, admin). */
+    can_move?: boolean;
 }
 
 export interface TaskComment {
@@ -307,6 +309,7 @@ export interface TestPointSummary {
     assignee?: Pick<User, 'id' | 'name'> | null;
     task?: { id: number; reference: string; title: string } | null;
     last_tested_at: string | null;
+    can_move?: boolean;
 }
 
 export interface TestPointDetail extends TestPointSummary {

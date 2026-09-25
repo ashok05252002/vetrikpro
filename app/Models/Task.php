@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
 use App\Models\Concerns\HasProjectNumber;
+use App\Models\Concerns\HasStatusWorkflow;
 use Database\Factories\TaskFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -15,7 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Task extends Model
 {
     /** @use HasFactory<TaskFactory> */
-    use HasFactory, HasProjectNumber;
+    use HasFactory, HasProjectNumber, HasStatusWorkflow;
 
     public const REFERENCE_PREFIX = 'T';
 

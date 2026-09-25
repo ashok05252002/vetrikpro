@@ -26,9 +26,13 @@ class TestPointPolicy
         return $point->project->isAccessibleBy($user);
     }
 
+    /**
+     * Same rule as tasks: the creator, the assigned tester, the project owner
+     * and administrators change the status; nobody else.
+     */
     public function move(User $user, TestPoint $point): bool
     {
-        return $this->update($user, $point) || $point->assigned_to === $user->id;
+        return $point->statusChangeableBy($user);
     }
 
     public function delete(User $user, TestPoint $point): bool

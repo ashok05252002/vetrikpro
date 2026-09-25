@@ -188,7 +188,9 @@ export default function Testing({ project, view, columns, list, summary, statuse
                     reloadOnError={['columns', 'summary']}
                     columnMark={(status) => <TestStatusMark status={status} />}
                     onAdd={can.create ? openNew : undefined}
-                    renderCard={(point, { overlay }) => <TestPointCard point={point} overlay={overlay} draggable={!overlay} />}
+                    renderCard={(point, { overlay }) => (
+                        <TestPointCard point={point} overlay={overlay} draggable={!overlay && Boolean(point.can_move)} />
+                    )}
                 />
             )}
 

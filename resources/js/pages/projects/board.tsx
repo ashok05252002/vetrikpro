@@ -160,7 +160,7 @@ export default function Board({ project, view, columns, list, statuses, prioriti
                     reloadOnError={['columns', 'project']}
                     columnMark={(status) => <span aria-hidden className="size-2.5 rounded-full" style={{ background: stageColor[status] }} />}
                     onAdd={can.createTask ? openNew : undefined}
-                    renderCard={(task, { overlay }) => <TaskCard task={task} overlay={overlay} draggable={!overlay} />}
+                    renderCard={(task, { overlay }) => <TaskCard task={task} overlay={overlay} draggable={!overlay && Boolean(task.can_move)} />}
                 />
             )}
 

@@ -22,9 +22,21 @@ interface Props {
     task?: TaskDetail | null;
     /** Pre-selected column when opened from a board column's "+" button. */
     defaultStatus?: string;
+    /** False locks the stage: only the creator, assignee, owner or an admin may change it. */
+    canChangeStatus?: boolean;
 }
 
-export default function TaskDialog({ open, onOpenChange, projectId, statuses, priorities, assignees, task = null, defaultStatus = 'todo' }: Props) {
+export default function TaskDialog({
+    open,
+    onOpenChange,
+    projectId,
+    statuses,
+    priorities,
+    assignees,
+    task = null,
+    defaultStatus = 'todo',
+    canChangeStatus = true,
+}: Props) {
     const editing = Boolean(task);
 
     const { data, setData, post, put, processing, errors, reset, clearErrors, transform } = useForm({
@@ -115,7 +127,11 @@ export default function TaskDialog({ open, onOpenChange, projectId, statuses, pr
                         <div className="grid gap-4 sm:grid-cols-2">
                             <div className="grid gap-2">
                                 <Label htmlFor="status">Stage</Label>
-                                <Select value={data.status} onValueChange={(value) => setData('status', value)}>
+                                <Select
+                                    value={data.status}
+                                    onValueChange={(value) => setData('status', value)}
+                                    disabled={Boolean(task) && !canChangeStatus}
+                                >
                                     <SelectTrigger id="status">
                                         <SelectValue />
                                     </SelectTrigger>
@@ -128,6 +144,11 @@ export default function TaskDialog({ open, onOpenChange, projectId, statuses, pr
                                     </SelectContent>
                                 </Select>
                                 <InputError message={errors.status} />
+                                {task && !canChangeStatus && (
+                                    <p className="text-muted-foreground text-xs">
+                                        Only the creator, assignee, project owner or an admin can change this.
+                                    </p>
+                                )}
                             </div>
 
                             <div className="grid gap-2">

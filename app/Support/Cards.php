@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\Task;
 use App\Models\TestPoint;
+use App\Models\User;
 
 /**
  * The compact shape a task or test point takes on a board card, in a list row
@@ -13,11 +14,27 @@ use App\Models\TestPoint;
 final class Cards
 {
     /**
+     * A status history, oldest first, as the task and testing pages show it.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public static function history(Task|TestPoint $card): array
+    {
+        return $card->statusChanges()->with('user:id,name')->get()
+            ->map(fn ($change) => [
+                ...$change->only('id', 'from_status', 'to_status', 'created_at'),
+                'user' => $change->user?->only('id', 'name'),
+            ])
+            ->all();
+    }
+
+    /**
      * @return array<string, mixed>
      */
-    public static function task(Task $task): array
+    public static function task(Task $task, ?User $viewer = null): array
     {
         return [
+            'can_move' => $viewer !== null && $task->statusChangeableBy($viewer),
             ...$task->only('id', 'project_id', 'number', 'title', 'status', 'priority', 'due_date', 'position'),
             'reference' => $task->reference(),
             'assignee' => $task->assignee?->only('id', 'name'),
@@ -29,9 +46,10 @@ final class Cards
     /**
      * @return array<string, mixed>
      */
-    public static function testPoint(TestPoint $point): array
+    public static function testPoint(TestPoint $point, ?User $viewer = null): array
     {
         return [
+            'can_move' => $viewer !== null && $point->statusChangeableBy($viewer),
             ...$point->only('id', 'project_id', 'number', 'title', 'status', 'priority', 'position'),
             'reference' => $point->reference(),
             'assignee' => $point->assignee?->only('id', 'name'),

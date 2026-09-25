@@ -7,22 +7,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import PriorityBadge from '@/components/work/priority-badge';
 import StageBadge from '@/components/work/stage-badge';
+import type { StatusChangeRow } from '@/components/work/status-history';
+import StatusHistory from '@/components/work/status-history';
 import TaskDialog from '@/components/work/task-dialog';
 import UserAvatar from '@/components/work/user-avatar';
 import { useFormat } from '@/hooks/use-format';
 import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
-import type { BreadcrumbItem, Option, TaskDetail, User } from '@/types';
+import type { BreadcrumbItem, Option, TaskDetail, TaskStatus, User } from '@/types';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { Pencil } from 'lucide-react';
 import { FormEventHandler, useState } from 'react';
 
 interface Props {
-    task: TaskDetail;
+    task: TaskDetail & { history: StatusChangeRow[] };
     statuses: Option[];
     priorities: Option[];
     assignees: Pick<User, 'id' | 'name'>[];
-    can: { update: boolean; delete: boolean };
+    can: { update: boolean; delete: boolean; changeStatus: boolean };
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -153,52 +155,63 @@ export default function ShowTask({ task, statuses, priorities, assignees, can }:
                         </Card>
                     </div>
 
-                    <Card className="h-fit">
-                        <CardHeader>
-                            <CardTitle className="text-base">Details</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <dl className="space-y-5">
-                                <Field label="Stage">
-                                    {can.update ? (
-                                        <Select value={task.status} onValueChange={changeStage}>
-                                            <SelectTrigger>
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {statuses.map((option) => (
-                                                    <SelectItem key={option.value} value={option.value}>
-                                                        {option.label}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    ) : (
-                                        <StageBadge status={task.status} />
-                                    )}
-                                </Field>
+                    <div className="space-y-4">
+                        <Card className="h-fit">
+                            <CardHeader>
+                                <CardTitle className="text-base">Details</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <dl className="space-y-5">
+                                    <Field label="Stage">
+                                        {can.changeStatus ? (
+                                            <Select value={task.status} onValueChange={changeStage}>
+                                                <SelectTrigger>
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {statuses.map((option) => (
+                                                        <SelectItem key={option.value} value={option.value}>
+                                                            {option.label}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        ) : (
+                                            <StageBadge status={task.status} />
+                                        )}
+                                    </Field>
 
-                                <Field label="Priority">
-                                    <PriorityBadge priority={task.priority} />
-                                </Field>
+                                    <Field label="Priority">
+                                        <PriorityBadge priority={task.priority} />
+                                    </Field>
 
-                                <Field label="Assignee">
-                                    <span className="flex items-center gap-2">
-                                        <UserAvatar name={task.assignee?.name} className="size-5" />
-                                        {task.assignee?.name ?? 'Unassigned'}
-                                    </span>
-                                </Field>
+                                    <Field label="Assignee">
+                                        <span className="flex items-center gap-2">
+                                            <UserAvatar name={task.assignee?.name} className="size-5" />
+                                            {task.assignee?.name ?? 'Unassigned'}
+                                        </span>
+                                    </Field>
 
-                                <Field label="Due">
-                                    <span className={cn(task.is_overdue && 'text-destructive font-medium')}>{format.due(task.due_date)}</span>
-                                </Field>
+                                    <Field label="Due">
+                                        <span className={cn(task.is_overdue && 'text-destructive font-medium')}>{format.due(task.due_date)}</span>
+                                    </Field>
 
-                                <Field label="Created by">{task.creator?.name ?? '—'}</Field>
+                                    <Field label="Created by">{task.creator?.name ?? '—'}</Field>
 
-                                {task.completed_at && <Field label="Completed">{format.dateTime(task.completed_at)}</Field>}
-                            </dl>
-                        </CardContent>
-                    </Card>
+                                    {task.completed_at && <Field label="Completed">{format.dateTime(task.completed_at)}</Field>}
+                                </dl>
+                            </CardContent>
+                        </Card>
+
+                        <Card className="h-fit">
+                            <CardHeader>
+                                <CardTitle className="text-base">Status history</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <StatusHistory history={task.history} badge={(status) => <StageBadge status={status as TaskStatus} />} />
+                            </CardContent>
+                        </Card>
+                    </div>
                 </div>
             </div>
 
@@ -211,6 +224,7 @@ export default function ShowTask({ task, statuses, priorities, assignees, can }:
                     priorities={priorities}
                     assignees={assignees}
                     task={task}
+                    canChangeStatus={can.changeStatus}
                 />
             )}
         </AppLayout>
