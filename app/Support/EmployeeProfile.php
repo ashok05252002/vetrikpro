@@ -25,6 +25,8 @@ final class EmployeeProfile
             'name' => $user->name,
             'email' => $user->email,
             'is_active' => $user->is_active,
+            'deactivated_at' => $user->deactivated_at,
+            'deactivated_by' => $user->deactivated_by ? User::whereKey($user->deactivated_by)->value('name') : null,
             'user_id' => $user->id,
             'role' => $user->role?->only('id', 'name', 'is_super'),
             'department' => $employee->department?->name,
@@ -42,6 +44,7 @@ final class EmployeeProfile
                 // Changing someone's access needs roles.edit *and* holding
                 // everything they already hold.
                 'can_access' => $viewer->can('roles.edit') && $viewer->canGrant($user->permissions()),
+                'can_toggle_access' => $viewer->can('users.edit') && ! $viewer->is($user) && $viewer->canGrant($user->permissions()),
             ],
         ];
     }

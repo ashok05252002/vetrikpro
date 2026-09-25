@@ -33,6 +33,7 @@ Route::middleware(['auth'])
     ->name('admin.')
     ->group(function () use ($crud) {
         $crud(Route::resource('users', UserController::class)->except('show'), 'users');
+        Route::patch('users/{user}/status', [UserController::class, 'status'])->middleware('can:users.edit')->name('users.status');
         $crud(Route::resource('roles', RoleController::class)->except('show'), 'roles');
 
         $crud(Route::resource('departments', DepartmentController::class)->except('show'), 'departments');

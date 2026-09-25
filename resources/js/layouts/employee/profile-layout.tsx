@@ -1,8 +1,10 @@
+import AccessToggle from '@/components/admin/access-toggle';
 import PageHeader from '@/components/admin/page-header';
 import TabNav, { type TabLink } from '@/components/tab-nav';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import UserAvatar from '@/components/work/user-avatar';
+import { useFormat } from '@/hooks/use-format';
 import AppLayout from '@/layouts/app-layout';
 import { statusLabels } from '@/pages/admin/employees/labels';
 import type { BreadcrumbItem, EmployeeProfileHeader } from '@/types';
@@ -45,6 +47,7 @@ export default function EmployeeProfileLayout({
     actions?: ReactNode;
     children: ReactNode;
 }) {
+    const format = useFormat();
     const all = tabs(employee);
     const current = all.find((t) => t.key === tab) ?? all[0];
 
@@ -67,6 +70,9 @@ export default function EmployeeProfileLayout({
                     action={
                         <div className="flex flex-wrap items-center gap-2">
                             {actions}
+                            {employee.viewer.can_toggle_access && (
+                                <AccessToggle userId={employee.user_id} name={employee.name} active={employee.is_active} />
+                            )}
                             {employee.viewer.can_edit && (
                                 <Button asChild variant="outline" size="sm">
                                     <Link href={route('admin.employees.edit', employee.id)}>
@@ -85,7 +91,12 @@ export default function EmployeeProfileLayout({
                     </a>
                     <Badge variant={employee.status === 'active' ? 'default' : 'secondary'}>{statusLabels[employee.status] ?? employee.status}</Badge>
                     {employee.role && <Badge variant="outline">{employee.role.name}</Badge>}
-                    {!employee.is_active && <Badge variant="destructive">Login disabled</Badge>}
+                    {!employee.is_active && (
+                        <Badge variant="destructive">
+                            Deactivated{employee.deactivated_at && ` ${format.date(employee.deactivated_at)}`}
+                            {employee.deactivated_by && ` by ${employee.deactivated_by}`}
+                        </Badge>
+                    )}
                 </div>
 
                 <TabNav tabs={all} active={tab} label="Profile sections" />

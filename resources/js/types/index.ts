@@ -257,12 +257,21 @@ export interface EmployeeProfileHeader {
     name: string;
     email: string;
     is_active: boolean;
+    deactivated_at: string | null;
+    deactivated_by: string | null;
     user_id: number;
     role: Pick<Role, 'id' | 'name' | 'is_super'> | null;
     department: string | null;
     designation: string | null;
     counts: { documents: number | null; projects: number; open_tasks: number };
-    viewer: { can_edit: boolean; can_documents: boolean; can_upload: boolean; can_delete_documents: boolean; can_access: boolean };
+    viewer: {
+        can_edit: boolean;
+        can_documents: boolean;
+        can_upload: boolean;
+        can_delete_documents: boolean;
+        can_access: boolean;
+        can_toggle_access: boolean;
+    };
 }
 
 export interface EmployeeDocument {

@@ -1,3 +1,4 @@
+import AccessToggle from '@/components/admin/access-toggle';
 import DeleteButton from '@/components/admin/delete-button';
 import FilterBar from '@/components/admin/filter-bar';
 import PageHeader from '@/components/admin/page-header';
@@ -7,8 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
-import type { BreadcrumbItem, Option, Paginated, User } from '@/types';
-import { Head, Link } from '@inertiajs/react';
+import type { BreadcrumbItem, Option, Paginated, SharedData, User } from '@/types';
+import { Head, Link, usePage } from '@inertiajs/react';
 import { Pencil, Plus } from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -18,7 +19,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 const statusOptions: Option[] = [
     { value: 'active', label: 'Active' },
-    { value: 'disabled', label: 'Disabled' },
+    { value: 'disabled', label: 'Deactivated' },
 ];
 
 interface Props {
@@ -29,6 +30,7 @@ interface Props {
 
 export default function UsersIndex({ users, roles, filters }: Props) {
     const { can } = usePermission();
+    const { auth } = usePage<SharedData>().props;
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Users" />
@@ -97,11 +99,14 @@ export default function UsersIndex({ users, roles, filters }: Props) {
                                     <TableCell className="text-muted-foreground">{user.employee?.employee_code ?? '—'}</TableCell>
                                     <TableCell>
                                         <span className={user.is_active ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'}>
-                                            {user.is_active ? 'Active' : 'Disabled'}
+                                            {user.is_active ? 'Active' : 'Deactivated'}
                                         </span>
                                     </TableCell>
                                     <TableCell>
-                                        <div className="flex justify-end gap-1">
+                                        <div className="flex items-center justify-end gap-1">
+                                            {can('users.edit') && user.id !== auth.user.id && (
+                                                <AccessToggle userId={user.id} name={user.name} active={user.is_active} />
+                                            )}
                                             {can('users.edit') && (
                                                 <Button asChild variant="ghost" size="sm">
                                                     <Link href={route('admin.users.edit', user.id)}>

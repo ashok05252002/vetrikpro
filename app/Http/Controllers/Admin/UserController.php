@@ -92,6 +92,31 @@ class UserController extends Controller
         return to_route('admin.users.index')->with('success', 'User updated.');
     }
 
+    /**
+     * Switch someone's portal access on or off. Off ends their session on
+     * their next request (EnsureUserIsActive) and refuses future logins.
+     */
+    public function status(Request $request, User $user): RedirectResponse
+    {
+        $data = $request->validate(['is_active' => ['required', 'boolean']]);
+
+        if ($user->is($request->user())) {
+            return back()->with('error', 'You cannot deactivate your own account.');
+        }
+
+        abort_unless($request->user()->canGrant($user->permissions()), 403, 'This account has access you do not have.');
+
+        $active = (bool) $data['is_active'];
+
+        $user->forceFill([
+            'is_active' => $active,
+            'deactivated_at' => $active ? null : now(),
+            'deactivated_by' => $active ? null : $request->user()->id,
+        ])->save();
+
+        return back()->with('success', $active ? "{$user->name} can use the portal again." : "{$user->name} can no longer sign in.");
+    }
+
     public function destroy(Request $request, User $user): RedirectResponse
     {
         if ($user->is($request->user())) {
