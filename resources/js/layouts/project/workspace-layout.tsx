@@ -1,11 +1,11 @@
 import PageHeader from '@/components/admin/page-header';
+import TabNav, { type TabLink } from '@/components/tab-nav';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import Meter from '@/components/viz/meter';
 import { useFormat } from '@/hooks/use-format';
 import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
-import { cn } from '@/lib/utils';
 import type { BreadcrumbItem, ProjectWorkspaceHeader } from '@/types';
 import { Head, Link } from '@inertiajs/react';
 import { Settings2 } from 'lucide-react';
@@ -13,7 +13,7 @@ import type { ReactNode } from 'react';
 
 export type WorkspaceTab = 'tasks' | 'members';
 
-function tabs(projectId: number): { key: WorkspaceTab; label: string; href: string }[] {
+function tabs(projectId: number): TabLink<WorkspaceTab>[] {
     return [
         { key: 'tasks', label: 'Tasks', href: route('projects.show', projectId) },
         { key: 'members', label: 'Members', href: route('projects.members.index', projectId) },
@@ -89,27 +89,7 @@ export default function ProjectWorkspaceLayout({ project, tab, actions, crumbs =
                     <Meter value={project.progress} label={`${project.name} is ${project.progress}% complete`} />
                 </div>
 
-                <nav aria-label="Project sections" className="-mx-4 overflow-x-auto border-b px-4 md:-mx-6 md:px-6">
-                    <ul className="flex min-w-max gap-1">
-                        {all.map((t) => (
-                            <li key={t.key}>
-                                <Link
-                                    href={t.href}
-                                    preserveScroll
-                                    aria-current={t.key === tab ? 'page' : undefined}
-                                    className={cn(
-                                        '-mb-px inline-flex h-10 items-center border-b-2 px-3 text-sm transition-colors',
-                                        t.key === tab
-                                            ? 'border-foreground text-foreground font-medium'
-                                            : 'text-muted-foreground hover:text-foreground border-transparent',
-                                    )}
-                                >
-                                    {t.label}
-                                </Link>
-                            </li>
-                        ))}
-                    </ul>
-                </nav>
+                <TabNav tabs={all} active={tab} label="Project sections" />
 
                 {children}
             </div>

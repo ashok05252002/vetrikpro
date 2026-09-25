@@ -54,6 +54,13 @@ class User extends Authenticatable
         ];
     }
 
+    protected static function booted(): void
+    {
+        // Deleting an account cascades its employee record in the database,
+        // bypassing Employee's own hook, so its files are cleared from here.
+        static::deleting(fn (User $user) => $user->employee?->purgeDocumentFiles());
+    }
+
     public function employee(): HasOne
     {
         return $this->hasOne(Employee::class);

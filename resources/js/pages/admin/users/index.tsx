@@ -77,7 +77,15 @@ export default function UsersIndex({ users, roles, filters }: Props) {
 
                             {users.data.map((user) => (
                                 <TableRow key={user.id}>
-                                    <TableCell className="font-medium">{user.name}</TableCell>
+                                    <TableCell className="font-medium">
+                                        {user.employee ? (
+                                            <Link href={route('admin.employees.show', user.employee.id)} className="hover:underline">
+                                                {user.name}
+                                            </Link>
+                                        ) : (
+                                            user.name
+                                        )}
+                                    </TableCell>
                                     <TableCell className="text-muted-foreground">{user.email}</TableCell>
                                     <TableCell>
                                         {user.role ? <Badge variant={user.role.is_super ? 'default' : 'outline'}>{user.role.name}</Badge> : '—'}

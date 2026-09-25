@@ -6,6 +6,8 @@ use Database\Factories\EmployeeFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 
 class Employee extends Model
 {
@@ -36,9 +38,26 @@ class Employee extends Model
         ];
     }
 
+    protected static function booted(): void
+    {
+        // Document rows go by cascade, which fires no model events, so the
+        // files are removed here, once, for the whole folder.
+        static::deleted(fn (Employee $employee) => $employee->purgeDocumentFiles());
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function documents(): HasMany
+    {
+        return $this->hasMany(EmployeeDocument::class)->latest();
+    }
+
+    public function purgeDocumentFiles(): void
+    {
+        Storage::disk(EmployeeDocument::DISK)->deleteDirectory(EmployeeDocument::directoryFor($this->id));
     }
 
     public function department(): BelongsTo

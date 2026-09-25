@@ -8,6 +8,7 @@ use App\Models\Department;
 use App\Models\Designation;
 use App\Models\Employee;
 use App\Models\User;
+use App\Support\EmployeeProfile;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -53,12 +54,13 @@ class EmployeeController extends Controller
         return to_route('admin.employees.index')->with('success', 'Employee profile created.');
     }
 
-    public function show(Employee $employee): Response
+    public function show(Request $request, Employee $employee): Response
     {
         $employee->load(['user:id,name,email,role_id,is_active', 'department:id,name', 'designation:id,name']);
 
         return Inertia::render('admin/employees/show', [
             'employee' => $employee,
+            'profile' => EmployeeProfile::header($employee, $request->user()),
         ]);
     }
 

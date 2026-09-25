@@ -227,3 +227,35 @@ export interface ProjectMember extends DirectoryUser {
     joined_at: string | null;
     open_tasks_count: number;
 }
+
+/** Header for every staff-profile tab (App\Support\EmployeeProfile). */
+export interface EmployeeProfileHeader {
+    id: number;
+    employee_code: string;
+    status: string;
+    employment_type: string;
+    date_of_joining: string | null;
+    name: string;
+    email: string;
+    is_active: boolean;
+    user_id: number;
+    role: Pick<Role, 'id' | 'name' | 'is_super'> | null;
+    department: string | null;
+    designation: string | null;
+    counts: { documents: number | null; projects: number; open_tasks: number };
+    viewer: { can_edit: boolean; can_documents: boolean; can_access: boolean };
+}
+
+export interface EmployeeDocument {
+    id: number;
+    type: string;
+    type_label: string;
+    title: string;
+    original_name: string;
+    mime_type: string;
+    size: number;
+    expires_at: string | null;
+    is_expired: boolean;
+    uploaded_by: string | null;
+    uploaded_at: string;
+}

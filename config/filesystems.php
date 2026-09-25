@@ -37,6 +37,19 @@ return [
             'throw' => false,
         ],
 
+        /*
+         * Private files: employee documents, requirement documents. Outside
+         * public/ and with no serving route of its own, so the only way to a
+         * file is a controller action that checks permission first. Paths are
+         * stored relative to this disk.
+         */
+        'documents' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private/documents'),
+            'visibility' => 'private',
+            'throw' => true,
+        ],
+
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),
