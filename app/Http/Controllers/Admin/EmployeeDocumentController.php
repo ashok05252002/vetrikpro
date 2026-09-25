@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Enums\EmployeeDocumentType;
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Models\EmployeeDocument;
@@ -22,7 +21,7 @@ class EmployeeDocumentController extends Controller
     public function store(Request $request, Employee $employee): RedirectResponse
     {
         $data = $request->validate([
-            'type' => ['required', Rule::enum(EmployeeDocumentType::class)],
+            'document_type_id' => ['required', 'integer', Rule::exists('document_types', 'id')->where('is_active', true)],
             'title' => ['required', 'string', 'max:255'],
             'file' => Uploads::documentRule(),
             'expires_at' => ['nullable', 'date'],
@@ -33,7 +32,7 @@ class EmployeeDocumentController extends Controller
         $path = $file->store(EmployeeDocument::directoryFor($employee->id), EmployeeDocument::DISK);
 
         $employee->documents()->create([
-            'type' => $data['type'],
+            'document_type_id' => $data['document_type_id'],
             'title' => $data['title'],
             'file_path' => $path,
             ...Uploads::meta($file),

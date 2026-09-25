@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\Config\DocumentTypeController;
 use App\Http\Controllers\Admin\DepartmentController;
 use App\Http\Controllers\Admin\DesignationController;
 use App\Http\Controllers\Admin\EmployeeController;
@@ -63,6 +64,15 @@ Route::middleware(['auth'])
         $crud(Route::resource('projects', ProjectController::class)->except('show'), 'projects');
         // The owner picker is used while creating or editing a project; the controller checks either.
         Route::get('lookups/users', UserLookupController::class)->name('lookups.users');
+
+        // Configuration: organisation settings and the document checklist.
+        Route::prefix('config')->name('config.')->group(function () {
+            Route::get('document-types', [DocumentTypeController::class, 'index'])->middleware('can:document_types.view')->name('document-types.index');
+            Route::post('document-types', [DocumentTypeController::class, 'store'])->middleware('can:document_types.create')->name('document-types.store');
+            Route::post('document-types/reorder', [DocumentTypeController::class, 'reorder'])->middleware('can:document_types.edit')->name('document-types.reorder');
+            Route::put('document-types/{documentType}', [DocumentTypeController::class, 'update'])->middleware('can:document_types.edit')->name('document-types.update');
+            Route::delete('document-types/{documentType}', [DocumentTypeController::class, 'destroy'])->middleware('can:document_types.delete')->name('document-types.destroy');
+        });
 
         Route::get('settings', [SettingsController::class, 'edit'])->middleware('can:settings.view')->name('settings.edit');
         Route::post('settings', [SettingsController::class, 'update'])->middleware('can:settings.edit')->name('settings.update');

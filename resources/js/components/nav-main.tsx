@@ -14,7 +14,9 @@ export function NavMain({ items = [], label = 'Platform' }: { items: NavItem[]; 
                         {/* Keep the section highlighted on nested routes like /admin/users/create. */}
                         <SidebarMenuButton
                             asChild
-                            isActive={page.url === item.url || page.url.startsWith(`${item.url}/`) || page.url.startsWith(`${item.url}?`)}
+                            isActive={[item.url, ...(item.match ?? [])].some(
+                                (url) => page.url === url || page.url.startsWith(`${url}/`) || page.url.startsWith(`${url}?`),
+                            )}
                             tooltip={item.title}
                             // The active page is a brand-coloured pill, not a faint grey wash.
                             className="data-[active=true]:bg-sidebar-primary data-[active=true]:text-sidebar-primary-foreground data-[active=true]:shadow-sm"

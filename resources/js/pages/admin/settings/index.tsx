@@ -1,4 +1,3 @@
-import PageHeader from '@/components/admin/page-header';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,17 +5,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import AppLayout from '@/layouts/app-layout';
+import { usePermission } from '@/hooks/use-permission';
+import ConfigLayout from '@/layouts/config/config-layout';
 import { formatDate, formatMoney } from '@/lib/dates';
-import type { BreadcrumbItem, DateFormat, Option } from '@/types';
-import { Head, useForm } from '@inertiajs/react';
+import type { DateFormat, Option } from '@/types';
+import { useForm } from '@inertiajs/react';
 import { Building2, Upload, X } from 'lucide-react';
 import { FormEventHandler, useRef, useState } from 'react';
-
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Dashboard', href: '/dashboard' },
-    { title: 'Settings', href: '/admin/settings' },
-];
 
 interface SettingsValues {
     company_name: string;
@@ -78,26 +73,26 @@ export default function SettingsPage({ settings, logoUrl, timezones, dateFormats
         post(route('admin.settings.update'), { preserveScroll: true, forceFormData: true });
     };
 
+    const canEdit = usePermission().can('settings.edit');
     const shownLogo = preview ?? (data.remove_logo ? null : logoUrl);
 
     // Live preview of the regional choices, using today's date and a sample amount.
     const sample = { timezone: data.display_timezone, dateFormat: data.display_date_format, currency: data.display_currency };
 
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Settings" />
-
-            <form onSubmit={submit} className="flex flex-col gap-6 p-4 md:p-6">
-                <PageHeader
-                    title="Settings"
-                    description="Your organisation's name, branding and regional defaults. These apply to everyone."
-                    action={
+        <ConfigLayout tab="organisation">
+            <form onSubmit={submit} className="flex flex-col gap-6">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                    <p className="text-muted-foreground text-sm">Your organisation's name, branding and regional defaults.</p>
+                    {canEdit ? (
                         <div className="flex items-center gap-3">
                             {recentlySuccessful && <span className="text-muted-foreground text-sm">Saved</span>}
                             <Button disabled={processing}>Save settings</Button>
                         </div>
-                    }
-                />
+                    ) : (
+                        <span className="text-muted-foreground text-xs">View only — you can’t change these.</span>
+                    )}
+                </div>
 
                 <div className="grid max-w-5xl gap-6 lg:grid-cols-2">
                     <Card>
@@ -309,6 +304,6 @@ export default function SettingsPage({ settings, logoUrl, timezones, dateFormats
                     </Card>
                 </div>
             </form>
-        </AppLayout>
+        </ConfigLayout>
     );
 }

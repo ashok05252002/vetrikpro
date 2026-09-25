@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Enums\EmployeeDocumentType;
 use App\Enums\ProjectMemberRole;
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UpdateAccessRequest;
+use App\Models\DocumentType;
 use App\Models\Employee;
 use App\Models\EmployeeDocument;
 use App\Models\Project;
@@ -30,15 +30,15 @@ class EmployeeProfileController extends Controller
     public function documents(Request $request, Employee $employee): Response
     {
         $documents = $employee->documents()
-            ->with('uploader:id,name')
-            ->when($request->string('type')->value(), fn ($query, string $type) => $query->where('type', $type))
+            ->with(['uploader:id,name', 'type:id,name'])
+            ->when($request->integer('type'), fn ($query, int $type) => $query->where('document_type_id', $type))
             ->when($request->string('search')->trim()->value(), fn ($query, string $search) => $query
                 ->where(fn ($q) => $q->where('title', 'like', "%{$search}%")->orWhere('original_name', 'like', "%{$search}%")))
             ->paginate(15)
             ->withQueryString()
             ->through(fn (EmployeeDocument $document) => [
-                ...$document->only('id', 'type', 'title', 'original_name', 'mime_type', 'size', 'expires_at'),
-                'type_label' => $document->type->label(),
+                ...$document->only('id', 'document_type_id', 'title', 'original_name', 'mime_type', 'size', 'expires_at'),
+                'type_label' => $document->type?->name,
                 'is_expired' => $document->isExpired(),
                 'uploaded_by' => $document->uploader?->name,
                 'uploaded_at' => $document->created_at->toDateString(),
@@ -47,7 +47,7 @@ class EmployeeProfileController extends Controller
         return Inertia::render('admin/employees/documents', [
             'employee' => EmployeeProfile::header($employee, $request->user()),
             'documents' => $documents,
-            'types' => EmployeeDocumentType::options(),
+            'types' => DocumentType::options(),
             'filters' => $request->only('type', 'search'),
         ]);
     }

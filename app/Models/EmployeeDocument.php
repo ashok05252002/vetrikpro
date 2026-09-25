@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Enums\EmployeeDocumentType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Storage;
@@ -12,7 +11,7 @@ class EmployeeDocument extends Model
     public const DISK = 'documents';
 
     protected $fillable = [
-        'type',
+        'document_type_id',
         'title',
         'file_path',
         'original_name',
@@ -25,7 +24,6 @@ class EmployeeDocument extends Model
     protected function casts(): array
     {
         return [
-            'type' => EmployeeDocumentType::class,
             'expires_at' => 'date:Y-m-d',
             'size' => 'integer',
         ];
@@ -35,6 +33,11 @@ class EmployeeDocument extends Model
     {
         // The row and the file go together.
         static::deleted(fn (EmployeeDocument $document) => Storage::disk(self::DISK)->delete($document->file_path));
+    }
+
+    public function type(): BelongsTo
+    {
+        return $this->belongsTo(DocumentType::class, 'document_type_id');
     }
 
     public function employee(): BelongsTo

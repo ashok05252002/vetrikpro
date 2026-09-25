@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Models\DocumentType;
 use App\Models\Employee;
 use App\Models\EmployeeDocument;
 use App\Models\Project;
@@ -27,7 +28,7 @@ class EmployeeProfileTest extends TestCase
     private function upload(User $actor, Employee $employee, array $overrides = [])
     {
         return $this->actingAs($actor)->post(route('admin.employees.documents.store', $employee), [
-            'type' => 'id_proof',
+            'document_type_id' => DocumentType::where('code', 'id_proof')->value('id'),
             'title' => 'Aadhaar card',
             'file' => UploadedFile::fake()->create('aadhaar.pdf', 200, 'application/pdf'),
             ...$overrides,
@@ -171,10 +172,11 @@ class EmployeeProfileTest extends TestCase
         $hr = User::factory()->hr()->create();
         $employee = Employee::factory()->create();
         $this->upload($hr, $employee);
-        $this->upload($hr, $employee, ['type' => 'contract', 'title' => 'Contract 2026']);
+        $contract = DocumentType::where('code', 'contract')->value('id');
+        $this->upload($hr, $employee, ['document_type_id' => $contract, 'title' => 'Contract 2026']);
 
         $this->actingAs($hr)
-            ->get(route('admin.employees.documents.index', [$employee, 'type' => 'contract']))
+            ->get(route('admin.employees.documents.index', [$employee, 'type' => $contract]))
             ->assertInertia(fn (Assert $page) => $page->has('documents.data', 1)->where('documents.data.0.title', 'Contract 2026'));
     }
 

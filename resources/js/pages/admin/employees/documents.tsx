@@ -24,7 +24,7 @@ interface Props {
     filters: { type?: string; search?: string };
 }
 
-type UploadForm = { type: string; title: string; file: File | null; expires_at: string };
+type UploadForm = { document_type_id: string; title: string; file: File | null; expires_at: string };
 
 function UploadDialog({
     employeeId,
@@ -38,7 +38,7 @@ function UploadDialog({
     onOpenChange: (open: boolean) => void;
 }) {
     const { data, setData, post, processing, errors, reset, progress } = useForm<UploadForm>({
-        type: 'id_proof',
+        document_type_id: types[0]?.value ?? '',
         title: '',
         file: null,
         expires_at: '',
@@ -69,7 +69,7 @@ function UploadDialog({
 
                     <div className="grid gap-2">
                         <Label htmlFor="doc-type">Type</Label>
-                        <Select value={data.type} onValueChange={(value) => setData('type', value)}>
+                        <Select value={data.document_type_id} onValueChange={(value) => setData('document_type_id', value)}>
                             <SelectTrigger id="doc-type">
                                 <SelectValue />
                             </SelectTrigger>
@@ -81,7 +81,7 @@ function UploadDialog({
                                 ))}
                             </SelectContent>
                         </Select>
-                        <InputError message={errors.type} />
+                        <InputError message={errors.document_type_id} />
                     </div>
 
                     <div className="grid gap-2">

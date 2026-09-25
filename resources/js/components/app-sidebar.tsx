@@ -16,19 +16,28 @@ const workNavItems: NavItem[] = [
 ];
 
 /** Each admin entry appears only for the permission its routes check. */
-const adminNavItems: (NavItem & { permission: string })[] = [
+const adminNavItems: (NavItem & { permission: string | string[] })[] = [
     { title: 'Users', url: '/admin/users', icon: Users, permission: 'users.view' },
     { title: 'Roles & access', url: '/admin/roles', icon: ShieldCheck, permission: 'roles.view' },
     { title: 'Employees', url: '/admin/employees', icon: IdCard, permission: 'employees.view' },
     { title: 'Departments', url: '/admin/departments', icon: Building2, permission: 'departments.view' },
     { title: 'Designations', url: '/admin/designations', icon: Briefcase, permission: 'designations.view' },
     { title: 'Manage projects', url: '/admin/projects', icon: FolderKanban, permission: 'projects.view' },
-    { title: 'Settings', url: '/admin/settings', icon: Settings, permission: 'settings.view' },
+    // Lands on the first Configuration tab the person may open.
+    {
+        title: 'Configuration',
+        url: '/admin/settings',
+        icon: Settings,
+        permission: ['settings.view', 'document_types.view'],
+        match: ['/admin/settings', '/admin/config'],
+    },
 ];
 
 export function AppSidebar() {
-    const { can } = usePermission();
-    const adminItems = adminNavItems.filter((item) => can(item.permission));
+    const { can, canAny } = usePermission();
+    const adminItems = adminNavItems
+        .filter((item) => (Array.isArray(item.permission) ? canAny(...item.permission) : can(item.permission)))
+        .map((item) => (item.title === 'Configuration' && !can('settings.view') ? { ...item, url: '/admin/config/document-types' } : item));
 
     return (
         <Sidebar collapsible="icon" variant="inset">
