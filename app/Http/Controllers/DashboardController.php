@@ -89,6 +89,7 @@ class DashboardController extends Controller
             ->get()
             ->map(fn (Task $task) => [
                 ...$task->only('id', 'title', 'status', 'priority', 'due_date'),
+                'reference' => $task->reference(),
                 'project' => $task->project?->only('id', 'name', 'code'),
                 'is_overdue' => $task->isOverdue(),
             ]);
