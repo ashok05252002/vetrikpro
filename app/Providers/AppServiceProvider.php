@@ -5,8 +5,14 @@ namespace App\Providers;
 use App\Models\User;
 use App\Support\Permissions;
 use App\Support\Settings;
+use App\View\EmailBrand;
+use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Auth\Notifications\VerifyEmail;
+use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Str;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -23,6 +29,30 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        View::composer('emails.*', EmailBrand::class);
+
+        // Laravel's own password-reset and verification emails, in our design.
+        ResetPassword::toMailUsing(function (User $user, string $token) {
+            $minutes = (int) config('auth.passwords.users.expire');
+
+            return (new MailMessage)
+                ->subject('Reset your '.config('app.name').' portal password')
+                ->view(['emails.password-reset', 'emails.password-reset-text'], [
+                    'firstName' => Str::before($user->name, ' ') ?: $user->name,
+                    'email' => $user->email,
+                    'url' => url(route('password.reset', ['token' => $token, 'email' => $user->email], false)),
+                    'expiresInMinutes' => $minutes,
+                ]);
+        });
+
+        VerifyEmail::toMailUsing(fn (User $user, string $url) => (new MailMessage)
+            ->subject('Confirm your email address')
+            ->view(['emails.verify-email', 'emails.verify-email-text'], [
+                'firstName' => Str::before($user->name, ' ') ?: $user->name,
+                'email' => $user->email,
+                'url' => $url,
+            ]));
+
         /*
          * Registry permissions answer through the user's resolved set, so
          * `$user->can('projects.edit')`, `can:` route middleware and policies

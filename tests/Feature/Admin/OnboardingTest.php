@@ -123,9 +123,13 @@ class OnboardingTest extends TestCase
         $user = User::where('email', 'priya@company.com')->first();
 
         Notification::assertSentTo($user, EmployeeInvitation::class, function (EmployeeInvitation $n) use ($user) {
-            $body = implode(' ', $n->toMail($user)->introLines);
+            $html = (string) $n->toMail($user)->render();
 
-            return ! str_contains(strtolower($body), 'password:') && str_contains($body, $user->email);
+            // It names the sign-in email and links to set a password — it never carries one.
+            return str_contains($html, $user->email)
+                && str_contains($html, 'Set your password')
+                // "password: <something>" on one line would be a leaked password.
+                && ! preg_match('/password\s*[:=][ \t]*\S/i', strip_tags($html));
         });
     }
 

@@ -6,12 +6,14 @@ use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
 use App\Models\Concerns\HasProjectNumber;
 use App\Models\Concerns\HasStatusWorkflow;
+use App\Notifications\TaskMarkedUrgent;
 use Database\Factories\TaskFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 
 class Task extends Model
 {
@@ -52,6 +54,10 @@ class Task extends Model
                 $task->completed_at = $task->status === TaskStatus::Done ? now() : null;
             }
         });
+
+        // Urgent work emails its assignee — from the model, so it happens
+        // however the priority or assignee was changed.
+        static::saved(fn (Task $task) => $task->notifyIfUrgent());
     }
 
     public function project(): BelongsTo
@@ -77,6 +83,38 @@ class Task extends Model
     public function comments(): HasMany
     {
         return $this->hasMany(TaskComment::class)->oldest();
+    }
+
+    /**
+     * Email the assignee when the task becomes urgent for them: created
+     * urgent, raised to urgent, or an urgent task handed to them. Never for
+     * something they did themselves, never without a signed-in person behind
+     * the change, and only once the change is committed.
+     */
+    public function notifyIfUrgent(): void
+    {
+        if ($this->priority !== TaskPriority::Urgent || $this->assigned_to === null) {
+            return;
+        }
+
+        $why = match (true) {
+            $this->wasRecentlyCreated => TaskMarkedUrgent::CREATED,
+            $this->wasChanged('priority') => TaskMarkedUrgent::ESCALATED,
+            $this->wasChanged('assigned_to') => TaskMarkedUrgent::REASSIGNED,
+            default => null,
+        };
+
+        $actor = auth()->user();
+
+        // Only a person's action sends mail: seeders, imports and console
+        // commands run with nobody signed in and must never email real inboxes.
+        if ($why === null || $actor === null || $actor->id === $this->assigned_to) {
+            return;
+        }
+
+        DB::afterCommit(function () use ($why, $actor) {
+            $this->assignee?->notify(new TaskMarkedUrgent($this, $actor, $why));
+        });
     }
 
     public function isOverdue(): bool
