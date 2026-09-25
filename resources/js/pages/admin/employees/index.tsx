@@ -1,3 +1,4 @@
+import AccessToggle from '@/components/admin/access-toggle';
 import DeleteButton from '@/components/admin/delete-button';
 import FilterBar from '@/components/admin/filter-bar';
 import PageHeader from '@/components/admin/page-header';
@@ -6,11 +7,12 @@ import OnboardingBadge from '@/components/onboarding/onboarding-status';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import UserAvatar from '@/components/work/user-avatar';
 import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
-import type { BreadcrumbItem, Department, Employee, OnboardingStatus, Option, Paginated } from '@/types';
+import type { BreadcrumbItem, Department, Employee, OnboardingStatus, Option, Paginated, User } from '@/types';
 import { Head, Link } from '@inertiajs/react';
-import { Eye, Pencil, Plus } from 'lucide-react';
+import { Pencil, Plus } from 'lucide-react';
 import { employmentTypeLabels, statusLabels } from './labels';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -19,13 +21,25 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 interface Props {
-    employees: Paginated<Employee & { onboarding: { status: OnboardingStatus; done: number; total: number } | null }>;
+    employees: Paginated<
+        Employee & {
+            user: Pick<User, 'id' | 'name' | 'email' | 'is_active' | 'role'>;
+            onboarding: { status: OnboardingStatus; done: number; total: number } | null;
+            can_toggle_access: boolean;
+        }
+    >;
     departments: Department[];
+    roles: Option[];
     onboardingStatuses: Option[];
-    filters: { search?: string; department?: string; onboarding?: string };
+    filters: { search?: string; department?: string; role?: string; account?: string; onboarding?: string };
 }
 
-export default function EmployeesIndex({ employees, departments, onboardingStatuses, filters }: Props) {
+const accountOptions: Option[] = [
+    { value: 'active', label: 'Can sign in' },
+    { value: 'deactivated', label: 'Deactivated' },
+];
+
+export default function EmployeesIndex({ employees, departments, roles, onboardingStatuses, filters }: Props) {
     const { can } = usePermission();
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -34,7 +48,7 @@ export default function EmployeesIndex({ employees, departments, onboardingStatu
             <div className="flex flex-col gap-4 p-4">
                 <PageHeader
                     title="Employees"
-                    description="HR records attached to user accounts."
+                    description="Everyone in the organisation: their login, role and HR record, in one place."
                     action={
                         can('employees.create') && (
                             <Button asChild>
@@ -51,6 +65,8 @@ export default function EmployeesIndex({ employees, departments, onboardingStatu
                     filters={filters}
                     searchPlaceholder="Search name, email or code…"
                     selects={[
+                        { name: 'role', placeholder: 'All roles', options: roles },
+                        { name: 'account', placeholder: 'Any login status', options: accountOptions },
                         { name: 'onboarding', placeholder: 'Any onboarding', options: onboardingStatuses },
                         {
                             name: 'department',
@@ -64,43 +80,70 @@ export default function EmployeesIndex({ employees, departments, onboardingStatu
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>Code</TableHead>
-                                <TableHead>Name</TableHead>
-                                <TableHead>Department</TableHead>
-                                <TableHead>Designation</TableHead>
-                                <TableHead>Type</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>Onboarding</TableHead>
+                                <TableHead>Employee</TableHead>
+                                <TableHead>Role</TableHead>
+                                <TableHead className="hidden lg:table-cell">Department</TableHead>
+                                <TableHead className="hidden md:table-cell">Status</TableHead>
+                                <TableHead>Login</TableHead>
+                                <TableHead className="hidden sm:table-cell">Onboarding</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {employees.data.length === 0 && (
                                 <TableRow>
-                                    <TableCell colSpan={8} className="text-muted-foreground py-10 text-center">
-                                        No employee profiles yet.
+                                    <TableCell colSpan={7} className="text-muted-foreground py-10 text-center">
+                                        {Object.values(filters).some(Boolean) ? 'Nobody matches these filters.' : 'No employees yet.'}
                                     </TableCell>
                                 </TableRow>
                             )}
 
                             {employees.data.map((employee) => (
                                 <TableRow key={employee.id}>
-                                    <TableCell className="font-mono text-xs">{employee.employee_code}</TableCell>
                                     <TableCell>
-                                        <div className="font-medium">{employee.user?.name}</div>
-                                        <div className="text-muted-foreground text-xs">{employee.user?.email}</div>
-                                    </TableCell>
-                                    <TableCell className="text-muted-foreground">{employee.department?.name ?? '—'}</TableCell>
-                                    <TableCell className="text-muted-foreground">{employee.designation?.name ?? '—'}</TableCell>
-                                    <TableCell className="text-muted-foreground">
-                                        {employmentTypeLabels[employee.employment_type] ?? employee.employment_type}
+                                        <div className="flex items-center gap-3">
+                                            <UserAvatar name={employee.user.name} className="size-8" />
+                                            <div className="min-w-0">
+                                                <Link href={route('admin.employees.show', employee.id)} className="font-medium hover:underline">
+                                                    {employee.user.name}
+                                                </Link>
+                                                <p className="text-muted-foreground truncate text-xs">
+                                                    {employee.user.email} · <span className="font-mono">{employee.employee_code}</span>
+                                                </p>
+                                            </div>
+                                        </div>
                                     </TableCell>
                                     <TableCell>
-                                        <Badge variant={employee.status === 'active' ? 'default' : 'secondary'}>
+                                        {employee.user.role ? (
+                                            <Badge variant={employee.user.role.is_super ? 'default' : 'outline'}>{employee.user.role.name}</Badge>
+                                        ) : (
+                                            '—'
+                                        )}
+                                    </TableCell>
+                                    <TableCell className="text-muted-foreground hidden lg:table-cell">
+                                        {employee.department?.name ?? '—'}
+                                        {employee.designation && <span className="block text-xs">{employee.designation.name}</span>}
+                                    </TableCell>
+                                    <TableCell className="hidden md:table-cell">
+                                        <Badge variant={employee.status === 'active' ? 'secondary' : 'outline'}>
                                             {statusLabels[employee.status] ?? employee.status}
                                         </Badge>
+                                        <span className="text-muted-foreground block text-xs">
+                                            {employmentTypeLabels[employee.employment_type] ?? employee.employment_type}
+                                        </span>
                                     </TableCell>
                                     <TableCell>
+                                        <span
+                                            className={
+                                                employee.user.is_active
+                                                    ? 'text-xs font-medium text-emerald-700 dark:text-emerald-400'
+                                                    : 'text-destructive text-xs font-medium'
+                                            }
+                                        >
+                                            {employee.user.is_active ? 'Can sign in' : 'Deactivated'}
+                                        </span>
+                                    </TableCell>
+                                    <TableCell className="hidden sm:table-cell">
                                         {employee.onboarding ? (
                                             <Link
                                                 href={route('admin.employees.onboarding', employee.id)}
@@ -118,13 +161,10 @@ export default function EmployeesIndex({ employees, departments, onboardingStatu
                                         )}
                                     </TableCell>
                                     <TableCell>
-                                        <div className="flex justify-end gap-1">
-                                            <Button asChild variant="ghost" size="sm">
-                                                <Link href={route('admin.employees.show', employee.id)}>
-                                                    <Eye className="size-4" />
-                                                    <span className="sr-only">View</span>
-                                                </Link>
-                                            </Button>
+                                        <div className="flex items-center justify-end gap-1">
+                                            {employee.can_toggle_access && (
+                                                <AccessToggle employeeId={employee.id} name={employee.user.name} active={employee.user.is_active} />
+                                            )}
                                             {can('employees.edit') && (
                                                 <Button asChild variant="ghost" size="sm">
                                                     <Link href={route('admin.employees.edit', employee.id)}>
@@ -133,11 +173,11 @@ export default function EmployeesIndex({ employees, departments, onboardingStatu
                                                     </Link>
                                                 </Button>
                                             )}
-                                            {can('employees.delete') && (
+                                            {can('employees.delete') && employee.can_toggle_access && (
                                                 <DeleteButton
                                                     url={route('admin.employees.destroy', employee.id)}
-                                                    label={employee.user?.name ?? employee.employee_code}
-                                                    description="The HR record is removed. The login account is kept."
+                                                    label={employee.user.name}
+                                                    description="Their login, HR record and uploaded documents are all removed permanently. To stop them signing in but keep their records, deactivate instead."
                                                 />
                                             )}
                                         </div>

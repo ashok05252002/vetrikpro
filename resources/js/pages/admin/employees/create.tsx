@@ -1,6 +1,6 @@
 import PageHeader from '@/components/admin/page-header';
 import AppLayout from '@/layouts/app-layout';
-import type { BreadcrumbItem, Department, Designation, User } from '@/types';
+import type { BreadcrumbItem, Department, Designation, Option } from '@/types';
 import { Head } from '@inertiajs/react';
 import EmployeeForm, { NONE } from './employee-form';
 
@@ -11,13 +11,14 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 interface Props {
-    users: Pick<User, 'id' | 'name' | 'email'>[];
     departments: Department[];
     designations: Designation[];
+    roles: Option[];
+    defaultRoleId: string;
     nextCode: string;
 }
 
-export default function CreateEmployee({ users, departments, designations, nextCode }: Props) {
+export default function CreateEmployee({ departments, designations, roles, defaultRoleId, nextCode }: Props) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="New employee" />
@@ -26,20 +27,20 @@ export default function CreateEmployee({ users, departments, designations, nextC
                 <PageHeader
                     back={route('admin.employees.index')}
                     title="New employee"
-                    description="Add a new person and invite them, or give an existing account an HR profile."
+                    description="Creates their login and HR record together, and invites them to complete their profile."
                 />
 
                 <EmployeeForm
-                    users={users}
+                    creating
+                    roles={roles}
                     departments={departments}
                     designations={designations}
                     initial={{
-                        mode: 'new',
                         name: '',
                         email: '',
+                        role_id: roles.some((r) => r.value === defaultRoleId) ? defaultRoleId : (roles[0]?.value ?? ''),
                         send_invite: true,
                         offer_letter: null,
-                        user_id: '',
                         employee_code: nextCode,
                         department_id: NONE,
                         designation_id: NONE,

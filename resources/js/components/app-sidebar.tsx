@@ -4,7 +4,7 @@ import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, Sid
 import { usePermission } from '@/hooks/use-permission';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { Briefcase, Building2, FolderKanban, GitPullRequest, IdCard, LayoutGrid, ListChecks, Settings, ShieldCheck, Users } from 'lucide-react';
+import { Briefcase, Building2, FolderKanban, GitPullRequest, IdCard, LayoutGrid, ListChecks, Settings, ShieldCheck } from 'lucide-react';
 import AppLogo from './app-logo';
 
 /** Everyone signed in gets these. */
@@ -17,7 +17,6 @@ const workNavItems: NavItem[] = [
 
 /** Each admin entry appears only for the permission its routes check. */
 const adminNavItems: (NavItem & { permission: string | string[] })[] = [
-    { title: 'Users', url: '/admin/users', icon: Users, permission: 'users.view' },
     { title: 'Roles & access', url: '/admin/roles', icon: ShieldCheck, permission: 'roles.view' },
     { title: 'Employees', url: '/admin/employees', icon: IdCard, permission: 'employees.view' },
     { title: 'Departments', url: '/admin/departments', icon: Building2, permission: 'departments.view' },

@@ -22,7 +22,6 @@ import {
     ListChecks,
     ShieldCheck,
     Target,
-    Users,
     type LucideIcon,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
@@ -34,7 +33,6 @@ interface Stats {
     overdueTasks: number;
     dueThisWeek: number;
     activeProjects: number;
-    users?: number;
     employees?: number;
     departments?: number;
     admins?: number;
@@ -248,8 +246,7 @@ export default function Dashboard({ stats, taskPipeline, myTasks, projects, orgW
                 {peopleStats && (
                     <section className="space-y-3">
                         <h2 className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">People</h2>
-                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                            <StatTile label="Users" value={stats.users ?? 0} icon={Users} tone="sky" href="/admin/users" />
+                        <div className="grid gap-4 sm:grid-cols-3">
                             <StatTile label="Employees" value={stats.employees ?? 0} icon={IdCard} tone="teal" href="/admin/employees" />
                             <StatTile label="Departments" value={stats.departments ?? 0} icon={Building2} tone="pink" href="/admin/departments" />
                             <StatTile
@@ -257,7 +254,7 @@ export default function Dashboard({ stats, taskPipeline, myTasks, projects, orgW
                                 value={stats.admins ?? 0}
                                 icon={ShieldCheck}
                                 tone="violet"
-                                href="/admin/users?role=admin"
+                                href="/admin/employees?role=admin"
                             />
                         </div>
                     </section>

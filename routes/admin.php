@@ -10,7 +10,6 @@ use App\Http\Controllers\Admin\EmployeeProfileController;
 use App\Http\Controllers\Admin\ProjectController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SettingsController;
-use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\UserLookupController;
 use Illuminate\Routing\PendingResourceRegistration;
 use Illuminate\Support\Facades\Route;
@@ -34,8 +33,8 @@ Route::middleware(['auth'])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () use ($crud) {
-        $crud(Route::resource('users', UserController::class)->except('show'), 'users');
-        Route::patch('users/{user}/status', [UserController::class, 'status'])->middleware('can:users.edit')->name('users.status');
+        // Users are employees now; old links and bookmarks land on the one list.
+        Route::redirect('users', '/admin/employees')->name('users.index');
         $crud(Route::resource('roles', RoleController::class)->except('show'), 'roles');
 
         $crud(Route::resource('departments', DepartmentController::class)->except('show'), 'departments');
@@ -70,6 +69,8 @@ Route::middleware(['auth'])
         });
 
         $crud(Route::resource('employees', EmployeeController::class), 'employees');
+        Route::patch('employees/{employee}/status', [EmployeeController::class, 'status'])->middleware('can:employees.edit')->name('employees.status');
+        Route::post('employees/{employee}/password-reset', [EmployeeController::class, 'sendPasswordReset'])->middleware('can:employees.edit')->name('employees.password-reset');
 
         $crud(Route::resource('projects', ProjectController::class)->except('show'), 'projects');
         // The owner picker is used while creating or editing a project; the controller checks either.

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Models\Employee;
 use App\Models\Role;
 use App\Models\User;
 use App\Support\Permissions;
@@ -13,17 +14,24 @@ class RolesAndPermissionsTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function userPayload(array $overrides = []): array
+    /** A new employee, which is also how a login is created now. */
+    private function employeePayload(array $overrides = []): array
     {
         return [
             'name' => 'Jane Doe',
             'email' => 'jane@company.com',
             'role_id' => Role::bySlug(Role::EMPLOYEE)->id,
-            'is_active' => true,
-            'password' => 'Str0ng-Passw0rd',
-            'password_confirmation' => 'Str0ng-Passw0rd',
+            'employee_code' => 'EMP-0900',
+            'employment_type' => 'full_time',
+            'status' => 'active',
+            'send_invite' => false,
             ...$overrides,
         ];
+    }
+
+    private function profileOf(User $user): Employee
+    {
+        return $user->employee ?? Employee::factory()->create(['user_id' => $user->id]);
     }
 
     private function customRole(array $permissions, string $name = 'Coordinator'): Role
@@ -57,9 +65,9 @@ class RolesAndPermissionsTest extends TestCase
     {
         $hr = User::factory()->hr()->create();
         // Revoking a module means revoking its actions: holding edit implies view.
-        $hr->syncPermissionOverrides(['users.view' => false, 'users.create' => false, 'users.edit' => false, 'users.delete' => false]);
+        $hr->syncPermissionOverrides(['departments.view' => false, 'departments.create' => false, 'departments.edit' => false, 'departments.delete' => false]);
 
-        $this->actingAs($hr)->get(route('admin.users.index'))->assertForbidden();
+        $this->actingAs($hr)->get(route('admin.departments.index'))->assertForbidden();
         $this->actingAs($hr)->get(route('admin.employees.index'))->assertOk();
     }
 
@@ -85,7 +93,7 @@ class RolesAndPermissionsTest extends TestCase
         $user = User::factory()->create(['role_id' => $this->customRole(['departments.view'])->id]);
 
         $this->actingAs($user)->get(route('admin.departments.index'))->assertOk();
-        $this->actingAs($user)->get(route('admin.users.index'))->assertForbidden();
+        $this->actingAs($user)->get(route('admin.employees.index'))->assertForbidden();
         $this->actingAs($user)->get(route('admin.settings.edit'))->assertForbidden();
     }
 
@@ -94,7 +102,7 @@ class RolesAndPermissionsTest extends TestCase
         $this->actingAs(User::factory()->hr()->create())
             ->get(route('dashboard'))
             ->assertInertia(fn (Assert $page) => $page
-                ->where('auth.permissions', fn ($keys) => collect($keys)->contains('users.view') && ! collect($keys)->contains('settings.edit'))
+                ->where('auth.permissions', fn ($keys) => collect($keys)->contains('employees.view') && ! collect($keys)->contains('settings.edit'))
                 ->where('auth.user.role.slug', Role::HR));
     }
 
@@ -103,7 +111,7 @@ class RolesAndPermissionsTest extends TestCase
     public function test_hr_cannot_create_an_administrator()
     {
         $this->actingAs(User::factory()->hr()->create())
-            ->post(route('admin.users.store'), $this->userPayload(['role_id' => Role::bySlug(Role::ADMIN)->id]))
+            ->post(route('admin.employees.store'), $this->employeePayload(['role_id' => Role::bySlug(Role::ADMIN)->id]))
             ->assertSessionHasErrors('role_id');
 
         $this->assertDatabaseMissing('users', ['email' => 'jane@company.com']);
@@ -114,38 +122,42 @@ class RolesAndPermissionsTest extends TestCase
         $role = $this->customRole(['settings.edit']);
 
         $this->actingAs(User::factory()->hr()->create())
-            ->post(route('admin.users.store'), $this->userPayload(['role_id' => $role->id]))
+            ->post(route('admin.employees.store'), $this->employeePayload(['role_id' => $role->id]))
             ->assertSessionHasErrors('role_id');
     }
 
     public function test_hr_is_only_offered_roles_they_may_assign()
     {
         $this->actingAs(User::factory()->hr()->create())
-            ->get(route('admin.users.create'))
+            ->get(route('admin.employees.create'))
             ->assertInertia(fn (Assert $page) => $page
-                ->where('roles', fn ($roles) => ! collect($roles)->contains('name', 'Administrator') && collect($roles)->contains('name', 'Employee'))
-                ->where('canManageAccess', false));
+                ->where('roles', fn ($roles) => ! collect($roles)->contains('label', 'Administrator') && collect($roles)->contains('label', 'Employee')));
     }
 
-    public function test_hr_cannot_set_per_user_overrides()
+    public function test_hr_cannot_change_anyones_access()
     {
+        $target = Employee::factory()->create();
+
         $this->actingAs(User::factory()->hr()->create())
-            ->post(route('admin.users.store'), $this->userPayload(['overrides' => ['employees.view' => 'allow']]))
-            ->assertSessionHasErrors('overrides');
+            ->put(route('admin.employees.access.update', $target), ['role_id' => $target->user->role_id, 'overrides' => ['employees.view' => 'allow']])
+            ->assertForbidden();
     }
 
-    public function test_hr_cannot_edit_or_delete_an_administrator()
+    public function test_hr_cannot_edit_deactivate_or_delete_an_administrator()
     {
         $hr = User::factory()->hr()->create();
         $admin = User::factory()->admin()->create();
+        $profile = $this->profileOf($admin);
 
-        $this->actingAs($hr)->get(route('admin.users.edit', $admin))->assertForbidden();
+        $this->actingAs($hr)->get(route('admin.employees.edit', $profile))->assertForbidden();
+        // Changing the admin's email would let HR take over the account through a reset.
         $this->actingAs($hr)
-            ->put(route('admin.users.update', $admin), $this->userPayload(['email' => $admin->email, 'password' => 'Hijack3d!Pass', 'password_confirmation' => 'Hijack3d!Pass']))
+            ->put(route('admin.employees.update', $profile), [...$this->employeePayload(['email' => 'hr-owned@company.com', 'employee_code' => $profile->employee_code]), 'role_id' => null, 'send_invite' => null])
             ->assertForbidden();
-        $this->actingAs($hr)->delete(route('admin.users.destroy', $admin))->assertForbidden();
+        $this->actingAs($hr)->post(route('admin.employees.password-reset', $profile))->assertForbidden();
+        $this->actingAs($hr)->delete(route('admin.employees.destroy', $profile))->assertForbidden();
 
-        $this->assertNotNull($admin->fresh());
+        $this->assertSame($admin->email, $admin->fresh()->email);
     }
 
     public function test_an_administrator_cannot_demote_themselves()
@@ -153,42 +165,37 @@ class RolesAndPermissionsTest extends TestCase
         $admin = User::factory()->admin()->create();
 
         $this->actingAs($admin)
-            ->put(route('admin.users.update', $admin), $this->userPayload(['email' => $admin->email, 'password' => '', 'password_confirmation' => '']))
+            ->put(route('admin.employees.access.update', $this->profileOf($admin)), ['role_id' => Role::bySlug(Role::EMPLOYEE)->id])
             ->assertSessionHasErrors('role_id');
 
         $this->assertTrue($admin->fresh()->isSuper());
     }
 
-    // Overrides through the user form
-
-    public function test_an_admin_can_set_overrides_while_creating_a_user()
-    {
-        $this->actingAs(User::factory()->admin()->create())
-            ->post(route('admin.users.store'), $this->userPayload(['overrides' => ['employees.view' => 'allow', 'projects.view' => 'allow']]))
-            ->assertRedirect(route('admin.users.index'));
-
-        $user = User::where('email', 'jane@company.com')->first();
-
-        $this->assertSame(['employees.view', 'projects.view'], $user->permissions());
-    }
+    // Per-person overrides, set on the Access tab
 
     public function test_an_unknown_override_key_is_rejected()
     {
+        $target = Employee::factory()->create();
+
         $this->actingAs(User::factory()->admin()->create())
-            ->post(route('admin.users.store'), $this->userPayload(['overrides' => ['nuke.everything' => 'allow']]))
+            ->put(route('admin.employees.access.update', $target), ['role_id' => $target->user->role_id, 'overrides' => ['nuke.everything' => 'allow']])
             ->assertSessionHasErrors('overrides');
     }
 
-    public function test_hr_editing_a_user_leaves_their_overrides_alone()
+    public function test_hr_editing_an_employee_leaves_their_overrides_alone()
     {
-        $user = User::factory()->create();
-        $user->syncPermissionOverrides(['employees.view' => true]);
+        $employee = Employee::factory()->create();
+        $employee->user->syncPermissionOverrides(['projects.view' => true]);
 
         $this->actingAs(User::factory()->hr()->create())
-            ->put(route('admin.users.update', $user), $this->userPayload(['email' => $user->email, 'name' => 'Renamed', 'password' => '', 'password_confirmation' => '']))
-            ->assertRedirect(route('admin.users.index'));
+            ->put(route('admin.employees.update', $employee), [
+                ...$this->employeePayload(['email' => $employee->user->email, 'name' => 'Renamed', 'employee_code' => $employee->employee_code]),
+                'role_id' => null,
+                'send_invite' => null,
+            ])
+            ->assertRedirect(route('admin.employees.show', $employee));
 
-        $this->assertSame(['employees.view'], $user->fresh()->permissions());
+        $this->assertSame(['projects.view'], $employee->user->fresh()->permissions());
     }
 
     // Role management
@@ -228,12 +235,12 @@ class RolesAndPermissionsTest extends TestCase
         $role = Role::bySlug(Role::HR);
 
         $this->actingAs(User::factory()->admin()->create())
-            ->put(route('admin.roles.update', $role), ['name' => 'People Team', 'permissions' => ['users.edit']]);
+            ->put(route('admin.roles.update', $role), ['name' => 'People Team', 'permissions' => ['employees.edit']]);
 
         $role->refresh();
         $this->assertSame('People Team', $role->name);
         $this->assertSame(Role::HR, $role->slug);
-        $this->assertSame(['users.view', 'users.edit'], $role->permissionKeys());
+        $this->assertSame(['employees.view', 'employees.edit'], $role->permissionKeys());
     }
 
     public function test_system_roles_and_roles_in_use_cannot_be_deleted()

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Models\Employee;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -45,16 +46,17 @@ class AccountStatusTest extends TestCase
     public function test_an_admin_deactivates_and_reactivates_someone()
     {
         $admin = User::factory()->admin()->create();
-        $user = User::factory()->create();
+        $employee = Employee::factory()->create();
+        $user = $employee->user;
 
-        $this->actingAs($admin)->patch(route('admin.users.status', $user), ['is_active' => false])->assertSessionHas('success');
+        $this->actingAs($admin)->patch(route('admin.employees.status', $employee), ['is_active' => false])->assertSessionHas('success');
 
         $user->refresh();
         $this->assertFalse($user->is_active);
         $this->assertSame($admin->id, $user->deactivated_by);
         $this->assertNotNull($user->deactivated_at);
 
-        $this->actingAs($admin)->patch(route('admin.users.status', $user), ['is_active' => true]);
+        $this->actingAs($admin)->patch(route('admin.employees.status', $employee), ['is_active' => true]);
 
         $user->refresh();
         $this->assertTrue($user->is_active);
@@ -65,29 +67,31 @@ class AccountStatusTest extends TestCase
     public function test_nobody_deactivates_themselves()
     {
         $admin = User::factory()->admin()->create();
+        $mine = Employee::factory()->create(['user_id' => $admin->id]);
 
-        $this->actingAs($admin)->patch(route('admin.users.status', $admin), ['is_active' => false])->assertSessionHas('error');
+        $this->actingAs($admin)->patch(route('admin.employees.status', $mine), ['is_active' => false])->assertSessionHas('error');
         $this->assertTrue($admin->fresh()->is_active);
     }
 
     public function test_hr_cannot_deactivate_an_administrator()
     {
         $admin = User::factory()->admin()->create();
+        $adminProfile = Employee::factory()->create(['user_id' => $admin->id]);
 
         $this->actingAs(User::factory()->hr()->create())
-            ->patch(route('admin.users.status', $admin), ['is_active' => false])
+            ->patch(route('admin.employees.status', $adminProfile), ['is_active' => false])
             ->assertForbidden();
 
         $this->assertTrue($admin->fresh()->is_active);
     }
 
-    public function test_toggling_needs_users_edit()
+    public function test_toggling_needs_employees_edit()
     {
         $viewer = User::factory()->create();
-        $viewer->syncPermissionOverrides(['users.view' => true]);
+        $viewer->syncPermissionOverrides(['employees.view' => true]);
 
         $this->actingAs($viewer)
-            ->patch(route('admin.users.status', User::factory()->create()), ['is_active' => false])
+            ->patch(route('admin.employees.status', Employee::factory()->create()), ['is_active' => false])
             ->assertForbidden();
     }
 }

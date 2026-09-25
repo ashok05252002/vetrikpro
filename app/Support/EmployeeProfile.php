@@ -45,7 +45,7 @@ final class EmployeeProfile
                 // Changing someone's access needs roles.edit *and* holding
                 // everything they already hold.
                 'can_access' => $viewer->can('roles.edit') && $viewer->canGrant($user->permissions()),
-                'can_toggle_access' => $viewer->can('users.edit') && ! $viewer->is($user) && $viewer->canGrant($user->permissions()),
+                'can_toggle_access' => $viewer->can('employees.edit') && ! $viewer->is($user) && $viewer->canGrant($user->permissions()),
             ],
         ];
     }

@@ -31,23 +31,18 @@ final class Permissions
     {
         return [
             'People' => [
-                'users' => ['label' => 'Users', 'actions' => [
-                    'view' => 'See user accounts',
-                    'create' => 'Create user accounts',
-                    'edit' => 'Edit accounts, reset passwords, activate or deactivate',
-                    'delete' => 'Delete user accounts',
-                ]],
                 'roles' => ['label' => 'Roles & access', 'actions' => [
                     'view' => 'See roles and what they grant',
                     'create' => 'Create roles',
                     'edit' => 'Edit roles and individual people’s access',
                     'delete' => 'Delete roles',
                 ]],
+                // Each employee is also their login: the account lives here too.
                 'employees' => ['label' => 'Employees', 'actions' => [
-                    'view' => 'See employee profiles',
-                    'create' => 'Add employees',
-                    'edit' => 'Edit employee records',
-                    'delete' => 'Delete employee records',
+                    'view' => 'See employees and their accounts',
+                    'create' => 'Add employees (creates their login)',
+                    'edit' => 'Edit employees, send password resets, activate or deactivate',
+                    'delete' => 'Delete employees and their login',
                     'onboard' => 'Send invites and review onboarding',
                 ]],
                 'documents' => ['label' => 'Employee documents', 'actions' => [

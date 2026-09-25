@@ -5,7 +5,8 @@ import { Power, PowerOff } from 'lucide-react';
 import { useState } from 'react';
 
 interface Props {
-    userId: number;
+    /** The employee whose login this is. */
+    employeeId: number;
     name: string;
     active: boolean;
     size?: 'sm' | 'default';
@@ -15,13 +16,13 @@ interface Props {
  * Switch someone's portal access. Turning it off asks first, because it signs
  * them out straight away; turning it back on does not need confirming.
  */
-export default function AccessToggle({ userId, name, active, size = 'sm' }: Props) {
+export default function AccessToggle({ employeeId, name, active, size = 'sm' }: Props) {
     const [confirming, setConfirming] = useState(false);
     const [processing, setProcessing] = useState(false);
 
     const submit = (isActive: boolean) =>
         router.patch(
-            route('admin.users.status', userId),
+            route('admin.employees.status', employeeId),
             { is_active: isActive },
             {
                 preserveScroll: true,

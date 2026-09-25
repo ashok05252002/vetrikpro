@@ -161,7 +161,7 @@ class EmployeeProfileTest extends TestCase
         $this->upload($admin, $employee);
         $path = $employee->documents()->first()->file_path;
 
-        $this->actingAs($admin)->delete(route('admin.users.destroy', $employee->user));
+        $this->actingAs($admin)->delete(route('admin.employees.destroy', $employee));
 
         Storage::disk(EmployeeDocument::DISK)->assertMissing($path);
         $this->assertSame(0, EmployeeDocument::count());
@@ -189,12 +189,12 @@ class EmployeeProfileTest extends TestCase
         $this->actingAs(User::factory()->admin()->create())
             ->put(route('admin.employees.access.update', $employee), [
                 'role_id' => Role::bySlug(Role::HR)->id,
-                'overrides' => ['users.edit' => 'deny', 'settings.edit' => 'allow'],
+                'overrides' => ['employees.edit' => 'deny', 'settings.edit' => 'allow'],
             ])
             ->assertSessionHas('success');
 
         $permissions = $employee->user->fresh()->permissions();
-        $this->assertNotContains('users.edit', $permissions);
+        $this->assertNotContains('employees.edit', $permissions);
         $this->assertContains('settings.edit', $permissions);
         $this->assertContains('employees.view', $permissions);
     }

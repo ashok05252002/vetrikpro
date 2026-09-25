@@ -24,7 +24,7 @@ class DashboardController extends Controller
             'myTasks' => $this->myTasks($user),
             'projects' => $this->projectProgress($user),
             'orgWide' => $user->can('projects.view'),
-            'peopleStats' => $user->can('users.view'),
+            'peopleStats' => $user->can('employees.view'),
         ]);
     }
 
@@ -46,9 +46,8 @@ class DashboardController extends Controller
             'activeProjects' => $this->visibleProjects($user)->where('status', 'active')->count(),
         ];
 
-        if ($user->can('users.view')) {
+        if ($user->can('employees.view')) {
             $stats += [
-                'users' => User::count(),
                 'employees' => Employee::count(),
                 'departments' => Department::count(),
                 'admins' => User::whereHas('role', fn ($query) => $query->where('is_super', true))->count(),

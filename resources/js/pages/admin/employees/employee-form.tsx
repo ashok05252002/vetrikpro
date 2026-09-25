@@ -5,8 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import type { Department, Designation, User } from '@/types';
+import type { Department, Designation, Option } from '@/types';
 import { Link, useForm } from '@inertiajs/react';
 import { FormEventHandler, useMemo } from 'react';
 import { employmentTypeLabels, statusLabels } from './labels';
@@ -14,14 +13,14 @@ import { employmentTypeLabels, statusLabels } from './labels';
 const NONE = 'none';
 
 // A type alias, not an interface: useForm needs an implicit index signature.
-type FormData = {
-    /** Create only: a brand-new person (account made and invited) or an existing account. */
-    mode: 'new' | 'existing';
+// The person's login (name, email) and HR record are one form.
+export type FormData = {
     name: string;
     email: string;
+    /** Create only: the role, the invite and the offer letter. */
+    role_id: string;
     send_invite: boolean;
     offer_letter: File | null;
-    user_id: string;
     employee_code: string;
     department_id: string;
     designation_id: string;
@@ -36,16 +35,17 @@ type FormData = {
 };
 
 interface Props {
-    users: Pick<User, 'id' | 'name' | 'email'>[];
     departments: Department[];
     designations: Designation[];
+    /** Only the roles the signed-in person may give; create only. */
+    roles?: Option[];
     initial: FormData;
     action: { url: string; method: 'post' | 'put' };
     submitLabel: string;
-    lockUser?: boolean;
+    creating?: boolean;
 }
 
-export default function EmployeeForm({ users, departments, designations, initial, action, submitLabel, lockUser = false }: Props) {
+export default function EmployeeForm({ departments, designations, roles = [], initial, action, submitLabel, creating = false }: Props) {
     const { data, setData, post, put, processing, errors, transform } = useForm<FormData>(initial);
 
     // Radix Select has no empty-string value, so optional relations ride as a
@@ -58,18 +58,16 @@ export default function EmployeeForm({ users, departments, designations, initial
             gender: payload.gender === NONE ? '' : payload.gender,
         };
 
-        // Editing never changes who the record belongs to, so the create-only
-        // fields are left out entirely.
-        if (lockUser) {
-            const { mode: _m, name: _n, email: _e, send_invite: _s, offer_letter: _o, ...rest } = cleaned;
-            void [_m, _n, _e, _s, _o];
+        // Role, invite and offer letter are chosen once, at creation; the
+        // server refuses them on an edit, so they are not sent.
+        if (!creating) {
+            const { role_id: _r, send_invite: _s, offer_letter: _o, ...rest } = cleaned;
+            void [_r, _s, _o];
             return rest as typeof cleaned;
         }
 
         return cleaned;
     });
-
-    const isNew = !lockUser && data.mode === 'new';
 
     // Only show designations belonging to the chosen department (plus unscoped ones).
     const visibleDesignations = useMemo(() => {
@@ -94,78 +92,60 @@ export default function EmployeeForm({ users, departments, designations, initial
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
-        (action.method === 'put' ? put : post)(action.url, { preserveScroll: true, forceFormData: isNew });
+        (action.method === 'put' ? put : post)(action.url, { preserveScroll: true, forceFormData: creating });
     };
 
     return (
         <form onSubmit={submit} className="max-w-3xl space-y-6">
             <div className="grid gap-6 sm:grid-cols-2">
-                {!lockUser && (
-                    <div className="grid gap-2 sm:col-span-2">
-                        <Label>Who is this for?</Label>
-                        <ToggleGroup
-                            type="single"
-                            variant="outline"
-                            value={data.mode}
-                            onValueChange={(value) => value && setData('mode', value as FormData['mode'])}
-                            className="justify-start"
-                        >
-                            <ToggleGroupItem value="new" className="px-4">
-                                New person — create their login
-                            </ToggleGroupItem>
-                            <ToggleGroupItem value="existing" className="px-4">
-                                Existing account
-                            </ToggleGroupItem>
-                        </ToggleGroup>
-                    </div>
-                )}
+                <div className="grid gap-2">
+                    <Label htmlFor="name">Full name</Label>
+                    <Input
+                        id="name"
+                        value={data.name}
+                        onChange={(e) => setData('name', e.target.value)}
+                        required
+                        autoFocus
+                        placeholder="Priya Raman"
+                    />
+                    <InputError message={errors.name} />
+                </div>
+                <div className="grid gap-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                        id="email"
+                        type="email"
+                        value={data.email}
+                        onChange={(e) => setData('email', e.target.value)}
+                        required
+                        autoComplete="off"
+                        placeholder="priya@company.com"
+                    />
+                    <InputError message={errors.email} />
+                    <p className="text-muted-foreground text-xs">
+                        {creating
+                            ? 'They sign in with this and receive the invite here.'
+                            : 'Their sign-in email. Changing it changes how they log in.'}
+                    </p>
+                </div>
 
-                {isNew ? (
-                    <>
-                        <div className="grid gap-2">
-                            <Label htmlFor="name">Full name</Label>
-                            <Input
-                                id="name"
-                                value={data.name}
-                                onChange={(e) => setData('name', e.target.value)}
-                                required
-                                autoFocus
-                                placeholder="Priya Raman"
-                            />
-                            <InputError message={errors.name} />
-                        </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="email">Email</Label>
-                            <Input
-                                id="email"
-                                type="email"
-                                value={data.email}
-                                onChange={(e) => setData('email', e.target.value)}
-                                required
-                                autoComplete="off"
-                                placeholder="priya@company.com"
-                            />
-                            <InputError message={errors.email} />
-                            <p className="text-muted-foreground text-xs">They sign in with this and receive the invite here.</p>
-                        </div>
-                    </>
-                ) : (
+                {creating && (
                     <div className="grid gap-2">
-                        <Label htmlFor="user_id">User account</Label>
-                        <Select value={data.user_id} onValueChange={(value) => setData('user_id', value)} disabled={lockUser}>
-                            <SelectTrigger id="user_id">
-                                <SelectValue placeholder="Select a user" />
+                        <Label htmlFor="role_id">Role</Label>
+                        <Select value={data.role_id} onValueChange={(value) => setData('role_id', value)}>
+                            <SelectTrigger id="role_id">
+                                <SelectValue placeholder="Select a role" />
                             </SelectTrigger>
                             <SelectContent>
-                                {users.map((user) => (
-                                    <SelectItem key={user.id} value={String(user.id)}>
-                                        {user.name} · {user.email}
+                                {roles.map((role) => (
+                                    <SelectItem key={role.value} value={role.value}>
+                                        {role.label}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
-                        <InputError message={errors.user_id} />
-                        {!lockUser && <p className="text-muted-foreground text-xs">Only users without a profile are listed.</p>}
+                        <InputError message={errors.role_id} />
+                        <p className="text-muted-foreground text-xs">What they can do in the portal. Fine-tune later on their Access tab.</p>
                     </div>
                 )}
 
@@ -297,7 +277,7 @@ export default function EmployeeForm({ users, departments, designations, initial
                 <InputError message={errors.address} />
             </div>
 
-            {isNew && (
+            {creating && (
                 <section className="space-y-4 rounded-xl border p-4">
                     <div>
                         <h2 className="text-sm font-semibold">Invite and offer letter</h2>

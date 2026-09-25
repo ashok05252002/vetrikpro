@@ -59,7 +59,7 @@ export default function RolesIndex({ roles, totalPermissions }: { roles: Role[];
                                         {role.is_super ? 'All' : `${role.permissions_count} of ${totalPermissions}`}
                                     </TableCell>
                                     <TableCell className="tabular-nums">
-                                        <Link href={route('admin.users.index', { role: role.slug })} className="hover:underline">
+                                        <Link href={route('admin.employees.index', { role: role.slug })} className="hover:underline">
                                             {role.users_count}
                                         </Link>
                                     </TableCell>

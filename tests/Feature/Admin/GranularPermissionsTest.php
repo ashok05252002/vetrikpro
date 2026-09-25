@@ -3,6 +3,7 @@
 namespace Tests\Feature\Admin;
 
 use App\Models\Department;
+use App\Models\Employee;
 use App\Models\Project;
 use App\Models\Role;
 use App\Models\User;
@@ -24,14 +25,14 @@ class GranularPermissionsTest extends TestCase
 
     public function test_view_only_can_list_but_not_create_edit_or_delete()
     {
-        $viewer = $this->withPermissions(['users.view']);
-        $target = User::factory()->create();
+        $viewer = $this->withPermissions(['employees.view']);
+        $target = Employee::factory()->create();
 
-        $this->actingAs($viewer)->get(route('admin.users.index'))->assertOk();
-        $this->actingAs($viewer)->get(route('admin.users.create'))->assertForbidden();
-        $this->actingAs($viewer)->post(route('admin.users.store'), [])->assertForbidden();
-        $this->actingAs($viewer)->get(route('admin.users.edit', $target))->assertForbidden();
-        $this->actingAs($viewer)->delete(route('admin.users.destroy', $target))->assertForbidden();
+        $this->actingAs($viewer)->get(route('admin.employees.index'))->assertOk();
+        $this->actingAs($viewer)->get(route('admin.employees.create'))->assertForbidden();
+        $this->actingAs($viewer)->post(route('admin.employees.store'), [])->assertForbidden();
+        $this->actingAs($viewer)->get(route('admin.employees.edit', $target))->assertForbidden();
+        $this->actingAs($viewer)->delete(route('admin.employees.destroy', $target))->assertForbidden();
 
         $this->assertNotNull($target->fresh());
     }
@@ -85,7 +86,6 @@ class GranularPermissionsTest extends TestCase
         $hr = User::factory()->hr()->create();
 
         $this->assertSame([
-            'users.view', 'users.create', 'users.edit', 'users.delete',
             'employees.view', 'employees.create', 'employees.edit', 'employees.delete', 'employees.onboard',
             'documents.view', 'documents.create', 'documents.delete',
             'departments.view', 'departments.create', 'departments.edit', 'departments.delete',

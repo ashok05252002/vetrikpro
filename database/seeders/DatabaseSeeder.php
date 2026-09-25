@@ -52,7 +52,7 @@ class DatabaseSeeder extends Seeder
         }
 
         // An HR manager, plus a sample employee profile for the admin.
-        User::updateOrCreate(
+        $hr = User::updateOrCreate(
             ['email' => 'hr@hrms.test'],
             [
                 'name' => 'Priya HR',
@@ -94,6 +94,19 @@ class DatabaseSeeder extends Seeder
                 ],
             );
         }
+
+        // Every login is an employee: HR gets a profile like everyone else.
+        Employee::updateOrCreate(
+            ['user_id' => $hr->id],
+            [
+                'employee_code' => 'EMP-0006',
+                'department_id' => $departments['HR']->id,
+                'designation_id' => Designation::where('name', 'HR Manager')->value('id'),
+                'date_of_joining' => now()->subYear()->toDateString(),
+                'employment_type' => 'full_time',
+                'status' => 'active',
+            ],
+        );
 
         Employee::updateOrCreate(
             ['user_id' => $admin->id],

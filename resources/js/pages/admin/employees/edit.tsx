@@ -1,41 +1,39 @@
 import PageHeader from '@/components/admin/page-header';
 import AppLayout from '@/layouts/app-layout';
-import type { BreadcrumbItem, Department, Designation, Employee, User } from '@/types';
+import type { BreadcrumbItem, Department, Designation, Employee } from '@/types';
 import { Head } from '@inertiajs/react';
 import EmployeeForm, { NONE } from './employee-form';
 
 interface Props {
-    employee: Employee;
-    users: Pick<User, 'id' | 'name' | 'email'>[];
+    employee: Employee & { name: string; email: string };
     departments: Department[];
     designations: Designation[];
 }
 
-export default function EditEmployee({ employee, users, departments, designations }: Props) {
+export default function EditEmployee({ employee, departments, designations }: Props) {
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Dashboard', href: '/dashboard' },
         { title: 'Employees', href: '/admin/employees' },
-        { title: employee.employee_code, href: `/admin/employees/${employee.id}/edit` },
+        { title: employee.name, href: route('admin.employees.show', employee.id) },
+        { title: 'Edit', href: `/admin/employees/${employee.id}/edit` },
     ];
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title={`Edit ${employee.employee_code}`} />
+            <Head title={`Edit ${employee.name}`} />
 
             <div className="flex flex-col gap-6 p-4">
-                <PageHeader back={route('admin.employees.show', employee.id)} title="Edit employee" description={employee.employee_code} />
+                <PageHeader back={route('admin.employees.show', employee.id)} title={`Edit ${employee.name}`} description={employee.employee_code} />
 
                 <EmployeeForm
-                    users={users}
                     departments={departments}
                     designations={designations}
                     initial={{
-                        mode: 'existing',
-                        name: '',
-                        email: '',
+                        name: employee.name,
+                        email: employee.email,
+                        role_id: '',
                         send_invite: false,
                         offer_letter: null,
-                        user_id: String(employee.user_id),
                         employee_code: employee.employee_code,
                         department_id: employee.department_id ? String(employee.department_id) : NONE,
                         designation_id: employee.designation_id ? String(employee.designation_id) : NONE,

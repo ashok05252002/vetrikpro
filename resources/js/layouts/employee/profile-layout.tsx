@@ -8,8 +8,8 @@ import { useFormat } from '@/hooks/use-format';
 import AppLayout from '@/layouts/app-layout';
 import { statusLabels } from '@/pages/admin/employees/labels';
 import type { BreadcrumbItem, EmployeeProfileHeader } from '@/types';
-import { Head, Link } from '@inertiajs/react';
-import { Pencil } from 'lucide-react';
+import { Head, Link, router } from '@inertiajs/react';
+import { KeyRound, Pencil } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 export type ProfileTab = 'overview' | 'onboarding' | 'documents' | 'projects' | 'tasks' | 'access';
@@ -77,7 +77,18 @@ export default function EmployeeProfileLayout({
                         <div className="flex flex-wrap items-center gap-2">
                             {actions}
                             {employee.viewer.can_toggle_access && (
-                                <AccessToggle userId={employee.user_id} name={employee.name} active={employee.is_active} />
+                                <>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() =>
+                                            router.post(route('admin.employees.password-reset', employee.id), {}, { preserveScroll: true })
+                                        }
+                                    >
+                                        <KeyRound className="size-4" /> Send password reset
+                                    </Button>
+                                    <AccessToggle employeeId={employee.id} name={employee.name} active={employee.is_active} />
+                                </>
                             )}
                             {employee.viewer.can_edit && (
                                 <Button asChild variant="outline" size="sm">
