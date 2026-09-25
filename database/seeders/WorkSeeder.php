@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
 use App\Models\Project;
+use App\Models\Role;
 use App\Models\Task;
 use App\Models\TaskComment;
 use App\Models\User;
@@ -20,7 +21,7 @@ class WorkSeeder extends Seeder
     {
         $admin = User::where('email', 'admin@hrms.test')->firstOrFail();
         $hr = User::where('email', 'hr@hrms.test')->firstOrFail();
-        $staff = User::where('role', 'employee')->orderBy('id')->get();
+        $staff = User::whereHas('role', fn ($query) => $query->where('slug', Role::EMPLOYEE))->orderBy('id')->get();
         $everyone = $staff->concat([$admin, $hr]);
 
         $blueprint = [

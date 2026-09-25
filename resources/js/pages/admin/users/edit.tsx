@@ -1,15 +1,15 @@
+import type { Overrides } from '@/components/access/access-editor';
 import PageHeader from '@/components/admin/page-header';
 import AppLayout from '@/layouts/app-layout';
-import type { BreadcrumbItem, Option, User } from '@/types';
+import type { BreadcrumbItem, User } from '@/types';
 import { Head } from '@inertiajs/react';
-import UserForm from './user-form';
+import UserForm, { type UserFormOptions } from './user-form';
 
-interface Props {
-    user: Pick<User, 'id' | 'name' | 'email' | 'role' | 'is_active'>;
-    roles: Option[];
+interface Props extends UserFormOptions {
+    user: Pick<User, 'id' | 'name' | 'email' | 'role_id' | 'is_active'> & { overrides: Overrides };
 }
 
-export default function EditUser({ user, roles }: Props) {
+export default function EditUser({ user, ...options }: Props) {
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Dashboard', href: '/dashboard' },
         { title: 'Users', href: '/admin/users' },
@@ -24,14 +24,16 @@ export default function EditUser({ user, roles }: Props) {
                 <PageHeader back={route('admin.users.index')} title="Edit user" description={user.email} />
 
                 <UserForm
-                    roles={roles}
+                    {...options}
                     initial={{
                         name: user.name,
                         email: user.email,
-                        role: user.role,
+                        role_id: user.role_id,
                         is_active: user.is_active,
                         password: '',
                         password_confirmation: '',
+                        // PHP serialises an empty map as [], which is not a record.
+                        overrides: Array.isArray(user.overrides) ? {} : user.overrides,
                     }}
                     action={{ url: route('admin.users.update', user.id), method: 'put' }}
                     submitLabel="Save changes"

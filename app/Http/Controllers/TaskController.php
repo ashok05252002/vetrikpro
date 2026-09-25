@@ -25,7 +25,7 @@ class TaskController extends Controller
     {
         $user = $request->user();
         $scope = $request->string('scope')->value() ?: 'mine';
-        $showAll = $scope === 'all' && $user->managesPeople();
+        $showAll = $scope === 'all' && $user->can('projects.view_all');
 
         $tasks = Task::query()
             ->with(['project:id,name,code', 'assignee:id,name'])
@@ -59,7 +59,7 @@ class TaskController extends Controller
                 'scope' => $showAll ? 'all' : 'mine',
                 'overdue' => $request->boolean('overdue'),
             ],
-            'canSeeAll' => $user->managesPeople(),
+            'canSeeAll' => $user->can('projects.view_all'),
         ]);
     }
 

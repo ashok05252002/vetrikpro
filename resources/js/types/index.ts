@@ -2,6 +2,8 @@ import { LucideIcon } from 'lucide-react';
 
 export interface Auth {
     user: User;
+    /** Resolved permission keys (role + overrides). Hiding UI on these is cosmetic; the server enforces. */
+    permissions: string[];
 }
 
 export interface BreadcrumbItem {
@@ -35,7 +37,8 @@ export interface User {
     id: number;
     name: string;
     email: string;
-    role: UserRole;
+    role_id: number | null;
+    role?: Pick<Role, 'id' | 'name' | 'slug' | 'is_super'> | null;
     is_active: boolean;
     avatar?: string;
     email_verified_at: string | null;
@@ -45,7 +48,25 @@ export interface User {
     [key: string]: unknown; // This allows for additional properties...
 }
 
-export type UserRole = 'admin' | 'hr' | 'employee';
+export interface Role {
+    id: number;
+    name: string;
+    slug: string;
+    description: string | null;
+    is_super: boolean;
+    is_system: boolean;
+    permissions?: string[];
+    users_count?: number;
+    permissions_count?: number;
+}
+
+export interface PermissionGroup {
+    group: string;
+    permissions: { key: string; label: string }[];
+}
+
+/** A per-user deviation from the role; a key that is absent inherits. */
+export type PermissionOverride = 'allow' | 'deny';
 
 export interface Option {
     value: string;

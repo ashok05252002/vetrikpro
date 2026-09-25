@@ -31,7 +31,7 @@ class TaskCommentController extends Controller
 
         // Your own comment, or anyone's if you can administer people.
         abort_unless(
-            $comment->user_id === $request->user()->id || $request->user()->managesPeople(),
+            $comment->user_id === $request->user()->id || $request->user()->can('projects.manage'),
             403,
         );
 

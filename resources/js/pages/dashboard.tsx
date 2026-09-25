@@ -29,10 +29,11 @@ interface Props {
     taskPipeline: PipelineStage[];
     myTasks: TaskSummary[];
     projects: ProjectSummary[];
-    managesPeople: boolean;
+    orgWide: boolean;
+    peopleStats: boolean;
 }
 
-export default function Dashboard({ stats, taskPipeline, myTasks, projects, managesPeople }: Props) {
+export default function Dashboard({ stats, taskPipeline, myTasks, projects, orgWide, peopleStats }: Props) {
     const { auth } = usePage<SharedData>().props;
     const format = useFormat();
     const totalTasks = taskPipeline.reduce((sum, stage) => sum + stage.count, 0);
@@ -45,7 +46,7 @@ export default function Dashboard({ stats, taskPipeline, myTasks, projects, mana
                 <div className="space-y-1">
                     <h1 className="text-2xl font-semibold tracking-tight">Welcome back, {auth.user.name.split(' ')[0]}</h1>
                     <p className="text-muted-foreground text-sm">
-                        {managesPeople ? 'Everything across the organisation.' : 'Your work across the projects you are on.'}
+                        {orgWide ? 'Everything across the organisation.' : 'Your work across the projects you are on.'}
                     </p>
                 </div>
 
@@ -139,7 +140,7 @@ export default function Dashboard({ stats, taskPipeline, myTasks, projects, mana
                     </CardContent>
                 </Card>
 
-                {managesPeople && (
+                {peopleStats && (
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                         <StatTile label="Users" value={stats.users ?? 0} icon={Users} href="/admin/users" />
                         <StatTile label="Employees" value={stats.employees ?? 0} icon={IdCard} href="/admin/employees" />

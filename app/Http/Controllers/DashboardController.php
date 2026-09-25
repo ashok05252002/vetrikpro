@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Enums\TaskStatus;
-use App\Enums\UserRole;
 use App\Models\Department;
 use App\Models\Employee;
 use App\Models\Project;
@@ -24,12 +23,13 @@ class DashboardController extends Controller
             'taskPipeline' => $this->taskPipeline($user),
             'myTasks' => $this->myTasks($user),
             'projects' => $this->projectProgress($user),
-            'managesPeople' => $user->managesPeople(),
+            'orgWide' => $user->can('projects.view_all'),
+            'peopleStats' => $user->can('users.manage'),
         ]);
     }
 
     /**
-     * Headline counts. People figures are only meaningful to admin/HR, so
+     * Headline counts. People figures only go to those who manage accounts;
      * everyone else gets the work-focused set.
      */
     private function stats(User $user): array
@@ -46,12 +46,12 @@ class DashboardController extends Controller
             'activeProjects' => $this->visibleProjects($user)->where('status', 'active')->count(),
         ];
 
-        if ($user->managesPeople()) {
+        if ($user->can('users.manage')) {
             $stats += [
                 'users' => User::count(),
                 'employees' => Employee::count(),
                 'departments' => Department::count(),
-                'admins' => User::where('role', UserRole::Admin)->count(),
+                'admins' => User::whereHas('role', fn ($query) => $query->where('is_super', true))->count(),
             ];
         }
 
@@ -119,7 +119,7 @@ class DashboardController extends Controller
      */
     private function visibleProjects(User $user)
     {
-        return Project::query()->unless($user->managesPeople(), fn ($query) => $query
+        return Project::query()->unless($user->can('projects.view_all'), fn ($query) => $query
             ->where(fn ($q) => $q
                 ->where('owner_id', $user->id)
                 ->orWhereHas('members', fn ($m) => $m->whereKey($user->id))));
@@ -127,7 +127,7 @@ class DashboardController extends Controller
 
     private function visibleTasks(User $user)
     {
-        return Task::query()->unless($user->managesPeople(), fn ($query) => $query
+        return Task::query()->unless($user->can('projects.view_all'), fn ($query) => $query
             ->where(fn ($q) => $q
                 ->where('assigned_to', $user->id)
                 ->orWhereHas('project', fn ($p) => $p

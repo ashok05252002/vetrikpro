@@ -1,9 +1,10 @@
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
-import { type NavItem, type SharedData } from '@/types';
-import { Link, usePage } from '@inertiajs/react';
-import { Briefcase, Building2, FolderKanban, IdCard, LayoutGrid, ListChecks, Settings, Users } from 'lucide-react';
+import { usePermission } from '@/hooks/use-permission';
+import { type NavItem } from '@/types';
+import { Link } from '@inertiajs/react';
+import { Briefcase, Building2, FolderKanban, IdCard, LayoutGrid, ListChecks, Settings, ShieldCheck, Users } from 'lucide-react';
 import AppLogo from './app-logo';
 
 /** Everyone signed in gets these. */
@@ -13,22 +14,20 @@ const workNavItems: NavItem[] = [
     { title: 'Projects', url: '/projects', icon: FolderKanban },
 ];
 
-/** Only shown to users who can reach /admin. */
-const adminNavItems: NavItem[] = [
-    { title: 'Users', url: '/admin/users', icon: Users },
-    { title: 'Employees', url: '/admin/employees', icon: IdCard },
-    { title: 'Departments', url: '/admin/departments', icon: Building2 },
-    { title: 'Designations', url: '/admin/designations', icon: Briefcase },
-    { title: 'Manage projects', url: '/admin/projects', icon: FolderKanban },
+/** Each admin entry appears only for the permission its routes check. */
+const adminNavItems: (NavItem & { permission: string })[] = [
+    { title: 'Users', url: '/admin/users', icon: Users, permission: 'users.manage' },
+    { title: 'Roles & access', url: '/admin/roles', icon: ShieldCheck, permission: 'roles.manage' },
+    { title: 'Employees', url: '/admin/employees', icon: IdCard, permission: 'employees.view' },
+    { title: 'Departments', url: '/admin/departments', icon: Building2, permission: 'masters.manage' },
+    { title: 'Designations', url: '/admin/designations', icon: Briefcase, permission: 'masters.manage' },
+    { title: 'Manage projects', url: '/admin/projects', icon: FolderKanban, permission: 'projects.manage' },
+    { title: 'Settings', url: '/admin/settings', icon: Settings, permission: 'settings.manage' },
 ];
 
 export function AppSidebar() {
-    const { auth } = usePage<SharedData>().props;
-    const isAdmin = auth.user?.role === 'admin';
-    const canManagePeople = isAdmin || auth.user?.role === 'hr';
-
-    // Organisation settings are the administrator's alone.
-    const adminItems = isAdmin ? [...adminNavItems, { title: 'Settings', url: '/admin/settings', icon: Settings }] : adminNavItems;
+    const { can } = usePermission();
+    const adminItems = adminNavItems.filter((item) => can(item.permission));
 
     return (
         <Sidebar collapsible="icon" variant="inset">
@@ -46,7 +45,7 @@ export function AppSidebar() {
 
             <SidebarContent>
                 <NavMain label="Workspace" items={workNavItems} />
-                {canManagePeople && <NavMain label="Administration" items={adminItems} />}
+                {adminItems.length > 0 && <NavMain label="Administration" items={adminItems} />}
             </SidebarContent>
 
             <SidebarFooter>

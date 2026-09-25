@@ -2,10 +2,10 @@
 
 namespace Database\Seeders;
 
-use App\Enums\UserRole;
 use App\Models\Department;
 use App\Models\Designation;
 use App\Models\Employee;
+use App\Models\Role;
 use App\Models\User;
 use App\Support\Settings;
 use Illuminate\Database\Seeder;
@@ -20,7 +20,7 @@ class DatabaseSeeder extends Seeder
             [
                 'name' => 'System Administrator',
                 'password' => 'password',
-                'role' => UserRole::Admin,
+                'role_id' => Role::bySlug(Role::ADMIN)->id,
                 'is_active' => true,
                 'email_verified_at' => now(),
             ],
@@ -57,7 +57,7 @@ class DatabaseSeeder extends Seeder
             [
                 'name' => 'Priya HR',
                 'password' => 'password',
-                'role' => UserRole::Hr,
+                'role_id' => Role::bySlug(Role::HR)->id,
                 'is_active' => true,
                 'email_verified_at' => now(),
             ],
@@ -77,7 +77,7 @@ class DatabaseSeeder extends Seeder
                 [
                     'name' => $name,
                     'password' => 'password',
-                    'role' => UserRole::Employee,
+                    'role_id' => Role::bySlug(Role::EMPLOYEE)->id,
                     'is_active' => true,
                     'email_verified_at' => now(),
                 ],

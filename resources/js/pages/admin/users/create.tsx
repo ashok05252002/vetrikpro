@@ -1,8 +1,8 @@
 import PageHeader from '@/components/admin/page-header';
 import AppLayout from '@/layouts/app-layout';
-import type { BreadcrumbItem, Option } from '@/types';
+import type { BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
-import UserForm from './user-form';
+import UserForm, { type UserFormOptions } from './user-form';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: '/dashboard' },
@@ -10,7 +10,10 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'New user', href: '/admin/users/create' },
 ];
 
-export default function CreateUser({ roles }: { roles: Option[] }) {
+export default function CreateUser(options: UserFormOptions) {
+    // Default to the least-privileged role on offer, never to none.
+    const fallback = options.roles.find((r) => !r.is_super && (r.permissions?.length ?? 0) === 0) ?? options.roles[0];
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="New user" />
@@ -23,8 +26,16 @@ export default function CreateUser({ roles }: { roles: Option[] }) {
                 />
 
                 <UserForm
-                    roles={roles}
-                    initial={{ name: '', email: '', role: 'employee', is_active: true, password: '', password_confirmation: '' }}
+                    {...options}
+                    initial={{
+                        name: '',
+                        email: '',
+                        role_id: fallback?.id ?? null,
+                        is_active: true,
+                        password: '',
+                        password_confirmation: '',
+                        overrides: {},
+                    }}
                     action={{ url: route('admin.users.store'), method: 'post' }}
                     submitLabel="Create user"
                 />

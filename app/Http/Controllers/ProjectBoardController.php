@@ -28,7 +28,7 @@ class ProjectBoardController extends Controller
                 'tasks as done_tasks_count' => fn ($query) => $query->where('status', TaskStatus::Done),
                 'members',
             ])
-            ->unless($user->managesPeople(), fn ($query) => $query
+            ->unless($user->can('projects.view_all'), fn ($query) => $query
                 ->where(fn ($q) => $q
                     ->where('owner_id', $user->id)
                     ->orWhereHas('members', fn ($m) => $m->whereKey($user->id))))

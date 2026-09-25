@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Admin;
 
-use App\Enums\UserRole;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -46,7 +46,7 @@ class UserManagementTest extends TestCase
             ->post(route('admin.users.store'), [
                 'name' => 'Jane Doe',
                 'email' => 'jane@company.com',
-                'role' => 'hr',
+                'role_id' => Role::bySlug(Role::HR)->id,
                 'is_active' => true,
                 'password' => 'Str0ng-Passw0rd',
                 'password_confirmation' => 'Str0ng-Passw0rd',
@@ -56,7 +56,7 @@ class UserManagementTest extends TestCase
         $user = User::where('email', 'jane@company.com')->first();
 
         $this->assertNotNull($user);
-        $this->assertSame(UserRole::Hr, $user->role);
+        $this->assertSame(Role::HR, $user->role->slug);
         $this->assertTrue($user->is_active);
         // Stored hashed, and the credentials actually work.
         $this->assertTrue(Hash::check('Str0ng-Passw0rd', $user->password));
@@ -68,7 +68,7 @@ class UserManagementTest extends TestCase
             ->post(route('admin.users.store'), [
                 'name' => 'Jane Doe',
                 'email' => 'jane@company.com',
-                'role' => 'employee',
+                'role_id' => Role::bySlug(Role::EMPLOYEE)->id,
                 'is_active' => true,
                 'password' => 'Str0ng-Passw0rd',
                 'password_confirmation' => 'Str0ng-Passw0rd',
@@ -92,7 +92,7 @@ class UserManagementTest extends TestCase
             ->post(route('admin.users.store'), [
                 'name' => 'Someone',
                 'email' => 'taken@company.com',
-                'role' => 'employee',
+                'role_id' => Role::bySlug(Role::EMPLOYEE)->id,
                 'is_active' => true,
                 'password' => 'Str0ng-Passw0rd',
                 'password_confirmation' => 'Str0ng-Passw0rd',
@@ -106,12 +106,12 @@ class UserManagementTest extends TestCase
             ->post(route('admin.users.store'), [
                 'name' => 'Someone',
                 'email' => 'someone@company.com',
-                'role' => 'superuser',
+                'role_id' => 999999,
                 'is_active' => true,
                 'password' => 'Str0ng-Passw0rd',
                 'password_confirmation' => 'Str0ng-Passw0rd',
             ])
-            ->assertSessionHasErrors('role');
+            ->assertSessionHasErrors('role_id');
     }
 
     public function test_updating_without_a_password_keeps_the_existing_one()
@@ -123,7 +123,7 @@ class UserManagementTest extends TestCase
             ->put(route('admin.users.update', $user), [
                 'name' => 'Renamed',
                 'email' => $user->email,
-                'role' => 'employee',
+                'role_id' => Role::bySlug(Role::EMPLOYEE)->id,
                 'is_active' => false,
                 'password' => '',
                 'password_confirmation' => '',

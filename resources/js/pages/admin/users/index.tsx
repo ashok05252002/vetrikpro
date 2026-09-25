@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
-import type { BreadcrumbItem, Option, Paginated, User, UserRole } from '@/types';
+import type { BreadcrumbItem, Option, Paginated, User } from '@/types';
 import { Head, Link } from '@inertiajs/react';
 import { Pencil, Plus } from 'lucide-react';
 
@@ -15,21 +15,18 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Users', href: '/admin/users' },
 ];
 
-const roleVariant: Record<UserRole, 'default' | 'secondary' | 'outline'> = {
-    admin: 'default',
-    hr: 'secondary',
-    employee: 'outline',
-};
+const statusOptions: Option[] = [
+    { value: 'active', label: 'Active' },
+    { value: 'disabled', label: 'Disabled' },
+];
 
 interface Props {
     users: Paginated<User>;
     roles: Option[];
-    filters: { search?: string; role?: string };
+    filters: { search?: string; role?: string; status?: string };
 }
 
 export default function UsersIndex({ users, roles, filters }: Props) {
-    const roleLabel = (role: UserRole) => roles.find((r) => r.value === role)?.label ?? role;
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Users" />
@@ -51,7 +48,10 @@ export default function UsersIndex({ users, roles, filters }: Props) {
                     url={route('admin.users.index')}
                     filters={filters}
                     searchPlaceholder="Search name or email…"
-                    selects={[{ name: 'role', placeholder: 'All roles', options: roles }]}
+                    selects={[
+                        { name: 'role', placeholder: 'All roles', options: roles },
+                        { name: 'status', placeholder: 'Any status', options: statusOptions },
+                    ]}
                 />
 
                 <div className="rounded-xl border">
@@ -80,7 +80,7 @@ export default function UsersIndex({ users, roles, filters }: Props) {
                                     <TableCell className="font-medium">{user.name}</TableCell>
                                     <TableCell className="text-muted-foreground">{user.email}</TableCell>
                                     <TableCell>
-                                        <Badge variant={roleVariant[user.role]}>{roleLabel(user.role)}</Badge>
+                                        {user.role ? <Badge variant={user.role.is_super ? 'default' : 'outline'}>{user.role.name}</Badge> : '—'}
                                     </TableCell>
                                     <TableCell className="text-muted-foreground">{user.employee?.employee_code ?? '—'}</TableCell>
                                     <TableCell>

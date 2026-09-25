@@ -2,7 +2,10 @@
 
 namespace App\Providers;
 
+use App\Models\User;
+use App\Support\Permissions;
 use App\Support\Settings;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -20,6 +23,16 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        /*
+         * Registry permissions answer through the user's resolved set, so
+         * `$user->can('projects.manage')`, `can:` route middleware and policies
+         * all share one path. Anything else (policy abilities like `update`)
+         * falls through to its policy.
+         */
+        Gate::before(function (User $user, string $ability) {
+            return Permissions::exists($ability) ? $user->hasPermission($ability) : null;
+        });
+
         /*
          * The company name drives config('app.name'), so the browser title, the
          * default mail "from" name and anything else reading it all follow the

@@ -17,23 +17,23 @@ class ProjectPolicy
 
     public function view(User $user, Project $project): bool
     {
-        return $user->managesPeople()
+        return $user->can('projects.view_all')
             || $project->owner_id === $user->id
             || $project->members()->whereKey($user->id)->exists();
     }
 
     public function create(User $user): bool
     {
-        return $user->managesPeople();
+        return $user->can('projects.manage');
     }
 
     public function update(User $user, Project $project): bool
     {
-        return $user->managesPeople() || $project->owner_id === $user->id;
+        return $user->can('projects.manage') || $project->owner_id === $user->id;
     }
 
     public function delete(User $user, Project $project): bool
     {
-        return $user->managesPeople();
+        return $user->can('projects.manage');
     }
 }

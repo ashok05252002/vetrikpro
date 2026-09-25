@@ -2,7 +2,7 @@
 
 namespace Database\Factories;
 
-use App\Enums\UserRole;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -31,19 +31,28 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
-            'role' => UserRole::Employee,
+            'role_id' => fn () => Role::where('slug', Role::EMPLOYEE)->value('id'),
             'is_active' => true,
         ];
     }
 
     public function admin(): static
     {
-        return $this->state(fn () => ['role' => UserRole::Admin]);
+        return $this->withRole(Role::ADMIN);
     }
 
     public function hr(): static
     {
-        return $this->state(fn () => ['role' => UserRole::Hr]);
+        return $this->withRole(Role::HR);
+    }
+
+    /**
+     * The system roles are created by their migration, so they exist in every
+     * test database without seeding.
+     */
+    public function withRole(string $slug): static
+    {
+        return $this->state(fn () => ['role_id' => Role::where('slug', $slug)->value('id')]);
     }
 
     /**
