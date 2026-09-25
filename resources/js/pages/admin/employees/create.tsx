@@ -26,36 +26,35 @@ export default function CreateEmployee({ users, departments, designations, nextC
                 <PageHeader
                     back={route('admin.employees.index')}
                     title="New employee"
-                    description="Attach an HR record to an existing user account."
+                    description="Add a new person and invite them, or give an existing account an HR profile."
                 />
 
-                {users.length === 0 ? (
-                    <p className="text-muted-foreground text-sm">
-                        Every user already has an employee profile. Create a user first under Users → New user.
-                    </p>
-                ) : (
-                    <EmployeeForm
-                        users={users}
-                        departments={departments}
-                        designations={designations}
-                        initial={{
-                            user_id: '',
-                            employee_code: nextCode,
-                            department_id: NONE,
-                            designation_id: NONE,
-                            phone: '',
-                            date_of_birth: '',
-                            gender: NONE,
-                            date_of_joining: '',
-                            employment_type: 'full_time',
-                            salary: '',
-                            address: '',
-                            status: 'active',
-                        }}
-                        action={{ url: route('admin.employees.store'), method: 'post' }}
-                        submitLabel="Create employee"
-                    />
-                )}
+                <EmployeeForm
+                    users={users}
+                    departments={departments}
+                    designations={designations}
+                    initial={{
+                        mode: 'new',
+                        name: '',
+                        email: '',
+                        send_invite: true,
+                        offer_letter: null,
+                        user_id: '',
+                        employee_code: nextCode,
+                        department_id: NONE,
+                        designation_id: NONE,
+                        phone: '',
+                        date_of_birth: '',
+                        gender: NONE,
+                        date_of_joining: '',
+                        employment_type: 'full_time',
+                        salary: '',
+                        address: '',
+                        status: 'active',
+                    }}
+                    action={{ url: route('admin.employees.store'), method: 'post' }}
+                    submitLabel="Create employee"
+                />
             </div>
         </AppLayout>
     );

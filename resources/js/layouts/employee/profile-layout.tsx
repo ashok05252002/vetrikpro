@@ -12,11 +12,17 @@ import { Head, Link } from '@inertiajs/react';
 import { Pencil } from 'lucide-react';
 import type { ReactNode } from 'react';
 
-export type ProfileTab = 'overview' | 'documents' | 'projects' | 'tasks' | 'access';
+export type ProfileTab = 'overview' | 'onboarding' | 'documents' | 'projects' | 'tasks' | 'access';
 
 function tabs(employee: EmployeeProfileHeader): TabLink<ProfileTab>[] {
     const all: (TabLink<ProfileTab> & { show: boolean })[] = [
         { key: 'overview', label: 'Overview', href: route('admin.employees.show', employee.id), show: true },
+        {
+            key: 'onboarding',
+            label: 'Onboarding',
+            href: route('admin.employees.onboarding', employee.id),
+            show: employee.onboarding_status !== null,
+        },
         {
             key: 'documents',
             label: 'Documents',

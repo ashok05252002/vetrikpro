@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MergeRequestInboxController;
+use App\Http\Controllers\Onboarding\InvitationController;
+use App\Http\Controllers\Onboarding\OnboardingController;
 use App\Http\Controllers\ProjectBoardController;
 use App\Http\Controllers\Projects\BranchController;
 use App\Http\Controllers\Projects\MergeRequestController;
@@ -22,6 +24,24 @@ Route::get('/', function () {
         ? redirect()->route('dashboard')
         : redirect()->route('login');
 })->name('home');
+
+// The welcome email's link. Guests only: it signs the person in at the end.
+Route::middleware('guest')->group(function () {
+    Route::get('invitation/{token}', [InvitationController::class, 'show'])->name('invitation.show');
+    Route::post('invitation', [InvitationController::class, 'store'])->name('invitation.store');
+});
+
+// A new employee's own "complete your profile" page.
+Route::middleware('auth')->prefix('onboarding')->name('onboarding.')->group(function () {
+    Route::get('/', [OnboardingController::class, 'show'])->name('show');
+    Route::put('details', [OnboardingController::class, 'updateDetails'])->name('details');
+    Route::put('bank', [OnboardingController::class, 'updateBank'])->name('bank');
+    Route::post('documents', [OnboardingController::class, 'uploadDocument'])->name('documents.store');
+    Route::get('documents/{document}/download', [OnboardingController::class, 'downloadDocument'])->name('documents.download');
+    Route::delete('documents/{document}', [OnboardingController::class, 'deleteDocument'])->name('documents.destroy');
+    Route::get('offer-letter', [OnboardingController::class, 'downloadOfferLetter'])->name('offer-letter');
+    Route::post('submit', [OnboardingController::class, 'submit'])->name('submit');
+});
 
 Route::middleware(['auth'])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');

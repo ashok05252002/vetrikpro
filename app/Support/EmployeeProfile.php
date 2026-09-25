@@ -30,6 +30,7 @@ final class EmployeeProfile
             'user_id' => $user->id,
             'role' => $user->role?->only('id', 'name', 'is_super'),
             'department' => $employee->department?->name,
+            'onboarding_status' => $employee->onboarding_status?->value,
             'designation' => $employee->designation?->name,
             'counts' => [
                 'documents' => $viewer->can('documents.view') ? $employee->documents()->count() : null,

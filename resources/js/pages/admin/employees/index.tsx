@@ -2,12 +2,13 @@ import DeleteButton from '@/components/admin/delete-button';
 import FilterBar from '@/components/admin/filter-bar';
 import PageHeader from '@/components/admin/page-header';
 import Pagination from '@/components/admin/pagination';
+import OnboardingBadge from '@/components/onboarding/onboarding-status';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
-import type { BreadcrumbItem, Department, Employee, Paginated } from '@/types';
+import type { BreadcrumbItem, Department, Employee, OnboardingStatus, Option, Paginated } from '@/types';
 import { Head, Link } from '@inertiajs/react';
 import { Eye, Pencil, Plus } from 'lucide-react';
 import { employmentTypeLabels, statusLabels } from './labels';
@@ -18,12 +19,13 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 interface Props {
-    employees: Paginated<Employee>;
+    employees: Paginated<Employee & { onboarding: { status: OnboardingStatus; done: number; total: number } | null }>;
     departments: Department[];
-    filters: { search?: string; department?: string };
+    onboardingStatuses: Option[];
+    filters: { search?: string; department?: string; onboarding?: string };
 }
 
-export default function EmployeesIndex({ employees, departments, filters }: Props) {
+export default function EmployeesIndex({ employees, departments, onboardingStatuses, filters }: Props) {
     const { can } = usePermission();
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -49,6 +51,7 @@ export default function EmployeesIndex({ employees, departments, filters }: Prop
                     filters={filters}
                     searchPlaceholder="Search name, email or code…"
                     selects={[
+                        { name: 'onboarding', placeholder: 'Any onboarding', options: onboardingStatuses },
                         {
                             name: 'department',
                             placeholder: 'All departments',
@@ -67,13 +70,14 @@ export default function EmployeesIndex({ employees, departments, filters }: Prop
                                 <TableHead>Designation</TableHead>
                                 <TableHead>Type</TableHead>
                                 <TableHead>Status</TableHead>
+                                <TableHead>Onboarding</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {employees.data.length === 0 && (
                                 <TableRow>
-                                    <TableCell colSpan={7} className="text-muted-foreground py-10 text-center">
+                                    <TableCell colSpan={8} className="text-muted-foreground py-10 text-center">
                                         No employee profiles yet.
                                     </TableCell>
                                 </TableRow>
@@ -95,6 +99,23 @@ export default function EmployeesIndex({ employees, departments, filters }: Prop
                                         <Badge variant={employee.status === 'active' ? 'default' : 'secondary'}>
                                             {statusLabels[employee.status] ?? employee.status}
                                         </Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                        {employee.onboarding ? (
+                                            <Link
+                                                href={route('admin.employees.onboarding', employee.id)}
+                                                className="block min-w-28 space-y-1 hover:underline"
+                                            >
+                                                <OnboardingBadge status={employee.onboarding.status} />
+                                                {employee.onboarding.status !== 'completed' && (
+                                                    <span className="text-muted-foreground block text-[11px] tabular-nums">
+                                                        {employee.onboarding.done}/{employee.onboarding.total} items
+                                                    </span>
+                                                )}
+                                            </Link>
+                                        ) : (
+                                            <span className="text-muted-foreground text-xs">—</span>
+                                        )}
                                     </TableCell>
                                     <TableCell>
                                         <div className="flex justify-end gap-1">

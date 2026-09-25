@@ -54,6 +54,8 @@ class HandleInertiaRequests extends Middleware
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),
+                // Only set while no real mailer is configured, so HR can pass the link on.
+                'invite_link' => fn () => $request->session()->get('invite_link'),
             ],
         ]);
     }

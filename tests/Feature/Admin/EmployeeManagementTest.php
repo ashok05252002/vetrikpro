@@ -22,6 +22,7 @@ class EmployeeManagementTest extends TestCase
 
         $this->actingAs(User::factory()->admin()->create())
             ->post(route('admin.employees.store'), [
+                'mode' => 'existing',
                 'user_id' => $user->id,
                 'employee_code' => 'EMP-0042',
                 'department_id' => $department->id,
@@ -35,7 +36,7 @@ class EmployeeManagementTest extends TestCase
                 'address' => '12 Example Street',
                 'status' => 'active',
             ])
-            ->assertRedirect(route('admin.employees.index'));
+            ->assertRedirect(route('admin.employees.show', Employee::where('employee_code', 'EMP-0042')->value('id') ?? 0));
 
         $employee = Employee::where('employee_code', 'EMP-0042')->first();
 
@@ -50,6 +51,7 @@ class EmployeeManagementTest extends TestCase
 
         $this->actingAs(User::factory()->admin()->create())
             ->post(route('admin.employees.store'), [
+                'mode' => 'existing',
                 'user_id' => $employee->user_id,
                 'employee_code' => 'EMP-9999',
                 'employment_type' => 'full_time',

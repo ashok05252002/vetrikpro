@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\OnboardingStatus;
 use Database\Factories\EmployeeFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -27,7 +28,15 @@ class Employee extends Model
         'salary',
         'address',
         'status',
+        'bank_account_name',
+        'bank_account_number',
+        'bank_ifsc',
+        'bank_name',
+        'bank_branch',
     ];
+
+    /** Onboarding columns change only through the onboarding flow, never mass assignment. */
+    protected $hidden = ['bank_account_number', 'offer_letter_path'];
 
     protected function casts(): array
     {
@@ -35,6 +44,11 @@ class Employee extends Model
             'date_of_birth' => 'date:Y-m-d',
             'date_of_joining' => 'date:Y-m-d',
             'salary' => 'decimal:2',
+            'bank_account_number' => 'encrypted',
+            'onboarding_status' => OnboardingStatus::class,
+            'invited_at' => 'datetime',
+            'onboarding_submitted_at' => 'datetime',
+            'onboarding_completed_at' => 'datetime',
         ];
     }
 
@@ -53,6 +67,22 @@ class Employee extends Model
     public function documents(): HasMany
     {
         return $this->hasMany(EmployeeDocument::class)->latest();
+    }
+
+    /**
+     * "XXXX XXXX 1234": enough for HR to confirm the right account without
+     * the full number sitting on every screen.
+     */
+    public function maskedAccountNumber(): ?string
+    {
+        $number = $this->bank_account_number;
+
+        return $number ? str_repeat('•', max(0, strlen($number) - 4)).substr($number, -4) : null;
+    }
+
+    public function isOnboarding(): bool
+    {
+        return $this->onboarding_status !== null && $this->onboarding_status !== OnboardingStatus::Completed;
     }
 
     public function purgeDocumentFiles(): void

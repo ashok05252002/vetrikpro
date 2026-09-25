@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\DepartmentController;
 use App\Http\Controllers\Admin\DesignationController;
 use App\Http\Controllers\Admin\EmployeeController;
 use App\Http\Controllers\Admin\EmployeeDocumentController;
+use App\Http\Controllers\Admin\EmployeeOnboardingController;
 use App\Http\Controllers\Admin\EmployeeProfileController;
 use App\Http\Controllers\Admin\ProjectController;
 use App\Http\Controllers\Admin\RoleController;
@@ -46,6 +47,15 @@ Route::middleware(['auth'])
             Route::get('documents/{document}/download', [EmployeeDocumentController::class, 'download'])->middleware('can:documents.view')->name('documents.download');
             Route::post('documents', [EmployeeDocumentController::class, 'store'])->middleware('can:documents.create')->name('documents.store');
             Route::delete('documents/{document}', [EmployeeDocumentController::class, 'destroy'])->middleware('can:documents.delete')->name('documents.destroy');
+
+            Route::get('onboarding', [EmployeeOnboardingController::class, 'show'])->middleware('can:employees.view')->name('onboarding');
+            Route::get('onboarding/offer-letter', [EmployeeOnboardingController::class, 'downloadOfferLetter'])->middleware('can:documents.view')->name('onboarding.offer-letter');
+            Route::middleware('can:employees.onboard')->prefix('onboarding')->name('onboarding.')->group(function () {
+                Route::post('invite', [EmployeeOnboardingController::class, 'invite'])->name('invite');
+                Route::post('offer-letter', [EmployeeOnboardingController::class, 'uploadOfferLetter'])->name('offer-letter.store');
+                Route::post('approve', [EmployeeOnboardingController::class, 'approve'])->name('approve');
+                Route::post('send-back', [EmployeeOnboardingController::class, 'sendBack'])->name('send-back');
+            });
 
             Route::middleware('can:employees.view')->group(function () {
                 Route::get('projects', [EmployeeProfileController::class, 'projects'])->name('projects');

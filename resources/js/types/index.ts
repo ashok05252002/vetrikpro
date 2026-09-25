@@ -31,7 +31,7 @@ export interface SharedData {
     auth: Auth;
     company: Company;
     display: DisplaySettings;
-    flash: { success: string | null; error: string | null };
+    flash: { success: string | null; error: string | null; invite_link?: string | null };
     [key: string]: unknown;
 }
 
@@ -265,6 +265,7 @@ export interface EmployeeProfileHeader {
     role: Pick<Role, 'id' | 'name' | 'is_super'> | null;
     department: string | null;
     designation: string | null;
+    onboarding_status: OnboardingStatus | null;
     counts: { documents: number | null; projects: number; open_tasks: number };
     viewer: {
         can_edit: boolean;
@@ -415,4 +416,39 @@ export interface MergeRequestDetail extends Omit<MergeRequestRow, 'branch'> {
     readiness: Readiness;
     events: MergeRequestEvent[];
     next: MergeRequestStatus[];
+}
+
+export type OnboardingStatus = 'invited' | 'in_progress' | 'submitted' | 'returned' | 'completed';
+
+export interface OnboardingItem {
+    key: string;
+    label: string;
+    done: boolean;
+    required: boolean;
+    section: 'details' | 'bank' | 'documents' | 'offer';
+}
+
+export interface OnboardingSlot {
+    type_id: number;
+    name: string;
+    description: string | null;
+    required: boolean;
+    is_offer_letter: boolean;
+    document: { id: number; title: string; original_name: string; size: number; uploaded_at: string } | null;
+}
+
+export interface OnboardingState {
+    status: OnboardingStatus;
+    status_label: string;
+    editable: boolean;
+    invited_at: string | null;
+    submitted_at: string | null;
+    completed_at: string | null;
+    note: string | null;
+    checklist: OnboardingItem[];
+    progress: { done: number; total: number; percent: number; complete: boolean };
+    details: { phone: string | null; date_of_birth: string | null; gender: string | null; address: string | null };
+    bank: { account_name: string | null; account_number: string | null; ifsc: string | null; bank_name: string | null; branch: string | null };
+    offer_letter: { name: string } | null;
+    slots: OnboardingSlot[];
 }

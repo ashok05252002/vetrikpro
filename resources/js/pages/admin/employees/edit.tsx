@@ -30,6 +30,11 @@ export default function EditEmployee({ employee, users, departments, designation
                     departments={departments}
                     designations={designations}
                     initial={{
+                        mode: 'existing',
+                        name: '',
+                        email: '',
+                        send_invite: false,
+                        offer_letter: null,
                         user_id: String(employee.user_id),
                         employee_code: employee.employee_code,
                         department_id: employee.department_id ? String(employee.department_id) : NONE,

@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\User;
+
 return [
 
     /*
@@ -62,7 +64,7 @@ return [
     'providers' => [
         'users' => [
             'driver' => 'eloquent',
-            'model' => env('AUTH_MODEL', App\Models\User::class),
+            'model' => env('AUTH_MODEL', User::class),
         ],
 
         // 'users' => [
@@ -96,6 +98,18 @@ return [
             'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
             'expire' => 60,
             'throttle' => 60,
+        ],
+
+        /*
+         * Invitations for new employees: the same token table, but a link that
+         * stays valid for three days, since nobody opens a welcome email within
+         * the hour. HR can resend at any time, so no throttle.
+         */
+        'invites' => [
+            'provider' => 'users',
+            'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
+            'expire' => (int) env('INVITE_EXPIRE_MINUTES', 4320),
+            'throttle' => 0,
         ],
     ],
 

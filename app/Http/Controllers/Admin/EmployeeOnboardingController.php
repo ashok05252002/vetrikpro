@@ -1,0 +1,100 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Enums\OnboardingStatus;
+use App\Http\Controllers\Controller;
+use App\Models\Employee;
+use App\Models\EmployeeDocument;
+use App\Services\Onboarding\EmployeeInvitations;
+use App\Support\EmployeeProfile;
+use App\Support\OnboardingPresenter;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Inertia\Inertia;
+use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+
+/**
+ * HR's side of onboarding, on the staff profile's Onboarding tab.
+ */
+class EmployeeOnboardingController extends Controller
+{
+    public function show(Request $request, Employee $employee): Response
+    {
+        $viewer = $request->user();
+
+        return Inertia::render('admin/employees/onboarding', [
+            'employee' => EmployeeProfile::header($employee, $viewer),
+            'onboarding' => $employee->onboarding_status === null ? null : OnboardingPresenter::state($employee),
+            'mailIsLocal' => EmployeeInvitations::mailIsLocal(),
+            'can' => [
+                'manage' => $viewer->can('employees.onboard'),
+                'documents' => $viewer->can('documents.view'),
+            ],
+        ]);
+    }
+
+    public function invite(Employee $employee, EmployeeInvitations $invitations): RedirectResponse
+    {
+        if ($employee->onboarding_status === null || $employee->onboarding_status === OnboardingStatus::Completed) {
+            return back()->with('error', 'This person is not being onboarded.');
+        }
+
+        $link = $invitations->send($employee);
+
+        return back()
+            ->with('success', "Invite sent to {$employee->user->email}. Any earlier link no longer works.")
+            ->with('invite_link', EmployeeInvitations::mailIsLocal() ? $link : null);
+    }
+
+    public function uploadOfferLetter(Request $request, Employee $employee): RedirectResponse
+    {
+        $request->validate(['offer_letter' => ['required', 'file', 'max:10240', 'mimes:pdf,doc,docx']]);
+
+        EmployeeController::storeOfferLetter($employee, $request->file('offer_letter'));
+
+        return back()->with('success', 'Offer letter attached. Resend the invite to email it.');
+    }
+
+    public function downloadOfferLetter(Employee $employee): StreamedResponse
+    {
+        abort_if($employee->offer_letter_path === null, 404);
+
+        return Storage::disk(EmployeeDocument::DISK)->download($employee->offer_letter_path, $employee->offer_letter_name);
+    }
+
+    public function approve(Request $request, Employee $employee): RedirectResponse
+    {
+        if ($employee->onboarding_status !== OnboardingStatus::Submitted) {
+            return back()->with('error', 'Only a submitted profile can be approved.');
+        }
+
+        $employee->forceFill([
+            'onboarding_status' => OnboardingStatus::Completed,
+            'onboarding_completed_at' => now(),
+            'onboarding_reviewed_by' => $request->user()->id,
+            'onboarding_note' => null,
+        ])->save();
+
+        return back()->with('success', "{$employee->user->name}'s onboarding is complete.");
+    }
+
+    public function sendBack(Request $request, Employee $employee): RedirectResponse
+    {
+        $data = $request->validate(['note' => ['required', 'string', 'max:2000']], ['note.required' => 'Say what needs fixing.']);
+
+        if ($employee->onboarding_status !== OnboardingStatus::Submitted) {
+            return back()->with('error', 'Only a submitted profile can be sent back.');
+        }
+
+        $employee->forceFill([
+            'onboarding_status' => OnboardingStatus::Returned,
+            'onboarding_reviewed_by' => $request->user()->id,
+            'onboarding_note' => $data['note'],
+        ])->save();
+
+        return back()->with('success', "Sent back to {$employee->user->name}. They'll see your note the next time they sign in.");
+    }
+}
