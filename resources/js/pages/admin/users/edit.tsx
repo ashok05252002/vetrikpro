@@ -21,7 +21,7 @@ export default function EditUser({ user, roles }: Props) {
             <Head title={`Edit ${user.name}`} />
 
             <div className="flex flex-col gap-6 p-4">
-                <PageHeader title="Edit user" description={user.email} />
+                <PageHeader back={route('admin.users.index')} title="Edit user" description={user.email} />
 
                 <UserForm
                     roles={roles}

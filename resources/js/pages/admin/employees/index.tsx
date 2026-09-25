@@ -1,7 +1,7 @@
 import DeleteButton from '@/components/admin/delete-button';
+import FilterBar from '@/components/admin/filter-bar';
 import PageHeader from '@/components/admin/page-header';
 import Pagination from '@/components/admin/pagination';
-import SearchFilter from '@/components/admin/search-filter';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -22,7 +22,7 @@ interface Props {
     filters: { search?: string; department?: string };
 }
 
-export default function EmployeesIndex({ employees, filters }: Props) {
+export default function EmployeesIndex({ employees, departments, filters }: Props) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Employees" />
@@ -40,7 +40,18 @@ export default function EmployeesIndex({ employees, filters }: Props) {
                     }
                 />
 
-                <SearchFilter url={route('admin.employees.index')} initial={filters.search ?? ''} placeholder="Search name, email or code…" />
+                <FilterBar
+                    url={route('admin.employees.index')}
+                    filters={filters}
+                    searchPlaceholder="Search name, email or code…"
+                    selects={[
+                        {
+                            name: 'department',
+                            placeholder: 'All departments',
+                            options: departments.map((d) => ({ value: String(d.id), label: d.name })),
+                        },
+                    ]}
+                />
 
                 <div className="rounded-xl border">
                     <Table>

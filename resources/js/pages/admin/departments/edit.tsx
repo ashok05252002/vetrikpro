@@ -16,7 +16,7 @@ export default function EditDepartment({ department }: { department: Department 
             <Head title={`Edit ${department.name}`} />
 
             <div className="flex flex-col gap-6 p-4">
-                <PageHeader title="Edit department" />
+                <PageHeader back={route('admin.departments.index')} title="Edit department" />
 
                 <DepartmentForm
                     initial={{ name: department.name, code: department.code ?? '', description: department.description ?? '' }}

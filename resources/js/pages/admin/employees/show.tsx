@@ -33,6 +33,7 @@ export default function ShowEmployee({ employee }: { employee: Employee }) {
 
             <div className="flex flex-col gap-6 p-4">
                 <PageHeader
+                    back={route('admin.employees.index')}
                     title={employee.user?.name ?? employee.employee_code}
                     description={employee.employee_code}
                     action={

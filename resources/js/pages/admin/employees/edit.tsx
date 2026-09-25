@@ -23,7 +23,7 @@ export default function EditEmployee({ employee, users, departments, designation
             <Head title={`Edit ${employee.employee_code}`} />
 
             <div className="flex flex-col gap-6 p-4">
-                <PageHeader title="Edit employee" description={employee.employee_code} />
+                <PageHeader back={route('admin.employees.show', employee.id)} title="Edit employee" description={employee.employee_code} />
 
                 <EmployeeForm
                     users={users}

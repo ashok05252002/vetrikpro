@@ -1,7 +1,7 @@
 import DeleteButton from '@/components/admin/delete-button';
+import FilterBar from '@/components/admin/filter-bar';
 import PageHeader from '@/components/admin/page-header';
 import Pagination from '@/components/admin/pagination';
-import SearchFilter from '@/components/admin/search-filter';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -44,7 +44,12 @@ export default function AdminProjectsIndex({ projects, statuses, filters }: Prop
                     }
                 />
 
-                <SearchFilter url={route('admin.projects.index')} initial={filters.search ?? ''} placeholder="Search name or code…" />
+                <FilterBar
+                    url={route('admin.projects.index')}
+                    filters={filters}
+                    searchPlaceholder="Search name or code…"
+                    selects={[{ name: 'status', placeholder: 'All statuses', options: statuses }]}
+                />
 
                 <div className="rounded-xl border">
                     <Table>

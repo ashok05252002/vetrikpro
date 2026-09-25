@@ -23,7 +23,11 @@ export default function CreateEmployee({ users, departments, designations, nextC
             <Head title="New employee" />
 
             <div className="flex flex-col gap-6 p-4">
-                <PageHeader title="New employee" description="Attach an HR record to an existing user account." />
+                <PageHeader
+                    back={route('admin.employees.index')}
+                    title="New employee"
+                    description="Attach an HR record to an existing user account."
+                />
 
                 {users.length === 0 ? (
                     <p className="text-muted-foreground text-sm">

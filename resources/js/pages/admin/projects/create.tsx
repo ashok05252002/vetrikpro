@@ -21,7 +21,7 @@ export default function CreateProject({ users, statuses }: Props) {
             <Head title="New project" />
 
             <div className="flex flex-col gap-6 p-4 md:p-6">
-                <PageHeader title="New project" description="Set it up, then add tasks on the board." />
+                <PageHeader back={route('admin.projects.index')} title="New project" description="Set it up, then add tasks on the board." />
 
                 <ProjectForm
                     users={users}

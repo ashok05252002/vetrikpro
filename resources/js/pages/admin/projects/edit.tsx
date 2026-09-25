@@ -22,7 +22,7 @@ export default function EditProject({ project, users, statuses }: Props) {
             <Head title={`Edit ${project.name}`} />
 
             <div className="flex flex-col gap-6 p-4 md:p-6">
-                <PageHeader title="Edit project" description={project.code} />
+                <PageHeader back={route('admin.projects.index')} title="Edit project" description={project.code} />
 
                 <ProjectForm
                     users={users}

@@ -16,7 +16,7 @@ export default function CreateDepartment() {
             <Head title="New department" />
 
             <div className="flex flex-col gap-6 p-4">
-                <PageHeader title="New department" />
+                <PageHeader back={route('admin.departments.index')} title="New department" />
 
                 <DepartmentForm
                     initial={{ name: '', code: '', description: '' }}

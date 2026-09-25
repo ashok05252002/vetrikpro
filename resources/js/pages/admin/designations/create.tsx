@@ -16,7 +16,7 @@ export default function CreateDesignation({ departments }: { departments: Depart
             <Head title="New designation" />
 
             <div className="flex flex-col gap-6 p-4">
-                <PageHeader title="New designation" />
+                <PageHeader back={route('admin.designations.index')} title="New designation" />
 
                 <DesignationForm
                     departments={departments}

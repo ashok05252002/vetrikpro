@@ -16,7 +16,11 @@ export default function CreateUser({ roles }: { roles: Option[] }) {
             <Head title="New user" />
 
             <div className="flex flex-col gap-6 p-4">
-                <PageHeader title="New user" description="Create a login account. You can attach an employee profile afterwards." />
+                <PageHeader
+                    back={route('admin.users.index')}
+                    title="New user"
+                    description="Create a login account. You can attach an employee profile afterwards."
+                />
 
                 <UserForm
                     roles={roles}

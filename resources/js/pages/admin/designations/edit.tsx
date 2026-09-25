@@ -21,7 +21,7 @@ export default function EditDesignation({ designation, departments }: Props) {
             <Head title={`Edit ${designation.name}`} />
 
             <div className="flex flex-col gap-6 p-4">
-                <PageHeader title="Edit designation" />
+                <PageHeader back={route('admin.designations.index')} title="Edit designation" />
 
                 <DesignationForm
                     departments={departments}
