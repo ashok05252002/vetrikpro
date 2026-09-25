@@ -17,13 +17,13 @@ const workNavItems: NavItem[] = [
 
 /** Each admin entry appears only for the permission its routes check. */
 const adminNavItems: (NavItem & { permission: string })[] = [
-    { title: 'Users', url: '/admin/users', icon: Users, permission: 'users.manage' },
-    { title: 'Roles & access', url: '/admin/roles', icon: ShieldCheck, permission: 'roles.manage' },
+    { title: 'Users', url: '/admin/users', icon: Users, permission: 'users.view' },
+    { title: 'Roles & access', url: '/admin/roles', icon: ShieldCheck, permission: 'roles.view' },
     { title: 'Employees', url: '/admin/employees', icon: IdCard, permission: 'employees.view' },
-    { title: 'Departments', url: '/admin/departments', icon: Building2, permission: 'masters.manage' },
-    { title: 'Designations', url: '/admin/designations', icon: Briefcase, permission: 'masters.manage' },
-    { title: 'Manage projects', url: '/admin/projects', icon: FolderKanban, permission: 'projects.manage' },
-    { title: 'Settings', url: '/admin/settings', icon: Settings, permission: 'settings.manage' },
+    { title: 'Departments', url: '/admin/departments', icon: Building2, permission: 'departments.view' },
+    { title: 'Designations', url: '/admin/designations', icon: Briefcase, permission: 'designations.view' },
+    { title: 'Manage projects', url: '/admin/projects', icon: FolderKanban, permission: 'projects.view' },
+    { title: 'Settings', url: '/admin/settings', icon: Settings, permission: 'settings.view' },
 ];
 
 export function AppSidebar() {

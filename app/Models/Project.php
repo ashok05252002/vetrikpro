@@ -65,7 +65,7 @@ class Project extends Model
      */
     public function isAccessibleBy(User $user): bool
     {
-        return $user->can('projects.view_all')
+        return $user->can('projects.view')
             || $this->owner_id === $user->id
             || $this->hasMember($user);
     }

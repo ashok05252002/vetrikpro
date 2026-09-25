@@ -21,7 +21,7 @@ class RequirementDocumentPolicy
     {
         $project = $document->project;
 
-        return $user->can('projects.manage') || $project->owner_id === $user->id || $project->isDevAdmin($user);
+        return $user->can('projects.edit') || $project->owner_id === $user->id || $project->isDevAdmin($user);
     }
 
     public function update(User $user, RequirementDocument $document): bool
@@ -31,6 +31,6 @@ class RequirementDocumentPolicy
 
     public function delete(User $user, RequirementDocument $document): bool
     {
-        return $user->can('projects.manage') || $document->project->owner_id === $user->id;
+        return $user->can('projects.edit') || $document->project->owner_id === $user->id;
     }
 }

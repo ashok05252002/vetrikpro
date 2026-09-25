@@ -4,6 +4,7 @@ import Pagination from '@/components/admin/pagination';
 import SearchFilter from '@/components/admin/search-filter';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem, Designation, Paginated } from '@/types';
 import { Head, Link } from '@inertiajs/react';
@@ -15,6 +16,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function DesignationsIndex({ designations, filters }: { designations: Paginated<Designation>; filters: { search?: string } }) {
+    const { can } = usePermission();
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Designations" />
@@ -24,11 +26,13 @@ export default function DesignationsIndex({ designations, filters }: { designati
                     title="Designations"
                     description="Job titles, optionally scoped to a department."
                     action={
-                        <Button asChild>
-                            <Link href={route('admin.designations.create')}>
-                                <Plus className="size-4" /> New designation
-                            </Link>
-                        </Button>
+                        can('designations.create') && (
+                            <Button asChild>
+                                <Link href={route('admin.designations.create')}>
+                                    <Plus className="size-4" /> New designation
+                                </Link>
+                            </Button>
+                        )
                     }
                 />
 
@@ -60,13 +64,17 @@ export default function DesignationsIndex({ designations, filters }: { designati
                                     <TableCell>{designation.employees_count ?? 0}</TableCell>
                                     <TableCell>
                                         <div className="flex justify-end gap-1">
-                                            <Button asChild variant="ghost" size="sm">
-                                                <Link href={route('admin.designations.edit', designation.id)}>
-                                                    <Pencil className="size-4" />
-                                                    <span className="sr-only">Edit</span>
-                                                </Link>
-                                            </Button>
-                                            <DeleteButton url={route('admin.designations.destroy', designation.id)} label={designation.name} />
+                                            {can('designations.edit') && (
+                                                <Button asChild variant="ghost" size="sm">
+                                                    <Link href={route('admin.designations.edit', designation.id)}>
+                                                        <Pencil className="size-4" />
+                                                        <span className="sr-only">Edit</span>
+                                                    </Link>
+                                                </Button>
+                                            )}
+                                            {can('designations.delete') && (
+                                                <DeleteButton url={route('admin.designations.destroy', designation.id)} label={designation.name} />
+                                            )}
                                         </div>
                                     </TableCell>
                                 </TableRow>

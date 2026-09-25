@@ -1,7 +1,8 @@
-import { Badge } from '@/components/ui/badge';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import type { PermissionGroup, PermissionOverride } from '@/types';
-import { Check, Minus } from 'lucide-react';
+import PermissionMatrix, { viewKey } from '@/components/access/permission-matrix';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import type { PermissionGroup, PermissionModule, PermissionOverride } from '@/types';
+import { Check, X } from 'lucide-react';
 
 export type Overrides = Record<string, PermissionOverride>;
 
@@ -16,25 +17,37 @@ interface AccessEditorProps {
     disabled?: boolean;
 }
 
-const INHERIT = 'inherit';
+type CellState = 'inherited-on' | 'inherited-off' | 'allow' | 'deny';
+
+function Mark({ state }: { state: CellState }) {
+    return (
+        <span
+            className={cn(
+                'inline-flex size-6 items-center justify-center rounded-md border transition-colors',
+                state === 'inherited-on' && 'bg-muted text-foreground border-transparent',
+                state === 'inherited-off' && 'border-input text-transparent',
+                state === 'allow' && 'border-transparent text-white',
+                state === 'deny' && 'border-transparent text-white',
+            )}
+            style={state === 'allow' ? { background: 'var(--status-good)' } : state === 'deny' ? { background: 'var(--status-critical)' } : undefined}
+        >
+            {state === 'deny' ? <X className="size-3.5" /> : <Check className="size-3.5" />}
+        </span>
+    );
+}
+
+const stateLabel: Record<CellState, string> = {
+    'inherited-on': 'granted by the role',
+    'inherited-off': 'not granted by the role',
+    allow: 'allowed for this person',
+    deny: 'denied for this person',
+};
 
 /**
- * Per-user access on top of a role: every permission shows what the role gives,
- * and can be left to inherit, forced on, or forced off for this one person.
+ * Per-user access on top of a role, as the same matrix the role editor uses.
+ * Each cell cycles: inherit from the role → allow → deny → inherit.
  */
 export default function AccessEditor({ groups, inherited, superRole = false, value, onChange, disabled = false }: AccessEditorProps) {
-    const set = (key: string, next: string) => {
-        const copy = { ...value };
-
-        if (next === 'allow' || next === 'deny') {
-            copy[key] = next;
-        } else {
-            delete copy[key];
-        }
-
-        onChange(copy);
-    };
-
     if (superRole) {
         return (
             <p className="bg-muted/50 text-muted-foreground rounded-lg border px-4 py-3 text-sm">
@@ -43,68 +56,77 @@ export default function AccessEditor({ groups, inherited, superRole = false, val
         );
     }
 
+    const effective = (key: string) => (value[key] ? value[key] === 'allow' : inherited.includes(key));
+    const stateOf = (key: string): CellState => (value[key] ?? (inherited.includes(key) ? 'inherited-on' : 'inherited-off')) as CellState;
+
+    const cycle = (key: string, module: PermissionModule) => {
+        const current = value[key];
+        const nextState: PermissionOverride | undefined = current === undefined ? 'allow' : current === 'allow' ? 'deny' : undefined;
+        const next = { ...value };
+        const view = viewKey(module);
+
+        if (nextState) {
+            next[key] = nextState;
+        } else {
+            delete next[key];
+        }
+
+        // Keep the row coherent: allowing an action allows seeing the module,
+        // and denying View denies everything else in it.
+        if (nextState === 'allow' && view && key !== view && !effective(view)) {
+            next[view] = 'allow';
+        }
+        if (nextState === 'deny' && key === view) {
+            module.actions.forEach((a) => {
+                if (a.key !== view && (inherited.includes(a.key) || next[a.key] === 'allow')) {
+                    next[a.key] = 'deny';
+                }
+            });
+        }
+
+        onChange(next);
+    };
+
     const changed = Object.keys(value).length;
 
     return (
-        <div className="space-y-4">
-            {changed > 0 && (
-                <p className="text-muted-foreground text-xs">
-                    {changed} permission{changed === 1 ? '' : 's'} differ from the role for this person.
-                </p>
-            )}
+        <div className="space-y-3">
+            <div className="text-muted-foreground flex flex-wrap items-center gap-x-5 gap-y-2 text-xs">
+                <span className="inline-flex items-center gap-1.5">
+                    <Mark state="inherited-on" /> From the role
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                    <Mark state="allow" /> Allowed for this person
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                    <Mark state="deny" /> Denied for this person
+                </span>
+                <span>Click a cell to cycle.</span>
+                {changed > 0 && (
+                    <Button type="button" variant="ghost" size="sm" className="ml-auto h-7" onClick={() => onChange({})} disabled={disabled}>
+                        Reset {changed} override{changed === 1 ? '' : 's'}
+                    </Button>
+                )}
+            </div>
 
-            {groups.map((group) => (
-                <div key={group.group} className="overflow-hidden rounded-lg border">
-                    <div className="bg-muted/50 text-muted-foreground px-4 py-2 text-xs font-medium tracking-wide uppercase">{group.group}</div>
-                    <ul className="divide-y">
-                        {group.permissions.map((permission) => {
-                            const fromRole = inherited.includes(permission.key);
-                            const override = value[permission.key];
-                            const effective = override ? override === 'allow' : fromRole;
+            <PermissionMatrix
+                groups={groups}
+                cell={(key, label, module) => {
+                    const state = stateOf(key);
 
-                            return (
-                                <li key={permission.key} className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-                                    <div className="min-w-0 space-y-0.5">
-                                        <div className="flex items-center gap-2 text-sm">
-                                            {effective ? (
-                                                <Check className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400" aria-label="Granted" />
-                                            ) : (
-                                                <Minus className="text-muted-foreground size-4 shrink-0" aria-label="Not granted" />
-                                            )}
-                                            <span className={effective ? '' : 'text-muted-foreground'}>{permission.label}</span>
-                                        </div>
-                                        <div className="text-muted-foreground flex items-center gap-2 pl-6 text-xs">
-                                            <code>{permission.key}</code>
-                                            <span>· role {fromRole ? 'grants' : 'does not grant'}</span>
-                                            {override && <Badge variant="outline">Override</Badge>}
-                                        </div>
-                                    </div>
-
-                                    <ToggleGroup
-                                        type="single"
-                                        size="sm"
-                                        variant="outline"
-                                        disabled={disabled}
-                                        value={override ?? INHERIT}
-                                        onValueChange={(next) => set(permission.key, next || INHERIT)}
-                                        className="shrink-0 self-start sm:self-auto"
-                                    >
-                                        <ToggleGroupItem value={INHERIT} className="px-3 text-xs">
-                                            Inherit
-                                        </ToggleGroupItem>
-                                        <ToggleGroupItem value="allow" className="px-3 text-xs">
-                                            Allow
-                                        </ToggleGroupItem>
-                                        <ToggleGroupItem value="deny" className="px-3 text-xs">
-                                            Deny
-                                        </ToggleGroupItem>
-                                    </ToggleGroup>
-                                </li>
-                            );
-                        })}
-                    </ul>
-                </div>
-            ))}
+                    return (
+                        <button
+                            type="button"
+                            disabled={disabled}
+                            onClick={() => cycle(key, module)}
+                            className="focus-visible:ring-ring rounded-md focus-visible:ring-2 focus-visible:outline-hidden disabled:opacity-50"
+                            aria-label={`${label}: ${stateLabel[state]}`}
+                        >
+                            <Mark state={state} />
+                        </button>
+                    );
+                }}
+            />
         </div>
     );
 }

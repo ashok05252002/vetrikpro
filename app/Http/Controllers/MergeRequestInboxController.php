@@ -21,9 +21,9 @@ class MergeRequestInboxController extends Controller
     {
         $user = $request->user();
         $scope = in_array($request->string('scope')->value(), ['mine', 'all'], true) ? $request->string('scope')->value() : 'review';
-        $reviewsAnything = $user->can('dev.merge_any');
+        $reviewsAnything = $user->can('merge_requests.review');
 
-        $visible = fn (Builder $q) => $user->can('projects.view_all') ? $q : $q->where(fn ($w) => $w
+        $visible = fn (Builder $q) => $user->can('projects.view') ? $q : $q->where(fn ($w) => $w
             ->whereHas('project', fn ($p) => $p->where('owner_id', $user->id))
             ->orWhereHas('project.members', fn ($m) => $m->whereKey($user->id)));
 
@@ -57,7 +57,7 @@ class MergeRequestInboxController extends Controller
             'awaitingCount' => MergeRequest::query()->tap($visible)->tap($awaitingReview)->count(),
             'statuses' => MergeRequestStatus::options(),
             'projects' => Project::query()
-                ->when(! $user->can('projects.view_all'), fn ($q) => $q->where(fn ($w) => $w->where('owner_id', $user->id)->orWhereHas('members', fn ($m) => $m->whereKey($user->id))))
+                ->when(! $user->can('projects.view'), fn ($q) => $q->where(fn ($w) => $w->where('owner_id', $user->id)->orWhereHas('members', fn ($m) => $m->whereKey($user->id))))
                 ->orderBy('name')
                 ->get(['id', 'name'])
                 ->map(fn ($p) => ['value' => (string) $p->id, 'label' => $p->name]),

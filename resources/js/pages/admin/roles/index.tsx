@@ -3,6 +3,7 @@ import PageHeader from '@/components/admin/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem, Role } from '@/types';
 import { Head, Link } from '@inertiajs/react';
@@ -14,6 +15,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function RolesIndex({ roles, totalPermissions }: { roles: Role[]; totalPermissions: number }) {
+    const { can } = usePermission();
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Roles & access" />
@@ -23,11 +25,13 @@ export default function RolesIndex({ roles, totalPermissions }: { roles: Role[];
                     title="Roles & access"
                     description="Each role is a set of permissions. Pick one for each user, then fine-tune individuals on their user form."
                     action={
-                        <Button asChild>
-                            <Link href={route('admin.roles.create')}>
-                                <Plus className="size-4" /> New role
-                            </Link>
-                        </Button>
+                        can('roles.create') && (
+                            <Button asChild>
+                                <Link href={route('admin.roles.create')}>
+                                    <Plus className="size-4" /> New role
+                                </Link>
+                            </Button>
+                        )
                     }
                 />
 
@@ -61,13 +65,15 @@ export default function RolesIndex({ roles, totalPermissions }: { roles: Role[];
                                     </TableCell>
                                     <TableCell>
                                         <div className="flex justify-end gap-1">
-                                            <Button asChild variant="ghost" size="sm">
-                                                <Link href={route('admin.roles.edit', role.id)}>
-                                                    <Pencil className="size-4" />
-                                                    <span className="sr-only">Edit</span>
-                                                </Link>
-                                            </Button>
-                                            {!role.is_system && (
+                                            {can('roles.edit') && (
+                                                <Button asChild variant="ghost" size="sm">
+                                                    <Link href={route('admin.roles.edit', role.id)}>
+                                                        <Pencil className="size-4" />
+                                                        <span className="sr-only">Edit</span>
+                                                    </Link>
+                                                </Button>
+                                            )}
+                                            {!role.is_system && can('roles.delete') && (
                                                 <DeleteButton
                                                     url={route('admin.roles.destroy', role.id)}
                                                     label={role.name}

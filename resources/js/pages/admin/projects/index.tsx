@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import Meter from '@/components/viz/meter';
 import { useFormat } from '@/hooks/use-format';
+import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem, Option, Paginated, ProjectSummary } from '@/types';
 import { Head, Link } from '@inertiajs/react';
@@ -24,6 +25,7 @@ interface Props {
 }
 
 export default function AdminProjectsIndex({ projects, statuses, filters }: Props) {
+    const { can } = usePermission();
     const format = useFormat();
     const statusLabel = (value?: string) => statuses.find((s) => s.value === value)?.label ?? value;
 
@@ -36,11 +38,13 @@ export default function AdminProjectsIndex({ projects, statuses, filters }: Prop
                     title="Manage projects"
                     description="Create projects, set an owner, and choose who is on them."
                     action={
-                        <Button asChild>
-                            <Link href={route('admin.projects.create')}>
-                                <Plus className="size-4" /> New project
-                            </Link>
-                        </Button>
+                        can('projects.create') && (
+                            <Button asChild>
+                                <Link href={route('admin.projects.create')}>
+                                    <Plus className="size-4" /> New project
+                                </Link>
+                            </Button>
+                        )
                     }
                 />
 
@@ -101,17 +105,21 @@ export default function AdminProjectsIndex({ projects, statuses, filters }: Prop
                                                     <span className="sr-only">Open board</span>
                                                 </Link>
                                             </Button>
-                                            <Button asChild variant="ghost" size="sm">
-                                                <Link href={route('admin.projects.edit', project.id)}>
-                                                    <Pencil className="size-4" />
-                                                    <span className="sr-only">Edit</span>
-                                                </Link>
-                                            </Button>
-                                            <DeleteButton
-                                                url={route('admin.projects.destroy', project.id)}
-                                                label={project.name}
-                                                description="Every task and comment in this project is deleted too."
-                                            />
+                                            {can('projects.edit') && (
+                                                <Button asChild variant="ghost" size="sm">
+                                                    <Link href={route('admin.projects.edit', project.id)}>
+                                                        <Pencil className="size-4" />
+                                                        <span className="sr-only">Edit</span>
+                                                    </Link>
+                                                </Button>
+                                            )}
+                                            {can('projects.delete') && (
+                                                <DeleteButton
+                                                    url={route('admin.projects.destroy', project.id)}
+                                                    label={project.name}
+                                                    description="Every task and comment in this project is deleted too."
+                                                />
+                                            )}
                                         </div>
                                     </TableCell>
                                 </TableRow>

@@ -30,16 +30,18 @@ final class EmployeeProfile
             'department' => $employee->department?->name,
             'designation' => $employee->designation?->name,
             'counts' => [
-                'documents' => $viewer->can('employees.documents') ? $employee->documents()->count() : null,
+                'documents' => $viewer->can('documents.view') ? $employee->documents()->count() : null,
                 'projects' => $user->projects()->count(),
                 'open_tasks' => $user->assignedTasks()->where('status', '!=', TaskStatus::Done)->count(),
             ],
             'viewer' => [
-                'can_edit' => $viewer->can('employees.manage'),
-                'can_documents' => $viewer->can('employees.documents'),
-                // Changing someone's access needs roles.manage *and* holding
+                'can_edit' => $viewer->can('employees.edit'),
+                'can_documents' => $viewer->can('documents.view'),
+                'can_upload' => $viewer->can('documents.create'),
+                'can_delete_documents' => $viewer->can('documents.delete'),
+                // Changing someone's access needs roles.edit *and* holding
                 // everything they already hold.
-                'can_access' => $viewer->can('roles.manage') && $viewer->canGrant($user->permissions()),
+                'can_access' => $viewer->can('roles.edit') && $viewer->canGrant($user->permissions()),
             ],
         ];
     }

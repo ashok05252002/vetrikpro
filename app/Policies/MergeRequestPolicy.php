@@ -40,6 +40,6 @@ class MergeRequestPolicy
 
     public static function isReviewer(User $user, MergeRequest $mergeRequest): bool
     {
-        return $user->can('dev.merge_any') || $mergeRequest->project->isDevAdmin($user);
+        return $user->can('merge_requests.review') || $mergeRequest->project->isDevAdmin($user);
     }
 }

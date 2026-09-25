@@ -187,13 +187,13 @@ class EmployeeProfileTest extends TestCase
         $this->actingAs(User::factory()->admin()->create())
             ->put(route('admin.employees.access.update', $employee), [
                 'role_id' => Role::bySlug(Role::HR)->id,
-                'overrides' => ['users.manage' => 'deny', 'settings.manage' => 'allow'],
+                'overrides' => ['users.edit' => 'deny', 'settings.edit' => 'allow'],
             ])
             ->assertSessionHas('success');
 
         $permissions = $employee->user->fresh()->permissions();
-        $this->assertNotContains('users.manage', $permissions);
-        $this->assertContains('settings.manage', $permissions);
+        $this->assertNotContains('users.edit', $permissions);
+        $this->assertContains('settings.edit', $permissions);
         $this->assertContains('employees.view', $permissions);
     }
 

@@ -60,9 +60,24 @@ export interface Role {
     permissions_count?: number;
 }
 
+export interface PermissionAction {
+    /** Full key, e.g. "users.edit". */
+    key: string;
+    /** The action part, e.g. "edit". */
+    action: string;
+    label: string;
+}
+
+export interface PermissionModule {
+    key: string;
+    label: string;
+    actions: PermissionAction[];
+}
+
+/** One section of the permission matrix (App\Support\Permissions::forEditor). */
 export interface PermissionGroup {
     group: string;
-    permissions: { key: string; label: string }[];
+    modules: PermissionModule[];
 }
 
 /** A per-user deviation from the role; a key that is absent inherits. */
@@ -247,7 +262,7 @@ export interface EmployeeProfileHeader {
     department: string | null;
     designation: string | null;
     counts: { documents: number | null; projects: number; open_tasks: number };
-    viewer: { can_edit: boolean; can_documents: boolean; can_access: boolean };
+    viewer: { can_edit: boolean; can_documents: boolean; can_upload: boolean; can_delete_documents: boolean; can_access: boolean };
 }
 
 export interface EmployeeDocument {

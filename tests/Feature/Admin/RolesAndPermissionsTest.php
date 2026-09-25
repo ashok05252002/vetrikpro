@@ -41,7 +41,7 @@ class RolesAndPermissionsTest extends TestCase
         $this->assertTrue(Role::bySlug(Role::ADMIN)->is_super);
         $this->assertSame(Permissions::all(), User::factory()->admin()->create()->permissions());
         $this->assertSame([], User::factory()->create()->permissions());
-        $this->assertNotContains('settings.manage', User::factory()->hr()->create()->permissions());
+        $this->assertNotContains('settings.edit', User::factory()->hr()->create()->permissions());
     }
 
     public function test_an_override_can_grant_a_permission_the_role_lacks()
@@ -56,7 +56,8 @@ class RolesAndPermissionsTest extends TestCase
     public function test_an_override_can_revoke_a_permission_the_role_has()
     {
         $hr = User::factory()->hr()->create();
-        $hr->syncPermissionOverrides(['users.manage' => false]);
+        // Revoking a module means revoking its actions: holding edit implies view.
+        $hr->syncPermissionOverrides(['users.view' => false, 'users.create' => false, 'users.edit' => false, 'users.delete' => false]);
 
         $this->actingAs($hr)->get(route('admin.users.index'))->assertForbidden();
         $this->actingAs($hr)->get(route('admin.employees.index'))->assertOk();
@@ -65,9 +66,9 @@ class RolesAndPermissionsTest extends TestCase
     public function test_a_super_role_ignores_revoking_overrides()
     {
         $admin = User::factory()->admin()->create();
-        $admin->syncPermissionOverrides(['settings.manage' => false]);
+        $admin->syncPermissionOverrides(['settings.edit' => false]);
 
-        $this->assertTrue($admin->can('settings.manage'));
+        $this->assertTrue($admin->can('settings.edit'));
     }
 
     public function test_unknown_permission_keys_never_resolve()
@@ -81,7 +82,7 @@ class RolesAndPermissionsTest extends TestCase
 
     public function test_a_custom_role_opens_exactly_its_sections()
     {
-        $user = User::factory()->create(['role_id' => $this->customRole(['masters.manage'])->id]);
+        $user = User::factory()->create(['role_id' => $this->customRole(['departments.view'])->id]);
 
         $this->actingAs($user)->get(route('admin.departments.index'))->assertOk();
         $this->actingAs($user)->get(route('admin.users.index'))->assertForbidden();
@@ -93,7 +94,7 @@ class RolesAndPermissionsTest extends TestCase
         $this->actingAs(User::factory()->hr()->create())
             ->get(route('dashboard'))
             ->assertInertia(fn (Assert $page) => $page
-                ->where('auth.permissions', fn ($keys) => collect($keys)->contains('users.manage') && ! collect($keys)->contains('settings.manage'))
+                ->where('auth.permissions', fn ($keys) => collect($keys)->contains('users.view') && ! collect($keys)->contains('settings.edit'))
                 ->where('auth.user.role.slug', Role::HR));
     }
 
@@ -110,7 +111,7 @@ class RolesAndPermissionsTest extends TestCase
 
     public function test_hr_cannot_assign_a_custom_role_carrying_access_they_lack()
     {
-        $role = $this->customRole(['settings.manage']);
+        $role = $this->customRole(['settings.edit']);
 
         $this->actingAs(User::factory()->hr()->create())
             ->post(route('admin.users.store'), $this->userPayload(['role_id' => $role->id]))
@@ -163,12 +164,12 @@ class RolesAndPermissionsTest extends TestCase
     public function test_an_admin_can_set_overrides_while_creating_a_user()
     {
         $this->actingAs(User::factory()->admin()->create())
-            ->post(route('admin.users.store'), $this->userPayload(['overrides' => ['employees.view' => 'allow', 'projects.view_all' => 'allow']]))
+            ->post(route('admin.users.store'), $this->userPayload(['overrides' => ['employees.view' => 'allow', 'projects.view' => 'allow']]))
             ->assertRedirect(route('admin.users.index'));
 
         $user = User::where('email', 'jane@company.com')->first();
 
-        $this->assertSame(['employees.view', 'projects.view_all'], $user->permissions());
+        $this->assertSame(['employees.view', 'projects.view'], $user->permissions());
     }
 
     public function test_an_unknown_override_key_is_rejected()
@@ -204,14 +205,15 @@ class RolesAndPermissionsTest extends TestCase
             ->post(route('admin.roles.store'), [
                 'name' => 'Team Lead',
                 'description' => 'Runs a team.',
-                'permissions' => ['projects.manage', 'employees.view'],
+                'permissions' => ['projects.edit', 'employees.view'],
             ])
             ->assertRedirect(route('admin.roles.index'));
 
         $role = Role::bySlug('team-lead');
 
-        // Stored in registry order, whatever order they were sent in.
-        $this->assertSame(['employees.view', 'projects.manage'], $role->permissionKeys());
+        // Stored in registry order, whatever order they were sent in, and
+        // editing projects brings seeing them along.
+        $this->assertSame(['employees.view', 'projects.view', 'projects.edit'], $role->permissionKeys());
     }
 
     public function test_a_role_cannot_carry_an_unknown_permission()
@@ -226,12 +228,12 @@ class RolesAndPermissionsTest extends TestCase
         $role = Role::bySlug(Role::HR);
 
         $this->actingAs(User::factory()->admin()->create())
-            ->put(route('admin.roles.update', $role), ['name' => 'People Team', 'permissions' => ['users.manage']]);
+            ->put(route('admin.roles.update', $role), ['name' => 'People Team', 'permissions' => ['users.edit']]);
 
         $role->refresh();
         $this->assertSame('People Team', $role->name);
         $this->assertSame(Role::HR, $role->slug);
-        $this->assertSame(['users.manage'], $role->permissionKeys());
+        $this->assertSame(['users.view', 'users.edit'], $role->permissionKeys());
     }
 
     public function test_system_roles_and_roles_in_use_cannot_be_deleted()

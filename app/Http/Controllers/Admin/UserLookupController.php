@@ -16,6 +16,8 @@ class UserLookupController extends Controller
 {
     public function __invoke(Request $request): JsonResponse
     {
+        abort_unless($request->user()->canAny(['projects.create', 'projects.edit']), 403);
+
         $users = UserDirectory::filter(User::query(), $request)
             ->with(UserDirectory::with())
             ->where('is_active', true)

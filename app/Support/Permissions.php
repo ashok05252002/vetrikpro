@@ -3,18 +3,97 @@
 namespace App\Support;
 
 /**
- * Every permission the application knows about.
+ * Every permission the application knows about, as modules × actions.
  *
  * Permissions are declared here, in code, and only *assigned* in the database
  * (to roles, and as per-user overrides). A key that is not in this registry
  * cannot be granted: validation and resolution both check against it, so a
  * stray form field or a stale row can never create a phantom permission.
  *
+ * Keys are "<module>.<action>". Most modules offer the four standard actions;
+ * a few add their own (employees.onboard, merge_requests.review). Holding any
+ * action on a module implies its "view": nobody edits what they cannot see.
+ *
  * Adding a permission means one entry here plus the check that uses it.
- * Nothing needs to be migrated — roles that should have it are edited in the UI.
  */
 final class Permissions
 {
+    public const VIEW = 'view';
+
+    public const STANDARD = ['view', 'create', 'edit', 'delete'];
+
+    /**
+     * group => module => [label, actions => description].
+     *
+     * @return array<string, array<string, array{label: string, actions: array<string, string>}>>
+     */
+    public static function modules(): array
+    {
+        return [
+            'People' => [
+                'users' => ['label' => 'Users', 'actions' => [
+                    'view' => 'See user accounts',
+                    'create' => 'Create user accounts',
+                    'edit' => 'Edit accounts, reset passwords, activate or deactivate',
+                    'delete' => 'Delete user accounts',
+                ]],
+                'roles' => ['label' => 'Roles & access', 'actions' => [
+                    'view' => 'See roles and what they grant',
+                    'create' => 'Create roles',
+                    'edit' => 'Edit roles and individual people’s access',
+                    'delete' => 'Delete roles',
+                ]],
+                'employees' => ['label' => 'Employees', 'actions' => [
+                    'view' => 'See employee profiles',
+                    'create' => 'Add employees',
+                    'edit' => 'Edit employee records',
+                    'delete' => 'Delete employee records',
+                    'onboard' => 'Send invites and review onboarding',
+                ]],
+                'documents' => ['label' => 'Employee documents', 'actions' => [
+                    'view' => 'Open and download employee documents',
+                    'create' => 'Upload documents for an employee',
+                    'delete' => 'Delete employee documents',
+                ]],
+                'departments' => ['label' => 'Departments', 'actions' => [
+                    'view' => 'See departments',
+                    'create' => 'Add departments',
+                    'edit' => 'Edit departments',
+                    'delete' => 'Delete departments',
+                ]],
+                'designations' => ['label' => 'Designations', 'actions' => [
+                    'view' => 'See designations',
+                    'create' => 'Add designations',
+                    'edit' => 'Edit designations',
+                    'delete' => 'Delete designations',
+                ]],
+            ],
+            'Work' => [
+                'projects' => ['label' => 'Projects', 'actions' => [
+                    'view' => 'See and work on every project, not only their own',
+                    'create' => 'Create projects',
+                    'edit' => 'Edit any project, its members and its content',
+                    'delete' => 'Delete projects',
+                ]],
+                'merge_requests' => ['label' => 'Merge requests', 'actions' => [
+                    'review' => 'Review and merge on any project',
+                ]],
+            ],
+            'Configuration' => [
+                'settings' => ['label' => 'Organisation settings', 'actions' => [
+                    'view' => 'See organisation settings',
+                    'edit' => 'Change organisation settings',
+                ]],
+                'document_types' => ['label' => 'Document types', 'actions' => [
+                    'view' => 'See the document checklist',
+                    'create' => 'Add document types',
+                    'edit' => 'Edit document types',
+                    'delete' => 'Delete document types',
+                ]],
+            ],
+        ];
+    }
+
     /**
      * Grouped for the role editor, in display order.
      *
@@ -22,26 +101,12 @@ final class Permissions
      */
     public static function groups(): array
     {
-        return [
-            'People' => [
-                'users.manage' => 'Create, edit and delete user accounts',
-                'roles.manage' => 'Manage roles and per-user access',
-                'employees.view' => 'View employee profiles',
-                'employees.manage' => 'Create, edit and delete employee records',
-                'employees.documents' => 'Upload, download and delete employee documents',
-                'masters.manage' => 'Manage departments and designations',
-            ],
-            'Work' => [
-                'projects.view_all' => 'Work on every project, not only their own',
-                'projects.manage' => 'Create, edit and delete projects and their members',
-            ],
-            'Developer' => [
-                'dev.merge_any' => 'Review and merge branches on any project',
-            ],
-            'Organisation' => [
-                'settings.manage' => 'Change organisation settings',
-            ],
-        ];
+        return collect(self::modules())
+            ->map(fn (array $modules) => collect($modules)
+                ->flatMap(fn (array $module, string $key) => collect($module['actions'])
+                    ->mapWithKeys(fn (string $label, string $action) => ["{$key}.{$action}" => $label]))
+                ->all())
+            ->all();
     }
 
     /**
@@ -58,7 +123,8 @@ final class Permissions
     }
 
     /**
-     * Keep only the keys the registry knows, in registry order.
+     * Keep only the keys the registry knows, add each module's implied "view",
+     * and return them in registry order.
      *
      * @param  iterable<string>  $keys
      * @return list<string>
@@ -66,24 +132,39 @@ final class Permissions
     public static function only(iterable $keys): array
     {
         $keys = collect($keys)->all();
+        $all = self::all();
 
-        return array_values(array_filter(self::all(), fn (string $key) => in_array($key, $keys, true)));
+        foreach ($keys as $key) {
+            $view = strtok($key, '.').'.'.self::VIEW;
+
+            if (in_array($key, $all, true) && in_array($view, $all, true)) {
+                $keys[] = $view;
+            }
+        }
+
+        return array_values(array_filter($all, fn (string $key) => in_array($key, $keys, true)));
     }
 
     /**
-     * Shape for the frontend role editor and the user Access section.
+     * Shape for the permission matrix: groups of modules, each with its
+     * actions in the standard column order first, extras after.
      *
-     * @return list<array{group: string, permissions: list<array{key: string, label: string}>}>
+     * @return list<array{group: string, modules: list<array{key: string, label: string, actions: list<array{key: string, action: string, label: string}>}>}>
      */
     public static function forEditor(): array
     {
-        return collect(self::groups())
-            ->map(fn (array $permissions, string $group) => [
+        return collect(self::modules())
+            ->map(fn (array $modules, string $group) => [
                 'group' => $group,
-                'permissions' => collect($permissions)
-                    ->map(fn (string $label, string $key) => ['key' => $key, 'label' => $label])
-                    ->values()
-                    ->all(),
+                'modules' => collect($modules)->map(fn (array $module, string $key) => [
+                    'key' => $key,
+                    'label' => $module['label'],
+                    'actions' => collect($module['actions'])
+                        ->sortBy(fn ($label, string $action) => ($i = array_search($action, self::STANDARD, true)) === false ? 99 : $i)
+                        ->map(fn (string $label, string $action) => ['key' => "{$key}.{$action}", 'action' => $action, 'label' => $label])
+                        ->values()
+                        ->all(),
+                ])->values()->all(),
             ])
             ->values()
             ->all();

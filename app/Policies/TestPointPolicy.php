@@ -33,6 +33,6 @@ class TestPointPolicy
 
     public function delete(User $user, TestPoint $point): bool
     {
-        return $user->can('projects.manage') || $point->project->owner_id === $user->id;
+        return $user->can('projects.edit') || $point->project->owner_id === $user->id;
     }
 }

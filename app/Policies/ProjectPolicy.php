@@ -22,12 +22,12 @@ class ProjectPolicy
 
     public function create(User $user): bool
     {
-        return $user->can('projects.manage');
+        return $user->can('projects.create');
     }
 
     public function update(User $user, Project $project): bool
     {
-        return $user->can('projects.manage') || $project->owner_id === $user->id;
+        return $user->can('projects.edit') || $project->owner_id === $user->id;
     }
 
     /**
@@ -35,11 +35,11 @@ class ProjectPolicy
      */
     public function manageMembers(User $user, Project $project): bool
     {
-        return $user->can('projects.manage') || $project->owner_id === $user->id;
+        return $user->can('projects.edit') || $project->owner_id === $user->id;
     }
 
     public function delete(User $user, Project $project): bool
     {
-        return $user->can('projects.manage');
+        return $user->can('projects.delete');
     }
 }

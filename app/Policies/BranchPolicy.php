@@ -38,7 +38,7 @@ class BranchPolicy
 
         return $branch->created_by === $user->id
             || $branch->project->isDevAdmin($user)
-            || $user->can('projects.manage');
+            || $user->can('projects.edit');
     }
 
     public function requestMerge(User $user, Branch $branch): bool

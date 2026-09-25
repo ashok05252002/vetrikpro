@@ -48,7 +48,7 @@ class UserController extends Controller
         DB::transaction(function () use ($request) {
             $user = User::create($request->safe()->except('overrides'));
 
-            if ($request->user()->can('roles.manage')) {
+            if ($request->user()->can('roles.edit')) {
                 $user->syncPermissionOverrides($request->overrides());
             }
         });
@@ -82,9 +82,9 @@ class UserController extends Controller
         DB::transaction(function () use ($request, $user, $data) {
             $user->update($data);
 
-            // Someone without roles.manage never sees the Access section, so a
+            // Someone without roles.edit never sees the Access section, so a
             // missing field means "untouched", not "clear every override".
-            if ($request->user()->can('roles.manage') && $request->has('overrides')) {
+            if ($request->user()->can('roles.edit') && $request->has('overrides')) {
                 $user->syncPermissionOverrides($request->overrides());
             }
         });
@@ -124,7 +124,7 @@ class UserController extends Controller
                 ])
                 ->values(),
             'permissionGroups' => Permissions::forEditor(),
-            'canManageAccess' => $actor->can('roles.manage'),
+            'canManageAccess' => $actor->can('roles.edit'),
         ];
     }
 }

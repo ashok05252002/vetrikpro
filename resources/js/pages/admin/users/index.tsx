@@ -5,6 +5,7 @@ import Pagination from '@/components/admin/pagination';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem, Option, Paginated, User } from '@/types';
 import { Head, Link } from '@inertiajs/react';
@@ -27,6 +28,7 @@ interface Props {
 }
 
 export default function UsersIndex({ users, roles, filters }: Props) {
+    const { can } = usePermission();
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Users" />
@@ -36,11 +38,13 @@ export default function UsersIndex({ users, roles, filters }: Props) {
                     title="Users"
                     description="Login accounts and their roles. Create an account here before giving someone an employee profile."
                     action={
-                        <Button asChild>
-                            <Link href={route('admin.users.create')}>
-                                <Plus className="size-4" /> New user
-                            </Link>
-                        </Button>
+                        can('users.create') && (
+                            <Button asChild>
+                                <Link href={route('admin.users.create')}>
+                                    <Plus className="size-4" /> New user
+                                </Link>
+                            </Button>
+                        )
                     }
                 />
 
@@ -98,17 +102,21 @@ export default function UsersIndex({ users, roles, filters }: Props) {
                                     </TableCell>
                                     <TableCell>
                                         <div className="flex justify-end gap-1">
-                                            <Button asChild variant="ghost" size="sm">
-                                                <Link href={route('admin.users.edit', user.id)}>
-                                                    <Pencil className="size-4" />
-                                                    <span className="sr-only">Edit</span>
-                                                </Link>
-                                            </Button>
-                                            <DeleteButton
-                                                url={route('admin.users.destroy', user.id)}
-                                                label={user.name}
-                                                description="The account and any linked employee profile will be removed permanently."
-                                            />
+                                            {can('users.edit') && (
+                                                <Button asChild variant="ghost" size="sm">
+                                                    <Link href={route('admin.users.edit', user.id)}>
+                                                        <Pencil className="size-4" />
+                                                        <span className="sr-only">Edit</span>
+                                                    </Link>
+                                                </Button>
+                                            )}
+                                            {can('users.delete') && (
+                                                <DeleteButton
+                                                    url={route('admin.users.destroy', user.id)}
+                                                    label={user.name}
+                                                    description="The account and any linked employee profile will be removed permanently."
+                                                />
+                                            )}
                                         </div>
                                     </TableCell>
                                 </TableRow>

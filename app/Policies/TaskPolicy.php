@@ -43,13 +43,13 @@ class TaskPolicy
 
     public function delete(User $user, Task $task): bool
     {
-        return $user->can('projects.manage') || $task->project->owner_id === $user->id;
+        return $user->can('projects.edit') || $task->project->owner_id === $user->id;
     }
 
     private function onProject(User $user, Task $task): bool
     {
         $project = $task->relationLoaded('project') ? $task->project : $task->project()->first();
 
-        return $project === null ? $user->can('projects.view_all') : $project->isAccessibleBy($user);
+        return $project === null ? $user->can('projects.view') : $project->isAccessibleBy($user);
     }
 }

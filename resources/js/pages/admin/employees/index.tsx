@@ -5,6 +5,7 @@ import Pagination from '@/components/admin/pagination';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem, Department, Employee, Paginated } from '@/types';
 import { Head, Link } from '@inertiajs/react';
@@ -23,6 +24,7 @@ interface Props {
 }
 
 export default function EmployeesIndex({ employees, departments, filters }: Props) {
+    const { can } = usePermission();
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Employees" />
@@ -32,11 +34,13 @@ export default function EmployeesIndex({ employees, departments, filters }: Prop
                     title="Employees"
                     description="HR records attached to user accounts."
                     action={
-                        <Button asChild>
-                            <Link href={route('admin.employees.create')}>
-                                <Plus className="size-4" /> New employee
-                            </Link>
-                        </Button>
+                        can('employees.create') && (
+                            <Button asChild>
+                                <Link href={route('admin.employees.create')}>
+                                    <Plus className="size-4" /> New employee
+                                </Link>
+                            </Button>
+                        )
                     }
                 />
 
@@ -100,17 +104,21 @@ export default function EmployeesIndex({ employees, departments, filters }: Prop
                                                     <span className="sr-only">View</span>
                                                 </Link>
                                             </Button>
-                                            <Button asChild variant="ghost" size="sm">
-                                                <Link href={route('admin.employees.edit', employee.id)}>
-                                                    <Pencil className="size-4" />
-                                                    <span className="sr-only">Edit</span>
-                                                </Link>
-                                            </Button>
-                                            <DeleteButton
-                                                url={route('admin.employees.destroy', employee.id)}
-                                                label={employee.user?.name ?? employee.employee_code}
-                                                description="The HR record is removed. The login account is kept."
-                                            />
+                                            {can('employees.edit') && (
+                                                <Button asChild variant="ghost" size="sm">
+                                                    <Link href={route('admin.employees.edit', employee.id)}>
+                                                        <Pencil className="size-4" />
+                                                        <span className="sr-only">Edit</span>
+                                                    </Link>
+                                                </Button>
+                                            )}
+                                            {can('employees.delete') && (
+                                                <DeleteButton
+                                                    url={route('admin.employees.destroy', employee.id)}
+                                                    label={employee.user?.name ?? employee.employee_code}
+                                                    description="The HR record is removed. The login account is kept."
+                                                />
+                                            )}
                                         </div>
                                     </TableCell>
                                 </TableRow>

@@ -48,7 +48,7 @@ trait ValidatesAccess
             return;
         }
 
-        if (! $actor->can('roles.manage')) {
+        if (! $actor->can('roles.edit')) {
             $validator->errors()->add('overrides', 'You are not allowed to change individual access.');
 
             return;

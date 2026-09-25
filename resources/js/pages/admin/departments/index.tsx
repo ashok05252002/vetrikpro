@@ -4,6 +4,7 @@ import Pagination from '@/components/admin/pagination';
 import SearchFilter from '@/components/admin/search-filter';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem, Department, Paginated } from '@/types';
 import { Head, Link } from '@inertiajs/react';
@@ -15,6 +16,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function DepartmentsIndex({ departments, filters }: { departments: Paginated<Department>; filters: { search?: string } }) {
+    const { can } = usePermission();
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Departments" />
@@ -24,11 +26,13 @@ export default function DepartmentsIndex({ departments, filters }: { departments
                     title="Departments"
                     description="The organisational units employees belong to."
                     action={
-                        <Button asChild>
-                            <Link href={route('admin.departments.create')}>
-                                <Plus className="size-4" /> New department
-                            </Link>
-                        </Button>
+                        can('departments.create') && (
+                            <Button asChild>
+                                <Link href={route('admin.departments.create')}>
+                                    <Plus className="size-4" /> New department
+                                </Link>
+                            </Button>
+                        )
                     }
                 />
 
@@ -62,17 +66,21 @@ export default function DepartmentsIndex({ departments, filters }: { departments
                                     <TableCell>{department.employees_count ?? 0}</TableCell>
                                     <TableCell>
                                         <div className="flex justify-end gap-1">
-                                            <Button asChild variant="ghost" size="sm">
-                                                <Link href={route('admin.departments.edit', department.id)}>
-                                                    <Pencil className="size-4" />
-                                                    <span className="sr-only">Edit</span>
-                                                </Link>
-                                            </Button>
-                                            <DeleteButton
-                                                url={route('admin.departments.destroy', department.id)}
-                                                label={department.name}
-                                                description="Employees and designations in this department will keep their records but lose the department link."
-                                            />
+                                            {can('departments.edit') && (
+                                                <Button asChild variant="ghost" size="sm">
+                                                    <Link href={route('admin.departments.edit', department.id)}>
+                                                        <Pencil className="size-4" />
+                                                        <span className="sr-only">Edit</span>
+                                                    </Link>
+                                                </Button>
+                                            )}
+                                            {can('departments.delete') && (
+                                                <DeleteButton
+                                                    url={route('admin.departments.destroy', department.id)}
+                                                    label={department.name}
+                                                    description="Employees and designations in this department will keep their records but lose the department link."
+                                                />
+                                            )}
                                         </div>
                                     </TableCell>
                                 </TableRow>

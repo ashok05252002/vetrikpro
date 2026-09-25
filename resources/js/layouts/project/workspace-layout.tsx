@@ -72,7 +72,7 @@ export default function ProjectWorkspaceLayout({ project, tab, actions, crumbs =
                             <Badge variant="outline" className="font-mono text-[10px]">
                                 {project.code}
                             </Badge>
-                            {can('projects.manage') && (
+                            {can('projects.edit') && (
                                 <Button asChild variant="outline" size="sm">
                                     <Link href={route('admin.projects.edit', project.id)}>
                                         <Settings2 className="size-4" /> Settings

@@ -25,7 +25,7 @@ class AppServiceProvider extends ServiceProvider
     {
         /*
          * Registry permissions answer through the user's resolved set, so
-         * `$user->can('projects.manage')`, `can:` route middleware and policies
+         * `$user->can('projects.edit')`, `can:` route middleware and policies
          * all share one path. Anything else (policy abilities like `update`)
          * falls through to its policy.
          */

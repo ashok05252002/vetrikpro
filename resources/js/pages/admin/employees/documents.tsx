@@ -150,9 +150,11 @@ export default function EmployeeDocuments({ employee, documents, types, filters 
             employee={employee}
             tab="documents"
             actions={
-                <Button size="sm" onClick={() => setUploading(true)}>
-                    <Upload className="size-4" /> Upload
-                </Button>
+                employee.viewer.can_upload && (
+                    <Button size="sm" onClick={() => setUploading(true)}>
+                        <Upload className="size-4" /> Upload
+                    </Button>
+                )
             }
         >
             <FilterBar
@@ -221,11 +223,13 @@ export default function EmployeeDocuments({ employee, documents, types, filters 
                                                 <span className="sr-only">Download</span>
                                             </a>
                                         </Button>
-                                        <DeleteButton
-                                            url={route('admin.employees.documents.destroy', [employee.id, document.id])}
-                                            label={document.title}
-                                            description="The file is removed permanently."
-                                        />
+                                        {employee.viewer.can_delete_documents && (
+                                            <DeleteButton
+                                                url={route('admin.employees.documents.destroy', [employee.id, document.id])}
+                                                label={document.title}
+                                                description="The file is removed permanently."
+                                            />
+                                        )}
                                     </div>
                                 </TableCell>
                             </TableRow>

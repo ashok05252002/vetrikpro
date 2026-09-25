@@ -10,52 +10,59 @@ use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\UserLookupController;
+use Illuminate\Routing\PendingResourceRegistration;
 use Illuminate\Support\Facades\Route;
 
 /*
- * Each section is gated by its own permission (see App\Support\Permissions),
- * not by a single "admin area" door: a role can be given employees without
- * users, or projects without people, and the routes follow.
+ * Each section is gated by its own permissions (see App\Support\Permissions),
+ * one per action, not by a single "admin area" door: a role can see employees
+ * without editing them, or edit projects without deleting them.
  */
+/**
+ * Gate a resource's actions separately: index/show need view, create/store
+ * need create, edit/update need edit, destroy needs delete.
+ */
+$crud = fn (PendingResourceRegistration $resource, string $module) => $resource
+    ->middlewareFor(['index', 'show'], "can:{$module}.view")
+    ->middlewareFor(['create', 'store'], "can:{$module}.create")
+    ->middlewareFor(['edit', 'update'], "can:{$module}.edit")
+    ->middlewareFor('destroy', "can:{$module}.delete");
+
 Route::middleware(['auth'])
     ->prefix('admin')
     ->name('admin.')
-    ->group(function () {
-        Route::resource('users', UserController::class)->except('show')->middleware('can:users.manage');
-        Route::resource('roles', RoleController::class)->except('show')->middleware('can:roles.manage');
+    ->group(function () use ($crud) {
+        $crud(Route::resource('users', UserController::class)->except('show'), 'users');
+        $crud(Route::resource('roles', RoleController::class)->except('show'), 'roles');
 
-        Route::resource('departments', DepartmentController::class)->except('show')->middleware('can:masters.manage');
-        Route::resource('designations', DesignationController::class)->except('show')->middleware('can:masters.manage');
+        $crud(Route::resource('departments', DepartmentController::class)->except('show'), 'departments');
+        $crud(Route::resource('designations', DesignationController::class)->except('show'), 'designations');
 
         // Staff profile tabs. Overview is employees.show; the rest hang off it.
         Route::prefix('employees/{employee}')->name('employees.')->scopeBindings()->group(function () {
-            Route::middleware('can:employees.documents')->group(function () {
-                Route::get('documents', [EmployeeProfileController::class, 'documents'])->name('documents.index');
-                Route::post('documents', [EmployeeDocumentController::class, 'store'])->name('documents.store');
-                Route::get('documents/{document}/download', [EmployeeDocumentController::class, 'download'])->name('documents.download');
-                Route::delete('documents/{document}', [EmployeeDocumentController::class, 'destroy'])->name('documents.destroy');
-            });
+            Route::get('documents', [EmployeeProfileController::class, 'documents'])->middleware('can:documents.view')->name('documents.index');
+            Route::get('documents/{document}/download', [EmployeeDocumentController::class, 'download'])->middleware('can:documents.view')->name('documents.download');
+            Route::post('documents', [EmployeeDocumentController::class, 'store'])->middleware('can:documents.create')->name('documents.store');
+            Route::delete('documents/{document}', [EmployeeDocumentController::class, 'destroy'])->middleware('can:documents.delete')->name('documents.destroy');
 
             Route::middleware('can:employees.view')->group(function () {
                 Route::get('projects', [EmployeeProfileController::class, 'projects'])->name('projects');
                 Route::get('tasks', [EmployeeProfileController::class, 'tasks'])->name('tasks');
             });
 
-            Route::middleware('can:roles.manage')->group(function () {
+            // Changing one person's access is editing access.
+            Route::middleware('can:roles.edit')->group(function () {
                 Route::get('access', [EmployeeProfileController::class, 'access'])->name('access');
                 Route::put('access', [EmployeeProfileController::class, 'updateAccess'])->name('access.update');
             });
         });
 
-        Route::resource('employees', EmployeeController::class)
-            ->middlewareFor(['index', 'show'], 'can:employees.view')
-            ->middlewareFor(['create', 'store', 'edit', 'update', 'destroy'], 'can:employees.manage');
+        $crud(Route::resource('employees', EmployeeController::class), 'employees');
 
-        Route::resource('projects', ProjectController::class)->except('show')->middleware('can:projects.manage');
-        Route::get('lookups/users', UserLookupController::class)->middleware('can:projects.manage')->name('lookups.users');
+        $crud(Route::resource('projects', ProjectController::class)->except('show'), 'projects');
+        // The owner picker is used while creating or editing a project; the controller checks either.
+        Route::get('lookups/users', UserLookupController::class)->name('lookups.users');
 
-        Route::middleware('can:settings.manage')->group(function () {
-            Route::get('settings', [SettingsController::class, 'edit'])->name('settings.edit');
-            Route::post('settings', [SettingsController::class, 'update'])->name('settings.update');
-        });
+        Route::get('settings', [SettingsController::class, 'edit'])->middleware('can:settings.view')->name('settings.edit');
+        Route::post('settings', [SettingsController::class, 'update'])->middleware('can:settings.edit')->name('settings.update');
     });

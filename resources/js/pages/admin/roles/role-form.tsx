@@ -1,10 +1,11 @@
+import PermissionMatrix, { viewKey } from '@/components/access/permission-matrix';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import type { PermissionGroup } from '@/types';
+import type { PermissionGroup, PermissionModule } from '@/types';
 import { Link, useForm } from '@inertiajs/react';
 import { FormEventHandler } from 'react';
 
@@ -26,11 +27,33 @@ interface Props {
 export default function RoleForm({ groups, initial, action, submitLabel, superRole = false }: Props) {
     const { data, setData, post, put, processing, errors } = useForm<RoleFormData>(initial);
 
-    const toggle = (key: string, on: boolean) =>
-        setData('permissions', on ? [...data.permissions, key] : data.permissions.filter((permission) => permission !== key));
+    const allKeys = (module: PermissionModule) => module.actions.map((a) => a.key);
 
-    const toggleGroup = (keys: string[], on: boolean) =>
-        setData('permissions', on ? Array.from(new Set([...data.permissions, ...keys])) : data.permissions.filter((key) => !keys.includes(key)));
+    // Ticking any action brings its module's View along; unticking View clears
+    // the row — nobody edits what they cannot see.
+    const toggle = (key: string, on: boolean, module: PermissionModule) => {
+        const view = viewKey(module);
+        const next = new Set(data.permissions);
+
+        if (on) {
+            next.add(key);
+            if (view) {
+                next.add(view);
+            }
+        } else if (key === view) {
+            allKeys(module).forEach((k) => next.delete(k));
+        } else {
+            next.delete(key);
+        }
+
+        setData('permissions', Array.from(next));
+    };
+
+    const toggleRow = (module: PermissionModule, on: boolean) => {
+        const next = new Set(data.permissions);
+        allKeys(module).forEach((k) => (on ? next.add(k) : next.delete(k)));
+        setData('permissions', Array.from(next));
+    };
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
@@ -71,44 +94,32 @@ export default function RoleForm({ groups, initial, action, submitLabel, superRo
 
                 <InputError message={errors.permissions} />
 
-                {groups.map((group) => {
-                    const keys = group.permissions.map((p) => p.key);
-                    const held = superRole ? keys.length : keys.filter((key) => data.permissions.includes(key)).length;
+                <PermissionMatrix
+                    groups={groups}
+                    cell={(key, label, module) => (
+                        <Checkbox
+                            aria-label={label}
+                            disabled={superRole}
+                            checked={superRole || data.permissions.includes(key)}
+                            onCheckedChange={(checked) => toggle(key, checked === true, module)}
+                        />
+                    )}
+                    rowAction={(module) => {
+                        const held = superRole ? module.actions.length : module.actions.filter((a) => data.permissions.includes(a.key)).length;
 
-                    return (
-                        <div key={group.group} className="overflow-hidden rounded-lg border">
-                            <label className="bg-muted/50 flex cursor-pointer items-center gap-3 px-4 py-2">
+                        return (
+                            <label className="text-muted-foreground inline-flex items-center gap-1.5 text-xs">
                                 <Checkbox
+                                    aria-label={`All ${module.label} permissions`}
                                     disabled={superRole}
-                                    checked={held === keys.length ? true : held > 0 ? 'indeterminate' : false}
-                                    onCheckedChange={(checked) => toggleGroup(keys, checked === true)}
+                                    checked={held === module.actions.length ? true : held > 0 ? 'indeterminate' : false}
+                                    onCheckedChange={(checked) => toggleRow(module, checked === true)}
                                 />
-                                <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">{group.group}</span>
-                                <span className="text-muted-foreground ml-auto text-xs tabular-nums">
-                                    {held}/{keys.length}
-                                </span>
+                                All
                             </label>
-                            <ul className="divide-y">
-                                {group.permissions.map((permission) => (
-                                    <li key={permission.key}>
-                                        <label className="flex cursor-pointer items-start gap-3 px-4 py-3">
-                                            <Checkbox
-                                                className="mt-0.5"
-                                                disabled={superRole}
-                                                checked={superRole || data.permissions.includes(permission.key)}
-                                                onCheckedChange={(checked) => toggle(permission.key, checked === true)}
-                                            />
-                                            <span className="space-y-0.5">
-                                                <span className="block text-sm">{permission.label}</span>
-                                                <code className="text-muted-foreground block text-xs">{permission.key}</code>
-                                            </span>
-                                        </label>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    );
-                })}
+                        );
+                    }}
+                />
             </section>
 
             <div className="flex items-center gap-3">
