@@ -4,7 +4,7 @@ import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, Sid
 import { usePermission } from '@/hooks/use-permission';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { Briefcase, Building2, FolderKanban, IdCard, LayoutGrid, ListChecks, Settings, ShieldCheck, Users } from 'lucide-react';
+import { Briefcase, Building2, FolderKanban, GitPullRequest, IdCard, LayoutGrid, ListChecks, Settings, ShieldCheck, Users } from 'lucide-react';
 import AppLogo from './app-logo';
 
 /** Everyone signed in gets these. */
@@ -12,6 +12,7 @@ const workNavItems: NavItem[] = [
     { title: 'Dashboard', url: '/dashboard', icon: LayoutGrid },
     { title: 'My tasks', url: '/tasks', icon: ListChecks },
     { title: 'Projects', url: '/projects', icon: FolderKanban },
+    { title: 'Merge requests', url: '/merge-requests', icon: GitPullRequest },
 ];
 
 /** Each admin entry appears only for the permission its routes check. */

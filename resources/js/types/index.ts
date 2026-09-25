@@ -319,3 +319,74 @@ export interface RequirementDetail extends RequirementSummary {
     created_at: string;
     versions: RequirementVersion[];
 }
+
+export type BranchStatus = 'active' | 'merged' | 'closed';
+export type MergeRequestStatus = 'open' | 'changes_requested' | 'approved' | 'merged' | 'closed';
+
+export interface MergeRequestRow {
+    id: number;
+    project_id: number;
+    number: number;
+    reference: string;
+    title: string;
+    status: MergeRequestStatus;
+    target_branch: string;
+    created_at: string;
+    merged_at: string | null;
+    branch: { id: number; name: string } | null;
+    project: { id: number; name: string; code: string } | null;
+    requester: Pick<User, 'id' | 'name'> | null;
+    reviewer: Pick<User, 'id' | 'name'> | null;
+}
+
+export interface BranchRow {
+    id: number;
+    project_id: number;
+    name: string;
+    base_branch: string;
+    status: BranchStatus;
+    merged_at: string | null;
+    created_at: string;
+    creator: Pick<User, 'id' | 'name'> | null;
+    tasks_count: number | null;
+    test_points_count: number | null;
+    live_merge_request: MergeRequestRow | null;
+}
+
+export interface Readiness {
+    tasks_open: number;
+    tests_not_passed: number;
+    tests_failed: number;
+    ready: boolean;
+}
+
+export interface BranchDetail extends BranchRow {
+    description: string | null;
+    tasks: TaskSummary[];
+    test_points: TestPointSummary[];
+    merge_requests: MergeRequestRow[];
+    readiness: Readiness;
+}
+
+export interface MergeRequestEvent {
+    id: number;
+    action: 'opened' | 'approved' | 'changes_requested' | 'resubmitted' | 'merged' | 'closed' | 'commented';
+    from_status: MergeRequestStatus | null;
+    to_status: MergeRequestStatus | null;
+    note: string | null;
+    created_at: string;
+    user: Pick<User, 'id' | 'name'> | null;
+}
+
+export interface MergeRequestDetail extends Omit<MergeRequestRow, 'branch'> {
+    description: string | null;
+    branch: { id: number; name: string; base_branch: string; status: BranchStatus; description: string | null };
+    reviewed_by: Pick<User, 'id' | 'name'> | null;
+    reviewed_at: string | null;
+    merged_by: Pick<User, 'id' | 'name'> | null;
+    tasks: TaskSummary[];
+    test_points: TestPointSummary[];
+    readiness: Readiness;
+    events: MergeRequestEvent[];
+    next: MergeRequestStatus[];
+}

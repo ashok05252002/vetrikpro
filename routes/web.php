@@ -1,7 +1,10 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\MergeRequestInboxController;
 use App\Http\Controllers\ProjectBoardController;
+use App\Http\Controllers\Projects\BranchController;
+use App\Http\Controllers\Projects\MergeRequestController;
 use App\Http\Controllers\Projects\ProjectMemberController;
 use App\Http\Controllers\Projects\ReferenceLookupController;
 use App\Http\Controllers\Projects\RequirementController;
@@ -53,8 +56,24 @@ Route::middleware(['auth'])->group(function () {
             Route::delete('requirements/{requirement}', [RequirementController::class, 'destroy'])->name('requirements.destroy');
             Route::post('requirements/{requirement}/versions', [RequirementController::class, 'storeVersion'])->name('requirements.versions.store');
             Route::get('requirements/{requirement}/versions/{version}/download', [RequirementController::class, 'download'])->name('requirements.versions.download');
+
+            // Developer module: branches registered by hand, and their merge requests.
+            Route::get('git', [BranchController::class, 'index'])->name('git');
+            Route::post('branches', [BranchController::class, 'store'])->name('branches.store');
+            Route::get('branches/{branch}', [BranchController::class, 'show'])->name('branches.show');
+            Route::put('branches/{branch}', [BranchController::class, 'update'])->name('branches.update');
+            Route::post('branches/{branch}/links', [BranchController::class, 'link'])->name('branches.links.store');
+            Route::delete('branches/{branch}/links/{kind}/{id}', [BranchController::class, 'unlink'])->whereIn('kind', ['tasks', 'test-points'])->whereNumber('id')->name('branches.links.destroy');
+            Route::post('branches/{branch}/close', [BranchController::class, 'close'])->name('branches.close');
+            Route::post('branches/{branch}/merge-requests', [MergeRequestController::class, 'store'])->name('merge-requests.store');
+
+            Route::get('merge-requests/{mergeRequest}', [MergeRequestController::class, 'show'])->name('merge-requests.show');
+            Route::post('merge-requests/{mergeRequest}/transition', [MergeRequestController::class, 'transition'])->name('merge-requests.transition');
+            Route::post('merge-requests/{mergeRequest}/comments', [MergeRequestController::class, 'comment'])->name('merge-requests.comments.store');
         });
     });
+
+    Route::get('merge-requests', MergeRequestInboxController::class)->name('merge-requests.index');
 
     Route::get('tasks', [TaskController::class, 'index'])->name('tasks.index');
     Route::post('tasks', [TaskController::class, 'store'])->name('tasks.store');

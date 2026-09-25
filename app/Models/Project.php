@@ -90,6 +90,16 @@ class Project extends Model
         return $this->hasMany(RequirementDocument::class);
     }
 
+    public function branches(): HasMany
+    {
+        return $this->hasMany(Branch::class);
+    }
+
+    public function mergeRequests(): HasMany
+    {
+        return $this->hasMany(MergeRequest::class);
+    }
+
     /**
      * Percentage of tasks in the Done column, 0 when the project has no tasks.
      */

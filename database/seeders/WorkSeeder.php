@@ -10,6 +10,7 @@ use App\Models\Task;
 use App\Models\TaskComment;
 use App\Models\TestPoint;
 use App\Models\User;
+use App\Services\MergeRequestService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -128,6 +129,28 @@ class WorkSeeder extends Seeder
                     'position' => 0,
                 ]));
             }
+        }
+
+        // One branch waiting for review on the attendance project: Meera asks,
+        // Arun (the seeded dev admin) reviews.
+        $meera = User::where('email', 'meera@hrms.test')->first();
+
+        if ($attendance && $meera && $attendance->branches()->doesntExist()) {
+            $branch = $attendance->branches()->create([
+                'name' => 'feature/attendance-late-marks',
+                'base_branch' => $attendance->default_branch,
+                'description' => "Flags check-ins after 09:45 as late and shows them on the monthly report.\nAdds a grace period setting.",
+                'status' => 'active',
+                'created_by' => $meera->id,
+            ]);
+            $branch->tasks()->sync($attendance->tasks()->orderBy('number')->limit(2)->pluck('id'));
+            $branch->testPoints()->sync($attendance->testPoints()->orderBy('number')->limit(2)->pluck('id'));
+
+            app(MergeRequestService::class)->open($branch, $meera, [
+                'title' => 'Late marks on the attendance report',
+                'description' => 'TP-2 still fails on months with a holiday; looking at it now.',
+                'target_branch' => $attendance->default_branch,
+            ]);
         }
 
         // A short thread on the most urgent task, so the detail page isn't bare.
