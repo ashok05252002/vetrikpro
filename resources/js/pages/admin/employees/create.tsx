@@ -40,6 +40,7 @@ export default function CreateEmployee({ departments, designations, roles, defau
                         email: '',
                         role_id: roles.some((r) => r.value === defaultRoleId) ? defaultRoleId : (roles[0]?.value ?? ''),
                         send_invite: true,
+                        offer_letter_mode: 'generate',
                         offer_letter: null,
                         employee_code: nextCode,
                         department_id: NONE,

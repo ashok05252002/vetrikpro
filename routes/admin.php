@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Controllers\Admin\Config\ConfigHubController;
 use App\Http\Controllers\Admin\Config\DocumentTypeController;
+use App\Http\Controllers\Admin\Config\OfferLetterTemplateController;
 use App\Http\Controllers\Admin\DepartmentController;
 use App\Http\Controllers\Admin\DesignationController;
 use App\Http\Controllers\Admin\EmployeeController;
@@ -52,6 +54,7 @@ Route::middleware(['auth'])
             Route::middleware('can:employees.onboard')->prefix('onboarding')->name('onboarding.')->group(function () {
                 Route::post('invite', [EmployeeOnboardingController::class, 'invite'])->name('invite');
                 Route::post('offer-letter', [EmployeeOnboardingController::class, 'uploadOfferLetter'])->name('offer-letter.store');
+                Route::post('offer-letter/generate', [EmployeeOnboardingController::class, 'generateOfferLetter'])->name('offer-letter.generate');
                 Route::post('approve', [EmployeeOnboardingController::class, 'approve'])->name('approve');
                 Route::post('send-back', [EmployeeOnboardingController::class, 'sendBack'])->name('send-back');
             });
@@ -78,6 +81,13 @@ Route::middleware(['auth'])
 
         // Configuration: organisation settings and the document checklist.
         Route::prefix('config')->name('config.')->group(function () {
+            // The hub itself: anyone who may see any area of it.
+            Route::get('/', ConfigHubController::class)->name('hub');
+
+            Route::get('offer-letter', [OfferLetterTemplateController::class, 'edit'])->middleware('can:settings.view')->name('offer-letter.edit');
+            Route::put('offer-letter', [OfferLetterTemplateController::class, 'update'])->middleware('can:settings.edit')->name('offer-letter.update');
+            Route::get('offer-letter/preview', [OfferLetterTemplateController::class, 'preview'])->middleware('can:settings.view')->name('offer-letter.preview');
+
             Route::get('document-types', [DocumentTypeController::class, 'index'])->middleware('can:document_types.view')->name('document-types.index');
             Route::post('document-types', [DocumentTypeController::class, 'store'])->middleware('can:document_types.create')->name('document-types.store');
             Route::post('document-types/reorder', [DocumentTypeController::class, 'reorder'])->middleware('can:document_types.edit')->name('document-types.reorder');

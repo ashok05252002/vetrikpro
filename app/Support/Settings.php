@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Services\OfferLetter;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -53,6 +54,14 @@ class Settings
             'display.timezone' => ['type' => 'string', 'default' => 'UTC', 'group' => 'regional'],
             'display.date_format' => ['type' => 'string', 'default' => 'dmy', 'group' => 'regional'],
             'display.currency' => ['type' => 'string', 'default' => 'INR', 'group' => 'regional'],
+
+            // Offer letter template (Configuration hub → Offer letter). The body
+            // is plain text with {placeholders}; see App\Services\OfferLetter.
+            'offer.title' => ['type' => 'string', 'default' => 'Offer of Employment', 'group' => 'offer'],
+            'offer.body' => ['type' => 'string', 'default' => OfferLetter::DEFAULT_BODY, 'group' => 'offer'],
+            'offer.signatory_name' => ['type' => 'string', 'default' => '', 'group' => 'offer'],
+            'offer.signatory_title' => ['type' => 'string', 'default' => 'Human Resources', 'group' => 'offer'],
+            'offer.valid_days' => ['type' => 'int', 'default' => 7, 'group' => 'offer'],
         ];
     }
 

@@ -33,6 +33,7 @@ export default function EditEmployee({ employee, departments, designations }: Pr
                         email: employee.email,
                         role_id: '',
                         send_invite: false,
+                        offer_letter_mode: 'none',
                         offer_letter: null,
                         employee_code: employee.employee_code,
                         department_id: employee.department_id ? String(employee.department_id) : NONE,

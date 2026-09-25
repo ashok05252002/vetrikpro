@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import type { Department, Designation, Option } from '@/types';
 import { Link, useForm } from '@inertiajs/react';
 import { FormEventHandler, useMemo } from 'react';
@@ -20,6 +21,8 @@ export type FormData = {
     /** Create only: the role, the invite and the offer letter. */
     role_id: string;
     send_invite: boolean;
+    /** Generate from the template in Configuration hub, upload a file, or none. */
+    offer_letter_mode: 'generate' | 'upload' | 'none';
     offer_letter: File | null;
     employee_code: string;
     department_id: string;
@@ -61,8 +64,8 @@ export default function EmployeeForm({ departments, designations, roles = [], in
         // Role, invite and offer letter are chosen once, at creation; the
         // server refuses them on an edit, so they are not sent.
         if (!creating) {
-            const { role_id: _r, send_invite: _s, offer_letter: _o, ...rest } = cleaned;
-            void [_r, _s, _o];
+            const { role_id: _r, send_invite: _s, offer_letter: _o, offer_letter_mode: _m, ...rest } = cleaned;
+            void [_r, _s, _o, _m];
             return rest as typeof cleaned;
         }
 
@@ -220,7 +223,9 @@ export default function EmployeeForm({ departments, designations, roles = [], in
                 </div>
 
                 <div className="grid gap-2">
-                    <Label htmlFor="date_of_joining">Date of joining</Label>
+                    <Label htmlFor="date_of_joining">
+                        Date of joining {creating && data.offer_letter_mode === 'generate' && <span className="text-destructive">*</span>}
+                    </Label>
                     <Input
                         id="date_of_joining"
                         type="date"
@@ -265,7 +270,9 @@ export default function EmployeeForm({ departments, designations, roles = [], in
                 </div>
 
                 <div className="grid gap-2">
-                    <Label htmlFor="salary">Monthly salary</Label>
+                    <Label htmlFor="salary">
+                        Monthly salary {creating && data.offer_letter_mode === 'generate' && <span className="text-destructive">*</span>}
+                    </Label>
                     <Input id="salary" type="number" step="0.01" min="0" value={data.salary} onChange={(e) => setData('salary', e.target.value)} />
                     <InputError message={errors.salary} />
                 </div>
@@ -287,18 +294,49 @@ export default function EmployeeForm({ departments, designations, roles = [], in
                     </div>
 
                     <div className="grid gap-2">
-                        <Label htmlFor="offer_letter">
-                            Offer letter <span className="text-muted-foreground">(PDF or Word, optional)</span>
-                        </Label>
-                        <Input
-                            id="offer_letter"
-                            type="file"
-                            accept=".pdf,.doc,.docx"
-                            onChange={(e) => setData('offer_letter', e.target.files?.[0] ?? null)}
-                        />
-                        <p className="text-muted-foreground text-xs">
-                            Attached to the invite email. They’ll be asked to sign it and upload the signed copy.
-                        </p>
+                        <Label>Offer letter</Label>
+                        <ToggleGroup
+                            type="single"
+                            variant="outline"
+                            value={data.offer_letter_mode}
+                            onValueChange={(value) => value && setData('offer_letter_mode', value as FormData['offer_letter_mode'])}
+                            className="flex-wrap justify-start"
+                        >
+                            <ToggleGroupItem value="generate" className="px-3 text-xs">
+                                Generate from template
+                            </ToggleGroupItem>
+                            <ToggleGroupItem value="upload" className="px-3 text-xs">
+                                Upload my own
+                            </ToggleGroupItem>
+                            <ToggleGroupItem value="none" className="px-3 text-xs">
+                                No offer letter
+                            </ToggleGroupItem>
+                        </ToggleGroup>
+
+                        {data.offer_letter_mode === 'generate' && (
+                            <p className="text-muted-foreground text-xs">
+                                A PDF with your logo is made from the{' '}
+                                <Link href={route('admin.config.offer-letter.edit')} className="underline" target="_blank">
+                                    offer letter template
+                                </Link>
+                                , using the designation, date of joining and monthly salary above — so those two dates and amounts are required.
+                            </p>
+                        )}
+
+                        {data.offer_letter_mode === 'upload' && (
+                            <Input
+                                id="offer_letter"
+                                type="file"
+                                accept=".pdf,.doc,.docx"
+                                onChange={(e) => setData('offer_letter', e.target.files?.[0] ?? null)}
+                            />
+                        )}
+
+                        {data.offer_letter_mode !== 'none' && (
+                            <p className="text-muted-foreground text-xs">
+                                Attached to the invite email. They’ll be asked to sign it and upload the signed copy.
+                            </p>
+                        )}
                         <InputError message={errors.offer_letter} />
                     </div>
 

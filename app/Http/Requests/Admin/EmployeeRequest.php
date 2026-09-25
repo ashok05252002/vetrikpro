@@ -40,18 +40,30 @@ class EmployeeRequest extends FormRequest
             // changed on the Access tab under its own permission.
             'role_id' => $creating ? ['nullable', 'integer', 'exists:roles,id'] : ['prohibited'],
             'send_invite' => $creating ? ['boolean'] : ['prohibited'],
-            'offer_letter' => $creating ? ['nullable', 'file', 'max:10240', 'mimes:pdf,doc,docx'] : ['prohibited'],
+            // Generate from the template (the default), upload a file, or send none.
+            'offer_letter_mode' => $creating ? ['nullable', Rule::in(['generate', 'upload', 'none'])] : ['prohibited'],
+            'offer_letter' => $creating ? ['nullable', 'required_if:offer_letter_mode,upload', 'file', 'max:10240', 'mimes:pdf,doc,docx'] : ['prohibited'],
             'employee_code' => ['required', 'string', 'max:50', Rule::unique(Employee::class, 'employee_code')->ignore($id)],
             'department_id' => ['nullable', 'exists:departments,id'],
             'designation_id' => ['nullable', 'exists:designations,id'],
             'phone' => ['nullable', 'string', 'max:30'],
             'date_of_birth' => ['nullable', 'date', 'before:today'],
             'gender' => ['nullable', Rule::in(['male', 'female', 'other'])],
-            'date_of_joining' => ['nullable', 'date'],
+            // A generated letter states the joining date and salary, so they must be known.
+            'date_of_joining' => [Rule::requiredIf($creating && $this->input('offer_letter_mode') === 'generate'), 'nullable', 'date'],
             'employment_type' => ['required', Rule::in(['full_time', 'part_time', 'contract', 'intern'])],
-            'salary' => ['nullable', 'numeric', 'min:0', 'max:99999999.99'],
+            'salary' => [Rule::requiredIf($creating && $this->input('offer_letter_mode') === 'generate'), 'nullable', 'numeric', 'min:0', 'max:99999999.99'],
             'address' => ['nullable', 'string', 'max:2000'],
             'status' => ['required', Rule::in(['active', 'probation', 'on_leave', 'resigned', 'terminated'])],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'date_of_joining.required' => 'The offer letter states a joining date — add one, or choose not to generate a letter.',
+            'salary.required' => 'The offer letter states the salary — add it, or choose not to generate a letter.',
+            'offer_letter.required_if' => 'Choose the offer letter file to upload.',
         ];
     }
 

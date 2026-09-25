@@ -14,7 +14,7 @@ import EmployeeProfileLayout from '@/layouts/employee/profile-layout';
 import { formatBytes } from '@/lib/files';
 import type { EmployeeProfileHeader, OnboardingState } from '@/types';
 import { router, useForm } from '@inertiajs/react';
-import { CheckCircle2, Circle, Download, FileUp, Mail, Undo2 } from 'lucide-react';
+import { CheckCircle2, Circle, Download, FileSignature, FileUp, Mail, Undo2 } from 'lucide-react';
 import { FormEventHandler, useState } from 'react';
 
 interface Props {
@@ -225,6 +225,24 @@ export default function EmployeeOnboarding({ employee, onboarding, mailIsLocal, 
                                     </p>
                                 ) : null;
                             })()}
+
+                            {can.manage && beforeSubmit && (
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() =>
+                                        router.post(
+                                            route('admin.employees.onboarding.offer-letter.generate', employee.id),
+                                            {},
+                                            { preserveScroll: true },
+                                        )
+                                    }
+                                >
+                                    <FileSignature className="size-4" />{' '}
+                                    {onboarding.offer_letter ? 'Regenerate from template' : 'Generate from template'}
+                                </Button>
+                            )}
 
                             {can.manage && beforeSubmit && (
                                 <form onSubmit={uploadLetter} className="flex flex-wrap items-center gap-2 border-t pt-3">

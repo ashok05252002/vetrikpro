@@ -11,6 +11,7 @@ use App\Models\Employee;
 use App\Models\EmployeeDocument;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\OfferLetter;
 use App\Services\Onboarding\EmployeeInvitations;
 use App\Services\Onboarding\OnboardingChecklist;
 use App\Support\EmployeeProfile;
@@ -84,11 +85,12 @@ class EmployeeController extends Controller
         ]);
     }
 
-    public function store(EmployeeRequest $request, EmployeeInvitations $invitations): RedirectResponse
+    public function store(EmployeeRequest $request, EmployeeInvitations $invitations, OfferLetter $offerLetter): RedirectResponse
     {
         $data = $request->validated();
+        $mode = $data['offer_letter_mode'] ?? ($request->hasFile('offer_letter') ? 'upload' : 'none');
 
-        $employee = DB::transaction(function () use ($data, $request) {
+        $employee = DB::transaction(function () use ($data, $request, $mode, $offerLetter) {
             // The login starts with a random password nobody knows; the person
             // sets their own from the invite link.
             $user = User::create([
@@ -102,8 +104,10 @@ class EmployeeController extends Controller
             $employee = Employee::create([...$this->recordFields($data), 'user_id' => $user->id]);
             $employee->forceFill(['onboarding_status' => OnboardingStatus::Invited])->save();
 
-            if ($request->hasFile('offer_letter')) {
+            if ($mode === 'upload' && $request->hasFile('offer_letter')) {
                 self::storeOfferLetter($employee, $request->file('offer_letter'));
+            } elseif ($mode === 'generate') {
+                $offerLetter->generateFor($employee);
             }
 
             return $employee;
@@ -248,7 +252,7 @@ class EmployeeController extends Controller
      */
     private function recordFields(array $data): array
     {
-        return collect($data)->except(['name', 'email', 'role_id', 'send_invite', 'offer_letter'])->all();
+        return collect($data)->except(['name', 'email', 'role_id', 'send_invite', 'offer_letter', 'offer_letter_mode'])->all();
     }
 
     /**

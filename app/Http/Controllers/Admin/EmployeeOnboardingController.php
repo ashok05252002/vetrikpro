@@ -6,6 +6,7 @@ use App\Enums\OnboardingStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Models\EmployeeDocument;
+use App\Services\OfferLetter;
 use App\Services\Onboarding\EmployeeInvitations;
 use App\Support\EmployeeProfile;
 use App\Support\OnboardingPresenter;
@@ -56,6 +57,21 @@ class EmployeeOnboardingController extends Controller
         EmployeeController::storeOfferLetter($employee, $request->file('offer_letter'));
 
         return back()->with('success', 'Offer letter attached. Resend the invite to email it.');
+    }
+
+    /**
+     * Rebuild the letter from the current template and this person's details,
+     * e.g. after correcting their salary. Resend the invite to email it.
+     */
+    public function generateOfferLetter(Employee $employee, OfferLetter $offerLetter): RedirectResponse
+    {
+        if (! $employee->onboarding_status?->isEditable()) {
+            return back()->with('error', 'The offer letter can only change before the profile is submitted.');
+        }
+
+        $offerLetter->generateFor($employee);
+
+        return back()->with('success', 'Offer letter generated from the template. Resend the invite to email it.');
     }
 
     public function downloadOfferLetter(Employee $employee): StreamedResponse

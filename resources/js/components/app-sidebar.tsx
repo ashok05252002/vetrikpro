@@ -22,10 +22,10 @@ const adminNavItems: (NavItem & { permission: string | string[] })[] = [
     { title: 'Departments', url: '/admin/departments', icon: Building2, permission: 'departments.view' },
     { title: 'Designations', url: '/admin/designations', icon: Briefcase, permission: 'designations.view' },
     { title: 'Manage projects', url: '/admin/projects', icon: FolderKanban, permission: 'projects.view' },
-    // Lands on the first Configuration tab the person may open.
+    // The hub's overview shows every area the person may open.
     {
-        title: 'Configuration',
-        url: '/admin/settings',
+        title: 'Configuration hub',
+        url: '/admin/config',
         icon: Settings,
         permission: ['settings.view', 'document_types.view'],
         match: ['/admin/settings', '/admin/config'],
@@ -34,9 +34,7 @@ const adminNavItems: (NavItem & { permission: string | string[] })[] = [
 
 export function AppSidebar() {
     const { can, canAny } = usePermission();
-    const adminItems = adminNavItems
-        .filter((item) => (Array.isArray(item.permission) ? canAny(...item.permission) : can(item.permission)))
-        .map((item) => (item.title === 'Configuration' && !can('settings.view') ? { ...item, url: '/admin/config/document-types' } : item));
+    const adminItems = adminNavItems.filter((item) => (Array.isArray(item.permission) ? canAny(...item.permission) : can(item.permission)));
 
     return (
         <Sidebar collapsible="icon" variant="inset">
