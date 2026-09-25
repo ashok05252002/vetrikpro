@@ -1,6 +1,7 @@
 import DeleteButton from '@/components/admin/delete-button';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import ImageAttachments, { type ImageAttachment } from '@/components/work/image-attachments';
 import PriorityBadge from '@/components/work/priority-badge';
 import StageBadge from '@/components/work/stage-badge';
 import StatusHistory, { type StatusChangeRow } from '@/components/work/status-history';
@@ -15,7 +16,11 @@ import { useState } from 'react';
 
 interface Props {
     project: ProjectWorkspaceHeader;
-    point: TestPointDetail & { task: (TestPointDetail['task'] & { status?: TaskStatus }) | null; history: StatusChangeRow[] };
+    point: TestPointDetail & {
+        task: (TestPointDetail['task'] & { status?: TaskStatus }) | null;
+        history: StatusChangeRow[];
+        attachments: ImageAttachment[];
+    };
     statuses: Option[];
     priorities: Option[];
     assignees: Pick<User, 'id' | 'name'>[];
@@ -92,6 +97,13 @@ export default function TestPointPage({ project, point, statuses, priorities, as
                 <Block title="Expected result" text={point.expected_result} />
                 <Block title="Actual result" text={point.actual_result} />
             </div>
+
+            <ImageAttachments
+                attachments={point.attachments}
+                uploadUrl={route('projects.testing.attachments.store', [project.id, point.id])}
+                deleteUrl={(id) => route('projects.testing.attachments.destroy', [project.id, point.id, id])}
+                canUpload={can.update}
+            />
 
             <Card>
                 <CardHeader className="pb-2">

@@ -10,6 +10,7 @@ use App\Http\Controllers\Projects\MergeRequestController;
 use App\Http\Controllers\Projects\ProjectMemberController;
 use App\Http\Controllers\Projects\ReferenceLookupController;
 use App\Http\Controllers\Projects\RequirementController;
+use App\Http\Controllers\Projects\TestPointAttachmentController;
 use App\Http\Controllers\Projects\TestPointController;
 use App\Http\Controllers\TaskCommentController;
 use App\Http\Controllers\TaskController;
@@ -68,6 +69,9 @@ Route::middleware(['auth'])->group(function () {
             Route::put('testing/{testPoint}', [TestPointController::class, 'update'])->name('testing.update');
             Route::patch('testing/{testPoint}/move', [TestPointController::class, 'move'])->name('testing.move');
             Route::delete('testing/{testPoint}', [TestPointController::class, 'destroy'])->name('testing.destroy');
+            Route::post('testing/{testPoint}/attachments', [TestPointAttachmentController::class, 'store'])->name('testing.attachments.store');
+            Route::get('testing/{testPoint}/attachments/{attachment}', [TestPointAttachmentController::class, 'show'])->name('testing.attachments.show');
+            Route::delete('testing/{testPoint}/attachments/{attachment}', [TestPointAttachmentController::class, 'destroy'])->name('testing.attachments.destroy');
 
             Route::get('requirements', [RequirementController::class, 'index'])->name('requirements.index');
             Route::post('requirements', [RequirementController::class, 'store'])->name('requirements.store');

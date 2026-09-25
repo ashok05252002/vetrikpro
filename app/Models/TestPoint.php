@@ -10,6 +10,8 @@ use Database\Factories\TestPointFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 
 class TestPoint extends Model
 {
@@ -43,6 +45,9 @@ class TestPoint extends Model
 
     protected static function booted(): void
     {
+        // Attachment rows go by cascade, which fires no model events.
+        static::deleted(fn (TestPoint $point) => Storage::disk(EmployeeDocument::DISK)->deleteDirectory($point->attachmentDirectory()));
+
         // Who last ran it, and when, is derived from reaching an outcome —
         // never typed — so it cannot disagree with the column it sits in.
         static::saving(function (TestPoint $point) {
@@ -71,6 +76,16 @@ class TestPoint extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(TestPointAttachment::class)->orderBy('id');
+    }
+
+    public function attachmentDirectory(): string
+    {
+        return "projects/{$this->project_id}/testing/{$this->id}";
     }
 
     public function lastTester(): BelongsTo

@@ -77,6 +77,12 @@ class TestPointController extends Controller
             'point' => [
                 ...Cards::testPoint($testPoint, $request->user()),
                 'history' => Cards::history($testPoint),
+                'attachments' => $testPoint->attachments()->with('uploader:id,name')->get()->map(fn ($a) => [
+                    ...$a->only('id', 'original_name', 'size', 'created_at'),
+                    'uploaded_by' => $a->uploader?->only('id', 'name'),
+                    'url' => route('projects.testing.attachments.show', [$project, $testPoint, $a]),
+                    'can_delete' => $a->uploaded_by === $request->user()->id || $request->user()->can('projects.edit') || $project->owner_id === $request->user()->id,
+                ]),
                 ...$testPoint->only('steps', 'expected_result', 'actual_result', 'assigned_to', 'task_id', 'created_at'),
                 'creator' => $testPoint->creator?->only('id', 'name'),
                 'last_tester' => $testPoint->lastTester?->only('id', 'name'),
