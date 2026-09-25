@@ -290,3 +290,32 @@ export interface TestPointDetail extends TestPointSummary {
     creator?: Pick<User, 'id' | 'name'> | null;
     last_tester?: Pick<User, 'id' | 'name'> | null;
 }
+
+export interface RequirementVersion {
+    id: number;
+    version: number;
+    original_name: string;
+    mime_type: string;
+    size: number;
+    change_note: string | null;
+    uploaded_by: string | null;
+    uploaded_at: string;
+}
+
+export interface RequirementSummary {
+    id: number;
+    project_id: number;
+    number: number;
+    reference: string;
+    title: string;
+    versions_count: number;
+    current: RequirementVersion | null;
+    updated_at: string;
+}
+
+export interface RequirementDetail extends RequirementSummary {
+    description: string | null;
+    creator: Pick<User, 'id' | 'name'> | null;
+    created_at: string;
+    versions: RequirementVersion[];
+}

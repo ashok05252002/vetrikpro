@@ -85,6 +85,11 @@ class Project extends Model
         return $this->hasMany(TestPoint::class);
     }
 
+    public function requirements(): HasMany
+    {
+        return $this->hasMany(RequirementDocument::class);
+    }
+
     /**
      * Percentage of tasks in the Done column, 0 when the project has no tasks.
      */

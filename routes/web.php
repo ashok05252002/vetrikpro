@@ -4,6 +4,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProjectBoardController;
 use App\Http\Controllers\Projects\ProjectMemberController;
 use App\Http\Controllers\Projects\ReferenceLookupController;
+use App\Http\Controllers\Projects\RequirementController;
 use App\Http\Controllers\Projects\TestPointController;
 use App\Http\Controllers\TaskCommentController;
 use App\Http\Controllers\TaskController;
@@ -44,6 +45,14 @@ Route::middleware(['auth'])->group(function () {
             Route::put('testing/{testPoint}', [TestPointController::class, 'update'])->name('testing.update');
             Route::patch('testing/{testPoint}/move', [TestPointController::class, 'move'])->name('testing.move');
             Route::delete('testing/{testPoint}', [TestPointController::class, 'destroy'])->name('testing.destroy');
+
+            Route::get('requirements', [RequirementController::class, 'index'])->name('requirements.index');
+            Route::post('requirements', [RequirementController::class, 'store'])->name('requirements.store');
+            Route::get('requirements/{requirement}', [RequirementController::class, 'show'])->name('requirements.show');
+            Route::put('requirements/{requirement}', [RequirementController::class, 'update'])->name('requirements.update');
+            Route::delete('requirements/{requirement}', [RequirementController::class, 'destroy'])->name('requirements.destroy');
+            Route::post('requirements/{requirement}/versions', [RequirementController::class, 'storeVersion'])->name('requirements.versions.store');
+            Route::get('requirements/{requirement}/versions/{version}/download', [RequirementController::class, 'download'])->name('requirements.versions.download');
         });
     });
 
