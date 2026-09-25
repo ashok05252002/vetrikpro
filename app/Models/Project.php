@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ProjectMemberRole;
 use App\Enums\ProjectStatus;
 use App\Enums\TaskStatus;
 use Database\Factories\ProjectFactory;
@@ -21,6 +22,8 @@ class Project extends Model
         'name',
         'code',
         'description',
+        'repository_url',
+        'default_branch',
         'status',
         'start_date',
         'due_date',
@@ -42,7 +45,22 @@ class Project extends Model
 
     public function members(): BelongsToMany
     {
-        return $this->belongsToMany(User::class)->withTimestamps();
+        return $this->belongsToMany(User::class)->withPivot('role')->withTimestamps();
+    }
+
+    public function devAdmins(): BelongsToMany
+    {
+        return $this->members()->wherePivot('role', ProjectMemberRole::DevAdmin->value);
+    }
+
+    public function hasMember(User $user): bool
+    {
+        return $this->members()->whereKey($user->id)->exists();
+    }
+
+    public function isDevAdmin(User $user): bool
+    {
+        return $this->devAdmins()->whereKey($user->id)->exists();
     }
 
     public function tasks(): HasMany

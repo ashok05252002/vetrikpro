@@ -25,8 +25,8 @@ class ProjectRequest extends FormRequest
             'owner_id' => ['nullable', 'exists:users,id'],
             'start_date' => ['nullable', 'date'],
             'due_date' => ['nullable', 'date', 'after_or_equal:start_date'],
-            'members' => ['array'],
-            'members.*' => ['exists:users,id'],
+            'repository_url' => ['nullable', 'url', 'max:255'],
+            'default_branch' => ['required', 'string', 'max:100', 'regex:/^[A-Za-z0-9._\/-]+$/'],
         ];
     }
 

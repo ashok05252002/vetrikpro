@@ -198,3 +198,32 @@ export interface DisplaySettings {
     /** ISO 4217 code, e.g. INR. */
     currency: string;
 }
+
+/** The header every project workspace tab receives (App\Support\ProjectWorkspace). */
+export interface ProjectWorkspaceHeader extends ProjectSummary {
+    repository_url: string | null;
+    default_branch: string;
+    members_count: number;
+    progress: number;
+    viewer: { is_dev_admin: boolean; can_update: boolean; can_manage_members: boolean };
+}
+
+/** One person as the directory search returns them (App\Support\UserDirectory::row). */
+export interface DirectoryUser {
+    id: number;
+    name: string;
+    email: string;
+    is_active: boolean;
+    employee_id: number | null;
+    employee_code: string | null;
+    department: string | null;
+    designation: string | null;
+}
+
+export type ProjectMemberRole = 'member' | 'dev_admin';
+
+export interface ProjectMember extends DirectoryUser {
+    role: ProjectMemberRole;
+    joined_at: string | null;
+    open_tasks_count: number;
+}

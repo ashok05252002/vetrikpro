@@ -19,7 +19,7 @@ class ProjectPolicy
     {
         return $user->can('projects.view_all')
             || $project->owner_id === $user->id
-            || $project->members()->whereKey($user->id)->exists();
+            || $project->hasMember($user);
     }
 
     public function create(User $user): bool
@@ -28,6 +28,14 @@ class ProjectPolicy
     }
 
     public function update(User $user, Project $project): bool
+    {
+        return $user->can('projects.manage') || $project->owner_id === $user->id;
+    }
+
+    /**
+     * Adding, removing and re-roling members. The owner runs their own team.
+     */
+    public function manageMembers(User $user, Project $project): bool
     {
         return $user->can('projects.manage') || $project->owner_id === $user->id;
     }

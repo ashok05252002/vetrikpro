@@ -1,14 +1,13 @@
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import UserAvatar from '@/components/work/user-avatar';
+import UserCombobox from '@/components/work/user-combobox';
 import type { Option, User } from '@/types';
 import { Link, useForm } from '@inertiajs/react';
-import { FormEventHandler } from 'react';
+import { FormEventHandler, useState } from 'react';
 
 const NO_OWNER = 'none';
 
@@ -20,19 +19,21 @@ export interface ProjectFormData {
     owner_id: string;
     start_date: string;
     due_date: string;
-    members: number[];
-    [key: string]: string | number[] | number;
+    repository_url: string;
+    default_branch: string;
+    [key: string]: string;
 }
 
 interface Props {
-    users: Pick<User, 'id' | 'name' | 'email'>[];
     statuses: Option[];
+    /** The current owner, for the picker's label; the picker searches for anyone else. */
+    owner?: Pick<User, 'id' | 'name' | 'email'> | null;
     initial: ProjectFormData;
     action: { url: string; method: 'post' | 'put' };
     submitLabel: string;
 }
 
-export default function ProjectForm({ users, statuses, initial, action, submitLabel }: Props) {
+export default function ProjectForm({ statuses, owner: initialOwner = null, initial, action, submitLabel }: Props) {
     const { data, setData, post, put, processing, errors, transform } = useForm<ProjectFormData>(initial);
 
     transform((payload) => ({
@@ -40,9 +41,7 @@ export default function ProjectForm({ users, statuses, initial, action, submitLa
         owner_id: payload.owner_id === NO_OWNER ? '' : payload.owner_id,
     }));
 
-    const toggleMember = (id: number, checked: boolean) => {
-        setData('members', checked ? [...data.members, id] : data.members.filter((m) => m !== id));
-    };
+    const [owner, setOwner] = useState<Pick<User, 'id' | 'name'> | null>(initialOwner);
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
@@ -74,19 +73,16 @@ export default function ProjectForm({ users, statuses, initial, action, submitLa
 
                 <div className="grid gap-2">
                     <Label htmlFor="owner_id">Owner</Label>
-                    <Select value={data.owner_id} onValueChange={(value) => setData('owner_id', value)}>
-                        <SelectTrigger id="owner_id">
-                            <SelectValue placeholder="Select an owner" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value={NO_OWNER}>No owner</SelectItem>
-                            {users.map((user) => (
-                                <SelectItem key={user.id} value={String(user.id)}>
-                                    {user.name}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                    <UserCombobox
+                        id="owner_id"
+                        url={route('admin.lookups.users')}
+                        value={owner}
+                        noneLabel="No owner"
+                        onChange={(user) => {
+                            setOwner(user);
+                            setData('owner_id', user ? String(user.id) : NO_OWNER);
+                        }}
+                    />
                     <InputError message={errors.owner_id} />
                 </div>
 
@@ -128,33 +124,37 @@ export default function ProjectForm({ users, statuses, initial, action, submitLa
                 <InputError message={errors.description} />
             </div>
 
-            <div className="space-y-3">
-                <div>
-                    <Label>Members</Label>
-                    <p className="text-muted-foreground text-xs">Members see the board and can be assigned tasks.</p>
+            <div className="grid gap-6 border-t pt-6 sm:grid-cols-[2fr_1fr]">
+                <div className="grid gap-2">
+                    <Label htmlFor="repository_url">
+                        Repository URL <span className="text-muted-foreground">(optional)</span>
+                    </Label>
+                    <Input
+                        id="repository_url"
+                        type="url"
+                        value={data.repository_url}
+                        onChange={(e) => setData('repository_url', e.target.value)}
+                        placeholder="https://github.com/company/project"
+                    />
+                    <InputError message={errors.repository_url} />
                 </div>
 
-                <div className="grid gap-1 rounded-lg border p-2 sm:grid-cols-2">
-                    {users.map((user) => (
-                        <label
-                            key={user.id}
-                            htmlFor={`member-${user.id}`}
-                            className="hover:bg-muted/60 flex cursor-pointer items-center gap-3 rounded-md p-2"
-                        >
-                            <Checkbox
-                                id={`member-${user.id}`}
-                                checked={data.members.includes(user.id)}
-                                onCheckedChange={(checked) => toggleMember(user.id, checked === true)}
-                            />
-                            <UserAvatar name={user.name} className="size-6" />
-                            <span className="min-w-0">
-                                <span className="block truncate text-sm">{user.name}</span>
-                                <span className="text-muted-foreground block truncate text-xs">{user.email}</span>
-                            </span>
-                        </label>
-                    ))}
+                <div className="grid gap-2">
+                    <Label htmlFor="default_branch">Default branch</Label>
+                    <Input
+                        id="default_branch"
+                        value={data.default_branch}
+                        onChange={(e) => setData('default_branch', e.target.value)}
+                        required
+                        placeholder="main"
+                        className="font-mono"
+                    />
+                    <InputError message={errors.default_branch} />
                 </div>
-                <InputError message={errors.members} />
+                <p className="text-muted-foreground -mt-3 text-xs sm:col-span-2">
+                    Used by the Git tab: branches are merged into the default branch unless the request says otherwise. Members are managed on the
+                    project’s Members tab.
+                </p>
             </div>
 
             <div className="flex items-center gap-3">

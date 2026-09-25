@@ -7,6 +7,7 @@ use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
 use App\Models\Project;
 use App\Models\Task;
+use App\Support\ProjectWorkspace;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -75,12 +76,7 @@ class ProjectBoardController extends Controller
             ]);
 
         return Inertia::render('projects/board', [
-            'project' => [
-                ...$project->only('id', 'name', 'code', 'description', 'status', 'start_date', 'due_date'),
-                'owner' => $project->owner?->only('id', 'name'),
-                'members' => $project->members->map->only('id', 'name', 'email'),
-                'progress' => $project->progress(),
-            ],
+            'project' => ProjectWorkspace::header($project, $request->user()),
             // Grouped by column so the board renders without regrouping client-side.
             'columns' => collect(TaskStatus::cases())->map(fn (TaskStatus $status) => [
                 'value' => $status->value,

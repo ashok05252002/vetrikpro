@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProjectBoardController;
+use App\Http\Controllers\Projects\ProjectMemberController;
 use App\Http\Controllers\TaskCommentController;
 use App\Http\Controllers\TaskController;
 use Illuminate\Support\Facades\Route;
@@ -22,6 +23,15 @@ Route::middleware(['auth'])->group(function () {
     // Projects and their boards — visible to members, not just administrators.
     Route::get('projects', [ProjectBoardController::class, 'index'])->name('projects.index');
     Route::get('projects/{project}', [ProjectBoardController::class, 'show'])->name('projects.show');
+
+    // Project workspace tabs. Each is its own route so it loads only its own data.
+    Route::prefix('projects/{project}')->name('projects.')->group(function () {
+        Route::get('members', [ProjectMemberController::class, 'index'])->name('members.index');
+        Route::get('members/candidates', [ProjectMemberController::class, 'candidates'])->name('members.candidates');
+        Route::post('members', [ProjectMemberController::class, 'store'])->name('members.store');
+        Route::patch('members/{user}', [ProjectMemberController::class, 'update'])->name('members.update');
+        Route::delete('members/{user}', [ProjectMemberController::class, 'destroy'])->name('members.destroy');
+    });
 
     Route::get('tasks', [TaskController::class, 'index'])->name('tasks.index');
     Route::post('tasks', [TaskController::class, 'store'])->name('tasks.store');

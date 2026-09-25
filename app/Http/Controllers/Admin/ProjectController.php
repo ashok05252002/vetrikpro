@@ -7,7 +7,6 @@ use App\Enums\TaskStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\ProjectRequest;
 use App\Models\Project;
-use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -53,20 +52,20 @@ class ProjectController extends Controller
 
     public function store(ProjectRequest $request): RedirectResponse
     {
-        $data = $request->validated();
+        $project = Project::create($request->validated());
 
-        $project = Project::create($data);
-        $project->members()->sync($data['members'] ?? []);
-
-        return to_route('admin.projects.index')->with('success', "Project “{$project->name}” created.");
+        // Members are managed on the project's own Members tab, which is where
+        // a new project needs to go next.
+        return to_route('projects.members.index', $project)->with('success', "Project “{$project->name}” created. Add its members here.");
     }
 
     public function edit(Project $project): Response
     {
         return Inertia::render('admin/projects/edit', [
             'project' => [
-                ...$project->only('id', 'name', 'code', 'description', 'status', 'owner_id', 'start_date', 'due_date'),
-                'members' => $project->members()->pluck('users.id'),
+                ...$project->only('id', 'name', 'code', 'description', 'repository_url', 'default_branch', 'status', 'owner_id', 'start_date', 'due_date'),
+                'members_count' => $project->members()->count(),
+                'owner' => $project->owner?->only('id', 'name', 'email'),
             ],
             ...$this->formOptions(),
         ]);
@@ -74,10 +73,7 @@ class ProjectController extends Controller
 
     public function update(ProjectRequest $request, Project $project): RedirectResponse
     {
-        $data = $request->validated();
-
-        $project->update($data);
-        $project->members()->sync($data['members'] ?? []);
+        $project->update($request->validated());
 
         return to_route('admin.projects.index')->with('success', "Project “{$project->name}” updated.");
     }
@@ -96,7 +92,6 @@ class ProjectController extends Controller
     private function formOptions(): array
     {
         return [
-            'users' => User::query()->orderBy('name')->get(['id', 'name', 'email']),
             'statuses' => ProjectStatus::options(),
         ];
     }

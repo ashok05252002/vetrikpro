@@ -50,25 +50,24 @@ class ProjectAccessTest extends TestCase
             ->assertOk();
     }
 
-    public function test_an_admin_can_create_a_project_with_members()
+    public function test_creating_a_project_leads_to_its_members_tab()
     {
         $admin = User::factory()->admin()->create();
-        $members = User::factory()->count(2)->create();
 
-        $this->actingAs($admin)
+        $response = $this->actingAs($admin)
             ->post(route('admin.projects.store'), [
                 'name' => 'Attendance Module',
                 'code' => 'ATT',
                 'status' => 'active',
                 'owner_id' => $admin->id,
-                'members' => $members->pluck('id')->all(),
-            ])
-            ->assertRedirect(route('admin.projects.index'));
+                'default_branch' => 'main',
+            ]);
 
         $project = Project::where('code', 'ATT')->first();
 
         $this->assertNotNull($project);
-        $this->assertEqualsCanonicalizing($members->pluck('id')->all(), $project->members()->pluck('users.id')->all());
+        $response->assertRedirect(route('projects.members.index', $project));
+        $this->assertSame('main', $project->default_branch);
     }
 
     public function test_project_codes_are_unique()

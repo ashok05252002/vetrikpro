@@ -1,14 +1,10 @@
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import Meter from '@/components/viz/meter';
 import { stageColor } from '@/components/work/stage-badge';
 import TaskCard from '@/components/work/task-card';
 import TaskDialog from '@/components/work/task-dialog';
-import UserAvatar from '@/components/work/user-avatar';
-import { useFormat } from '@/hooks/use-format';
-import AppLayout from '@/layouts/app-layout';
+import ProjectWorkspaceLayout from '@/layouts/project/workspace-layout';
 import { cn } from '@/lib/utils';
-import type { BoardColumn, BreadcrumbItem, Option, ProjectSummary, TaskStatus, TaskSummary, User } from '@/types';
+import type { BoardColumn, Option, ProjectWorkspaceHeader, TaskStatus, TaskSummary, User } from '@/types';
 import {
     DndContext,
     DragOverlay,
@@ -22,12 +18,12 @@ import {
     type DragStartEvent,
 } from '@dnd-kit/core';
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { Head, Link, router } from '@inertiajs/react';
-import { Plus, Settings2 } from 'lucide-react';
+import { router } from '@inertiajs/react';
+import { Plus } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 interface Props {
-    project: ProjectSummary;
+    project: ProjectWorkspaceHeader;
     columns: BoardColumn[];
     statuses: Option[];
     priorities: Option[];
@@ -63,7 +59,6 @@ function Column({ column, canCreate, onAdd, children }: { column: BoardColumn; c
 }
 
 export default function Board({ project, columns: initialColumns, statuses, priorities, assignees, can }: Props) {
-    const format = useFormat();
     const [columns, setColumns] = useState(initialColumns);
     const [activeTask, setActiveTask] = useState<TaskSummary | null>(null);
     const [dialogOpen, setDialogOpen] = useState(false);
@@ -154,101 +149,53 @@ export default function Board({ project, columns: initialColumns, statuses, prio
         );
     };
 
-    const breadcrumbs: BreadcrumbItem[] = [
-        { title: 'Projects', href: '/projects' },
-        { title: project.name, href: `/projects/${project.id}` },
-    ];
-
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title={project.name} />
-
-            <div className="flex h-full flex-col gap-4 p-4 md:p-6">
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                    <div className="min-w-0 space-y-2">
-                        <div className="flex flex-wrap items-center gap-2">
-                            <h1 className="text-xl font-semibold tracking-tight">{project.name}</h1>
-                            <Badge variant="outline" className="font-mono text-[10px]">
-                                {project.code}
-                            </Badge>
-                        </div>
-
-                        {project.description && <p className="text-muted-foreground max-w-2xl text-sm">{project.description}</p>}
-
-                        <div className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
-                            <span>Owner: {project.owner?.name ?? 'Unassigned'}</span>
-                            {project.due_date && <span>Due {format.date(project.due_date)}</span>}
-                            <span className="flex items-center gap-1">
-                                {project.members?.slice(0, 5).map((member) => (
-                                    <span key={member.id} title={member.name}>
-                                        <UserAvatar name={member.name} className="size-5" />
-                                    </span>
+        <ProjectWorkspaceLayout
+            project={project}
+            tab="tasks"
+            actions={
+                can.createTask && (
+                    <Button
+                        size="sm"
+                        onClick={() => {
+                            setDialogStatus('todo');
+                            setDialogOpen(true);
+                        }}
+                    >
+                        <Plus className="size-4" /> New task
+                    </Button>
+                )
+            }
+        >
+            <DndContext
+                sensors={sensors}
+                collisionDetection={closestCorners}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+                onDragCancel={() => setActiveTask(null)}
+            >
+                <div className="flex flex-1 gap-4 overflow-x-auto pb-4">
+                    {columns.map((column) => (
+                        <Column
+                            key={column.value}
+                            column={column}
+                            canCreate={can.createTask}
+                            onAdd={() => {
+                                setDialogStatus(column.value);
+                                setDialogOpen(true);
+                            }}
+                        >
+                            <SortableContext items={column.tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+                                {column.tasks.map((task) => (
+                                    <TaskCard key={task.id} task={task} />
                                 ))}
-                                {(project.members?.length ?? 0) > 5 && <span>+{(project.members?.length ?? 0) - 5}</span>}
-                            </span>
-                        </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                        {can.updateProject && (
-                            <Button asChild variant="outline" size="sm">
-                                <Link href={route('admin.projects.edit', project.id)}>
-                                    <Settings2 className="size-4" /> Settings
-                                </Link>
-                            </Button>
-                        )}
-                        {can.createTask && (
-                            <Button
-                                size="sm"
-                                onClick={() => {
-                                    setDialogStatus('todo');
-                                    setDialogOpen(true);
-                                }}
-                            >
-                                <Plus className="size-4" /> New task
-                            </Button>
-                        )}
-                    </div>
+                            </SortableContext>
+                        </Column>
+                    ))}
                 </div>
 
-                <div className="max-w-md space-y-1.5">
-                    <div className="text-muted-foreground flex items-baseline justify-between text-xs">
-                        <span>Progress</span>
-                        <span className="tabular-nums">{project.progress}%</span>
-                    </div>
-                    <Meter value={project.progress ?? 0} label={`${project.name} is ${project.progress}% complete`} />
-                </div>
-
-                <DndContext
-                    sensors={sensors}
-                    collisionDetection={closestCorners}
-                    onDragStart={handleDragStart}
-                    onDragEnd={handleDragEnd}
-                    onDragCancel={() => setActiveTask(null)}
-                >
-                    <div className="flex flex-1 gap-4 overflow-x-auto pb-4">
-                        {columns.map((column) => (
-                            <Column
-                                key={column.value}
-                                column={column}
-                                canCreate={can.createTask}
-                                onAdd={() => {
-                                    setDialogStatus(column.value);
-                                    setDialogOpen(true);
-                                }}
-                            >
-                                <SortableContext items={column.tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
-                                    {column.tasks.map((task) => (
-                                        <TaskCard key={task.id} task={task} />
-                                    ))}
-                                </SortableContext>
-                            </Column>
-                        ))}
-                    </div>
-
-                    <DragOverlay>{activeTask && <TaskCard task={activeTask} overlay draggable={false} />}</DragOverlay>
-                </DndContext>
-            </div>
+                <DragOverlay>{activeTask && <TaskCard task={activeTask} overlay draggable={false} />}</DragOverlay>
+            </DndContext>
 
             <TaskDialog
                 open={dialogOpen}
@@ -259,6 +206,6 @@ export default function Board({ project, columns: initialColumns, statuses, prio
                 assignees={assignees}
                 defaultStatus={dialogStatus}
             />
-        </AppLayout>
+        </ProjectWorkspaceLayout>
     );
 }

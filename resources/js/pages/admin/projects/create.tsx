@@ -1,6 +1,6 @@
 import PageHeader from '@/components/admin/page-header';
 import AppLayout from '@/layouts/app-layout';
-import type { BreadcrumbItem, Option, User } from '@/types';
+import type { BreadcrumbItem, Option } from '@/types';
 import { Head } from '@inertiajs/react';
 import ProjectForm, { NO_OWNER } from './project-form';
 
@@ -10,21 +10,15 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'New project', href: '/admin/projects/create' },
 ];
 
-interface Props {
-    users: Pick<User, 'id' | 'name' | 'email'>[];
-    statuses: Option[];
-}
-
-export default function CreateProject({ users, statuses }: Props) {
+export default function CreateProject({ statuses }: { statuses: Option[] }) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="New project" />
 
             <div className="flex flex-col gap-6 p-4 md:p-6">
-                <PageHeader back={route('admin.projects.index')} title="New project" description="Set it up, then add tasks on the board." />
+                <PageHeader back={route('admin.projects.index')} title="New project" description="Set it up here; you’ll add its members next." />
 
                 <ProjectForm
-                    users={users}
                     statuses={statuses}
                     initial={{
                         name: '',
@@ -34,7 +28,8 @@ export default function CreateProject({ users, statuses }: Props) {
                         owner_id: NO_OWNER,
                         start_date: '',
                         due_date: '',
-                        members: [],
+                        repository_url: '',
+                        default_branch: 'main',
                     }}
                     action={{ url: route('admin.projects.store'), method: 'post' }}
                     submitLabel="Create project"

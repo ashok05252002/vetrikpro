@@ -17,7 +17,15 @@ import { useState } from 'react';
  * Destructive action behind a confirmation dialog — never a bare browser confirm(),
  * which would block the page.
  */
-export default function DeleteButton({ url, label, description }: { url: string; label: string; description?: string }) {
+interface Props {
+    url: string;
+    label: string;
+    description?: string;
+    /** The verb, for actions that detach rather than destroy, e.g. "Remove". */
+    verb?: string;
+}
+
+export default function DeleteButton({ url, label, description, verb = 'Delete' }: Props) {
     const [open, setOpen] = useState(false);
     const { delete: destroy, processing } = useForm();
 
@@ -33,12 +41,14 @@ export default function DeleteButton({ url, label, description }: { url: string;
             <DialogTrigger asChild>
                 <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
                     <Trash2 className="size-4" />
-                    <span className="sr-only">Delete</span>
+                    <span className="sr-only">{verb}</span>
                 </Button>
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Delete {label}?</DialogTitle>
+                    <DialogTitle>
+                        {verb} {label}?
+                    </DialogTitle>
                     <DialogDescription>{description ?? 'This action cannot be undone.'}</DialogDescription>
                 </DialogHeader>
                 <DialogFooter>
@@ -46,7 +56,7 @@ export default function DeleteButton({ url, label, description }: { url: string;
                         <Button variant="outline">Cancel</Button>
                     </DialogClose>
                     <Button variant="destructive" disabled={processing} onClick={confirm}>
-                        Delete
+                        {verb}
                     </Button>
                 </DialogFooter>
             </DialogContent>

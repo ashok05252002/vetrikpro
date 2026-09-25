@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\ProjectController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\UserLookupController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -29,6 +30,7 @@ Route::middleware(['auth'])
             ->middlewareFor(['create', 'store', 'edit', 'update', 'destroy'], 'can:employees.manage');
 
         Route::resource('projects', ProjectController::class)->except('show')->middleware('can:projects.manage');
+        Route::get('lookups/users', UserLookupController::class)->middleware('can:projects.manage')->name('lookups.users');
 
         Route::middleware('can:settings.manage')->group(function () {
             Route::get('settings', [SettingsController::class, 'edit'])->name('settings.edit');

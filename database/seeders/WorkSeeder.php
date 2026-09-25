@@ -81,7 +81,10 @@ class WorkSeeder extends Seeder
                 ],
             );
 
-            $project->members()->sync($everyone->pluck('id'));
+            // The first engineer reviews merges on every sample project.
+            $project->members()->sync($everyone->mapWithKeys(fn (User $user) => [
+                $user->id => ['role' => $user->is($staff->first()) ? 'dev_admin' : 'member'],
+            ])->all());
 
             foreach ($spec['tasks'] as $index => [$title, $status, $priority, $dueOffset]) {
                 Task::updateOrCreate(
