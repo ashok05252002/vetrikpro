@@ -23,6 +23,8 @@ export interface NavItem {
     isActive?: boolean;
     /** Extra path prefixes that count as this item being open. */
     match?: string[];
+    /** Sub-items: the item becomes a dropdown group instead of a link. */
+    children?: NavItem[];
 }
 
 export interface SharedData {

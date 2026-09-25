@@ -4,7 +4,7 @@ import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, Sid
 import { usePermission } from '@/hooks/use-permission';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { Briefcase, Building2, FolderKanban, GitPullRequest, IdCard, LayoutGrid, ListChecks, Settings, ShieldCheck } from 'lucide-react';
+import { Briefcase, Building2, FolderKanban, GitPullRequest, IdCard, LayoutGrid, ListChecks, Settings, ShieldCheck, UsersRound } from 'lucide-react';
 import AppLogo from './app-logo';
 
 /** Everyone signed in gets these. */
@@ -16,11 +16,22 @@ const workNavItems: NavItem[] = [
 ];
 
 /** Each admin entry appears only for the permission its routes check. */
-const adminNavItems: (NavItem & { permission: string | string[] })[] = [
-    { title: 'Roles & access', url: '/admin/roles', icon: ShieldCheck, permission: 'roles.view' },
+type AdminItem = Omit<NavItem, 'children'> & { permission: string | string[]; children?: (NavItem & { permission: string })[] };
+
+const adminNavItems: AdminItem[] = [
     { title: 'Employees', url: '/admin/employees', icon: IdCard, permission: 'employees.view' },
-    { title: 'Departments', url: '/admin/departments', icon: Building2, permission: 'departments.view' },
-    { title: 'Designations', url: '/admin/designations', icon: Briefcase, permission: 'designations.view' },
+    // Who can do what, and how the organisation is structured, under one entry.
+    {
+        title: 'People setup',
+        url: '/admin/roles',
+        icon: UsersRound,
+        permission: ['roles.view', 'departments.view', 'designations.view'],
+        children: [
+            { title: 'Roles & access', url: '/admin/roles', icon: ShieldCheck, permission: 'roles.view' },
+            { title: 'Departments', url: '/admin/departments', icon: Building2, permission: 'departments.view' },
+            { title: 'Designations', url: '/admin/designations', icon: Briefcase, permission: 'designations.view' },
+        ],
+    },
     { title: 'Manage projects', url: '/admin/projects', icon: FolderKanban, permission: 'projects.view' },
     // The hub's overview shows every area the person may open.
     {
@@ -34,7 +45,10 @@ const adminNavItems: (NavItem & { permission: string | string[] })[] = [
 
 export function AppSidebar() {
     const { can, canAny } = usePermission();
-    const adminItems = adminNavItems.filter((item) => (Array.isArray(item.permission) ? canAny(...item.permission) : can(item.permission)));
+    const adminItems = adminNavItems
+        .filter((item) => (Array.isArray(item.permission) ? canAny(...item.permission) : can(item.permission)))
+        // A group only lists the pages this person may open.
+        .map((item) => (item.children ? { ...item, children: item.children.filter((child) => can(child.permission)) } : item));
 
     return (
         <Sidebar collapsible="icon" variant="inset">

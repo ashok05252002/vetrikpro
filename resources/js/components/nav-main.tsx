@@ -1,33 +1,117 @@
-import { SidebarGroup, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import {
+    SidebarGroup,
+    SidebarGroupLabel,
+    SidebarMenu,
+    SidebarMenuButton,
+    SidebarMenuItem,
+    SidebarMenuSub,
+    SidebarMenuSubButton,
+    SidebarMenuSubItem,
+    useSidebar,
+} from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
+import { ChevronRight } from 'lucide-react';
+
+/** The active page is a brand-coloured pill, not a faint grey wash. */
+const ACTIVE = 'data-[active=true]:bg-sidebar-primary data-[active=true]:text-sidebar-primary-foreground data-[active=true]:shadow-sm';
+
+function useIsActive() {
+    const page = usePage();
+
+    // Keep the section highlighted on nested routes like /admin/roles/3/edit.
+    return (item: NavItem) =>
+        [item.url, ...(item.match ?? [])].some((url) => page.url === url || page.url.startsWith(`${url}/`) || page.url.startsWith(`${url}?`));
+}
+
+/**
+ * A group of pages under one entry. Expanded, it opens in place like an
+ * accordion (already open when you are on one of its pages); collapsed to
+ * icons, the icon opens the same pages as a dropdown menu.
+ */
+function NavGroupItem({ item }: { item: NavItem & { children: NavItem[] } }) {
+    const isActive = useIsActive();
+    const { state, isMobile } = useSidebar();
+    const open = item.children.some(isActive);
+
+    if (state === 'collapsed' && !isMobile) {
+        return (
+            <SidebarMenuItem>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <SidebarMenuButton isActive={open} tooltip={item.title} className={ACTIVE}>
+                            {item.icon && <item.icon />}
+                            <span>{item.title}</span>
+                        </SidebarMenuButton>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent side="right" align="start" className="min-w-48">
+                        <DropdownMenuLabel>{item.title}</DropdownMenuLabel>
+                        {item.children.map((child) => (
+                            <DropdownMenuItem key={child.url} asChild>
+                                <Link href={child.url} prefetch className="flex items-center gap-2">
+                                    {child.icon && <child.icon className="size-4" />}
+                                    {child.title}
+                                </Link>
+                            </DropdownMenuItem>
+                        ))}
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </SidebarMenuItem>
+        );
+    }
+
+    return (
+        <Collapsible asChild defaultOpen={open} className="group/collapsible">
+            <SidebarMenuItem>
+                <CollapsibleTrigger asChild>
+                    <SidebarMenuButton tooltip={item.title}>
+                        {item.icon && <item.icon />}
+                        <span>{item.title}</span>
+                        <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                    </SidebarMenuButton>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                    <SidebarMenuSub>
+                        {item.children.map((child) => (
+                            <SidebarMenuSubItem key={child.url}>
+                                <SidebarMenuSubButton asChild isActive={isActive(child)} className={ACTIVE}>
+                                    <Link href={child.url} prefetch>
+                                        {child.icon && <child.icon />}
+                                        <span>{child.title}</span>
+                                    </Link>
+                                </SidebarMenuSubButton>
+                            </SidebarMenuSubItem>
+                        ))}
+                    </SidebarMenuSub>
+                </CollapsibleContent>
+            </SidebarMenuItem>
+        </Collapsible>
+    );
+}
 
 export function NavMain({ items = [], label = 'Platform' }: { items: NavItem[]; label?: string }) {
-    const page = usePage();
+    const isActive = useIsActive();
 
     return (
         <SidebarGroup className="px-2 py-0">
             <SidebarGroupLabel className="text-sidebar-foreground/60 text-[11px] font-semibold tracking-wider uppercase">{label}</SidebarGroupLabel>
             <SidebarMenu>
-                {items.map((item) => (
-                    <SidebarMenuItem key={item.title}>
-                        {/* Keep the section highlighted on nested routes like /admin/users/create. */}
-                        <SidebarMenuButton
-                            asChild
-                            isActive={[item.url, ...(item.match ?? [])].some(
-                                (url) => page.url === url || page.url.startsWith(`${url}/`) || page.url.startsWith(`${url}?`),
-                            )}
-                            tooltip={item.title}
-                            // The active page is a brand-coloured pill, not a faint grey wash.
-                            className="data-[active=true]:bg-sidebar-primary data-[active=true]:text-sidebar-primary-foreground data-[active=true]:shadow-sm"
-                        >
-                            <Link href={item.url} prefetch>
-                                {item.icon && <item.icon />}
-                                <span>{item.title}</span>
-                            </Link>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                ))}
+                {items.map((item) =>
+                    item.children?.length ? (
+                        <NavGroupItem key={item.title} item={item as NavItem & { children: NavItem[] }} />
+                    ) : (
+                        <SidebarMenuItem key={item.title}>
+                            <SidebarMenuButton asChild isActive={isActive(item)} tooltip={item.title} className={ACTIVE}>
+                                <Link href={item.url} prefetch>
+                                    {item.icon && <item.icon />}
+                                    <span>{item.title}</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    ),
+                )}
             </SidebarMenu>
         </SidebarGroup>
     );
