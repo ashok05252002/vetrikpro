@@ -6,11 +6,13 @@ use App\Enums\ProjectMemberRole;
 use App\Enums\ProjectStatus;
 use App\Enums\TaskStatus;
 use Database\Factories\ProjectFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Project extends Model
 {
@@ -70,6 +72,19 @@ class Project extends Model
             || $this->hasMember($user);
     }
 
+    /**
+     * The projects list a person sees: everything for those who may view all
+     * projects, owned-or-joined for everyone else. The query-side twin of
+     * isAccessibleBy().
+     */
+    public function scopeVisibleTo(Builder $query, User $user): void
+    {
+        $query->unless($user->can('projects.view'), fn ($q) => $q
+            ->where(fn ($w) => $w
+                ->where('owner_id', $user->id)
+                ->orWhereHas('members', fn ($m) => $m->whereKey($user->id))));
+    }
+
     public function isDevAdmin(User $user): bool
     {
         return $this->devAdmins()->whereKey($user->id)->exists();
@@ -83,6 +98,16 @@ class Project extends Model
     public function testPoints(): HasMany
     {
         return $this->hasMany(TestPoint::class);
+    }
+
+    public function testRuns(): HasMany
+    {
+        return $this->hasMany(TestRun::class);
+    }
+
+    public function latestTestRun(): HasOne
+    {
+        return $this->hasOne(TestRun::class)->latestOfMany('number');
     }
 
     public function requirements(): HasMany

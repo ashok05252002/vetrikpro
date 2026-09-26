@@ -38,7 +38,7 @@ export default function TestPointCard({
                 )}
 
                 <Link
-                    href={route('projects.testing.show', [point.project_id, point.id])}
+                    href={route('testing.points.show', [point.project_id, point.id])}
                     className="min-w-0 flex-1 text-sm font-medium hover:underline"
                 >
                     <span className="text-muted-foreground mr-1.5 font-mono text-xs font-normal">{point.reference}</span>
@@ -56,8 +56,15 @@ export default function TestPointCard({
                     </span>
                 )}
 
-                <span className="ml-auto" title={point.assignee?.name ?? 'Unassigned'}>
-                    <UserAvatar name={point.assignee?.name} className="size-6" />
+                <span className="text-muted-foreground ml-auto inline-flex items-center gap-1.5 text-xs">
+                    {point.reporter && (
+                        <span className="max-w-24 truncate" title={`Reported by ${point.reporter.name}`}>
+                            by {point.reporter.name.split(' ')[0]}
+                        </span>
+                    )}
+                    <span title={point.assignee ? `Assigned to ${point.assignee.name}` : 'Not assigned yet'}>
+                        <UserAvatar name={point.assignee?.name} className="size-6" />
+                    </span>
                 </span>
             </div>
         </div>

@@ -21,8 +21,10 @@ interface Props {
     assignees: Pick<User, 'id' | 'name'>[];
     point?: TestPointDetail | null;
     defaultStatus?: string;
-    /** False locks the status: only the creator, tester, owner or an admin may change it. */
+    /** False locks the status: only the reporter, assignee, a team leader, the owner or an admin may change it. */
     canChangeStatus?: boolean;
+    /** False locks "Assigned to": the team leader, the owner or an admin decides who a bug is for. */
+    canAssign?: boolean;
 }
 
 export default function TestPointDialog({
@@ -33,8 +35,9 @@ export default function TestPointDialog({
     priorities,
     assignees,
     point = null,
-    defaultStatus = 'to_test',
+    defaultStatus = 'open',
     canChangeStatus = true,
+    canAssign = false,
 }: Props) {
     const editing = Boolean(point);
     const [task, setTask] = useState<Reference[]>([]);
@@ -84,9 +87,9 @@ export default function TestPointDialog({
         };
 
         if (editing && point) {
-            put(route('projects.testing.update', [projectId, point.id]), done);
+            put(route('testing.points.update', [projectId, point.id]), done);
         } else {
-            post(route('projects.testing.store', projectId), done);
+            post(route('testing.points.store', projectId), done);
         }
     };
 
@@ -95,8 +98,11 @@ export default function TestPointDialog({
             <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
                 <form onSubmit={submit}>
                     <DialogHeader>
-                        <DialogTitle>{editing ? `Edit ${point?.reference}` : 'New testing point'}</DialogTitle>
-                        <DialogDescription>What to check, how, and what should happen. It gets a TP number when saved.</DialogDescription>
+                        <DialogTitle>{editing ? `Edit ${point?.reference}` : 'Report a bug'}</DialogTitle>
+                        <DialogDescription>
+                            How to reproduce it, what should happen, and what happens instead. It gets a TP number when saved
+                            {canAssign ? '.' : ', and the team leader assigns it to someone.'}
+                        </DialogDescription>
                     </DialogHeader>
 
                     <div className="space-y-4 py-4">
@@ -138,23 +144,23 @@ export default function TestPointDialog({
                             </div>
                         </div>
 
-                        {editing && (
-                            <div className="grid gap-2">
-                                <Label htmlFor="tp-actual">
-                                    Actual result <span className="text-muted-foreground">(what happened on the last run)</span>
-                                </Label>
-                                <Textarea
-                                    id="tp-actual"
-                                    rows={3}
-                                    value={data.actual_result}
-                                    onChange={(e) => setData('actual_result', e.target.value)}
-                                />
-                                <InputError message={errors.actual_result} />
-                            </div>
-                        )}
+                        <div className="grid gap-2">
+                            <Label htmlFor="tp-actual">
+                                Actual result <span className="text-muted-foreground">(what happens instead)</span>
+                            </Label>
+                            <Textarea
+                                id="tp-actual"
+                                rows={3}
+                                value={data.actual_result}
+                                onChange={(e) => setData('actual_result', e.target.value)}
+                                placeholder="Both requests are accepted."
+                            />
+                            <InputError message={errors.actual_result} />
+                        </div>
 
                         <div className="grid gap-4 sm:grid-cols-3">
-                            <div className="grid gap-2">
+                            {/* A new bug always starts Open; the status moves on the board after that. */}
+                            <div className={editing ? 'grid gap-2' : 'hidden'}>
                                 <Label htmlFor="tp-status">Status</Label>
                                 <Select
                                     value={data.status}
@@ -190,8 +196,8 @@ export default function TestPointDialog({
                                 </Select>
                             </div>
                             <div className="grid gap-2">
-                                <Label htmlFor="tp-assignee">Tester</Label>
-                                <Select value={data.assigned_to} onValueChange={(value) => setData('assigned_to', value)}>
+                                <Label htmlFor="tp-assignee">Assigned to</Label>
+                                <Select value={data.assigned_to} onValueChange={(value) => setData('assigned_to', value)} disabled={!canAssign}>
                                     <SelectTrigger id="tp-assignee">
                                         <SelectValue />
                                     </SelectTrigger>
@@ -204,6 +210,7 @@ export default function TestPointDialog({
                                         ))}
                                     </SelectContent>
                                 </Select>
+                                {!canAssign && <p className="text-muted-foreground text-xs">The team leader assigns this.</p>}
                                 <InputError message={errors.assigned_to} />
                             </div>
                         </div>
@@ -231,7 +238,7 @@ export default function TestPointDialog({
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                             Cancel
                         </Button>
-                        <Button disabled={processing}>{editing ? 'Save changes' : 'Create testing point'}</Button>
+                        <Button disabled={processing}>{editing ? 'Save changes' : 'Report bug'}</Button>
                     </DialogFooter>
                 </form>
             </DialogContent>

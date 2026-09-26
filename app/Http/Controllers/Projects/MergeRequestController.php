@@ -52,7 +52,7 @@ class MergeRequestController extends Controller
 
         $mergeRequest->load([
             'branch.tasks' => fn ($q) => $q->with('assignee:id,name')->orderBy('number'),
-            'branch.testPoints' => fn ($q) => $q->with(['assignee:id,name', 'task:id,number,title'])->orderBy('number'),
+            'branch.testPoints' => fn ($q) => $q->with(['assignee:id,name', 'creator:id,name', 'task:id,number,title'])->orderBy('number'),
             'requester:id,name',
             'reviewer:id,name',
             'reviewedBy:id,name',

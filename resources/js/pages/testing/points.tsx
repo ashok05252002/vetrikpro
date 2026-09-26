@@ -10,14 +10,15 @@ import TestStatusBadge, { TestStatusMark, testStatusSpec } from '@/components/wo
 import UserAvatar from '@/components/work/user-avatar';
 import ViewToggle, { type WorkView } from '@/components/work/view-toggle';
 import { useFormat } from '@/hooks/use-format';
-import ProjectWorkspaceLayout from '@/layouts/project/workspace-layout';
-import type { BoardColumn, Option, Paginated, ProjectWorkspaceHeader, TestPointStatus, TestPointSummary, User } from '@/types';
+import TestingLayout from '@/layouts/testing/testing-layout';
+import type { BoardColumn, Option, Paginated, ProjectWorkspaceHeader, TestingCounts, TestPointStatus, TestPointSummary, User } from '@/types';
 import { Link } from '@inertiajs/react';
 import { Plus } from 'lucide-react';
 import { useState } from 'react';
 
 interface Props {
     project: ProjectWorkspaceHeader;
+    counts: TestingCounts;
     view: WorkView;
     columns?: BoardColumn<TestPointStatus, TestPointSummary>[];
     list?: Paginated<TestPointSummary>;
@@ -26,14 +27,14 @@ interface Props {
     priorities: Option[];
     assignees: Pick<User, 'id' | 'name'>[];
     filters: { search?: string; status?: string; priority?: string; assignee?: string };
-    can: { create: boolean };
+    can: { create: boolean; assign: boolean };
 }
 
 /** Counts per status, as words and numbers — readable without a chart. */
 function Summary({ summary }: { summary: Props['summary'] }) {
     const counts = Array.isArray(summary) ? {} : summary;
     const total = Object.values(counts).reduce((a, b) => a + (b ?? 0), 0);
-    const run = (counts.passed ?? 0) + (counts.failed ?? 0);
+    const closed = counts.closed ?? 0;
 
     return (
         <div className="text-muted-foreground flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
@@ -46,7 +47,7 @@ function Summary({ summary }: { summary: Props['summary'] }) {
             ))}
             {total > 0 && (
                 <span>
-                    · {run} of {total} run{run > 0 && `, ${Math.round(((counts.passed ?? 0) / run) * 100)}% passing`}
+                    · {closed} of {total} closed
                 </span>
             )}
         </div>
@@ -73,14 +74,14 @@ function TestPointList({
     return (
         <>
             <FilterBar
-                url={route('projects.testing.index', project.id)}
+                url={route('testing.points.index', project.id)}
                 filters={filters}
                 keep={{ view: 'list' }}
                 searchPlaceholder="Title or number, e.g. TP-4…"
                 selects={[
                     { name: 'status', placeholder: 'Any status', options: statuses },
                     { name: 'priority', placeholder: 'Any priority', options: priorities },
-                    { name: 'assignee', placeholder: 'Any tester', options: assignees.map((a) => ({ value: String(a.id), label: a.name })) },
+                    { name: 'assignee', placeholder: 'Anyone assigned', options: assignees.map((a) => ({ value: String(a.id), label: a.name })) },
                 ]}
             />
 
@@ -93,14 +94,15 @@ function TestPointList({
                             <TableHead>Status</TableHead>
                             <TableHead className="hidden sm:table-cell">Priority</TableHead>
                             <TableHead className="hidden md:table-cell">Verifies</TableHead>
-                            <TableHead className="hidden md:table-cell">Tester</TableHead>
-                            <TableHead className="hidden lg:table-cell">Last run</TableHead>
+                            <TableHead className="hidden md:table-cell">Assigned to</TableHead>
+                            <TableHead className="hidden lg:table-cell">Reported by</TableHead>
+                            <TableHead className="hidden xl:table-cell">Last tested</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {list.data.length === 0 && (
                             <TableRow>
-                                <TableCell colSpan={7} className="text-muted-foreground py-10 text-center">
+                                <TableCell colSpan={8} className="text-muted-foreground py-10 text-center">
                                     No testing points match.
                                 </TableCell>
                             </TableRow>
@@ -109,7 +111,7 @@ function TestPointList({
                             <TableRow key={point.id}>
                                 <TableCell className="text-muted-foreground font-mono text-xs">{point.reference}</TableCell>
                                 <TableCell>
-                                    <Link href={route('projects.testing.show', [project.id, point.id])} className="font-medium hover:underline">
+                                    <Link href={route('testing.points.show', [project.id, point.id])} className="font-medium hover:underline">
                                         {point.title}
                                     </Link>
                                 </TableCell>
@@ -141,7 +143,8 @@ function TestPointList({
                                         <span className="text-muted-foreground">Unassigned</span>
                                     )}
                                 </TableCell>
-                                <TableCell className="text-muted-foreground hidden text-xs lg:table-cell">
+                                <TableCell className="text-muted-foreground hidden text-xs lg:table-cell">{point.reporter?.name ?? '—'}</TableCell>
+                                <TableCell className="text-muted-foreground hidden text-xs xl:table-cell">
                                     {point.last_tested_at ? format.date(point.last_tested_at) : 'Never'}
                                 </TableCell>
                             </TableRow>
@@ -155,9 +158,9 @@ function TestPointList({
     );
 }
 
-export default function Testing({ project, view, columns, list, summary, statuses, priorities, assignees, filters, can }: Props) {
+export default function TestingPoints({ project, counts, view, columns, list, summary, statuses, priorities, assignees, filters, can }: Props) {
     const [dialogOpen, setDialogOpen] = useState(false);
-    const [dialogStatus, setDialogStatus] = useState<string>('to_test');
+    const [dialogStatus, setDialogStatus] = useState<string>('open');
 
     const openNew = (status: string) => {
         setDialogStatus(status);
@@ -165,26 +168,27 @@ export default function Testing({ project, view, columns, list, summary, statuse
     };
 
     return (
-        <ProjectWorkspaceLayout
+        <TestingLayout
             project={project}
-            tab="testing"
+            counts={counts}
+            tab="points"
             actions={
                 can.create && (
-                    <Button size="sm" onClick={() => openNew('to_test')}>
-                        <Plus className="size-4" /> New testing point
+                    <Button size="sm" onClick={() => openNew('open')}>
+                        <Plus className="size-4" /> Report bug
                     </Button>
                 )
             }
         >
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <Summary summary={summary} />
-                <ViewToggle url={route('projects.testing.index', project.id)} view={view} />
+                <ViewToggle url={route('testing.points.index', project.id)} view={view} />
             </div>
 
             {view === 'board' && columns && (
                 <KanbanBoard<TestPointStatus, TestPointSummary>
                     columns={columns}
-                    moveUrl={(id) => route('projects.testing.move', [project.id, id])}
+                    moveUrl={(id) => route('testing.points.move', [project.id, id])}
                     reloadOnError={['columns', 'summary']}
                     columnMark={(status) => <TestStatusMark status={status} />}
                     onAdd={can.create ? openNew : undefined}
@@ -206,7 +210,8 @@ export default function Testing({ project, view, columns, list, summary, statuse
                 priorities={priorities}
                 assignees={assignees}
                 defaultStatus={dialogStatus}
+                canAssign={can.assign}
             />
-        </ProjectWorkspaceLayout>
+        </TestingLayout>
     );
 }

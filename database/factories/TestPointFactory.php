@@ -20,7 +20,7 @@ class TestPointFactory extends Factory
             'title' => rtrim(fake()->sentence(5), '.'),
             'steps' => "1. Open the page\n2. Fill the form\n3. Submit",
             'expected_result' => 'The record is saved and a confirmation appears.',
-            'status' => TestPointStatus::ToTest,
+            'status' => TestPointStatus::Open,
             'priority' => TaskPriority::Medium,
             'position' => 0,
         ];

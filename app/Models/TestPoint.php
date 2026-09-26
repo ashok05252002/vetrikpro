@@ -16,7 +16,11 @@ use Illuminate\Support\Facades\Storage;
 class TestPoint extends Model
 {
     /** @use HasFactory<TestPointFactory> */
-    use HasFactory, HasProjectNumber, HasStatusWorkflow;
+    use HasFactory, HasProjectNumber;
+
+    use HasStatusWorkflow {
+        statusChangeableBy as ownsWork;
+    }
 
     public const REFERENCE_PREFIX = 'TP';
 
@@ -58,6 +62,25 @@ class TestPoint extends Model
         });
     }
 
+    /**
+     * Who moves a bug along: whoever reported it, whoever it is assigned to,
+     * the project owner, administrators — and anyone who assigns bugs (the
+     * team leader), since they run the flow.
+     */
+    public function statusChangeableBy(User $user): bool
+    {
+        return $this->ownsWork($user) || $user->can('testing.assign');
+    }
+
+    /**
+     * Choosing who a bug is for is the team leader's call: people holding
+     * testing.assign, the project owner, and administrators.
+     */
+    public function assignableBy(User $user): bool
+    {
+        return $user->can('testing.assign') || ($this->project !== null && $this->project->owner_id === $user->id);
+    }
+
     public function project(): BelongsTo
     {
         return $this->belongsTo(Project::class);
@@ -81,6 +104,14 @@ class TestPoint extends Model
     public function attachments(): HasMany
     {
         return $this->hasMany(TestPointAttachment::class)->orderBy('id');
+    }
+
+    /**
+     * This point's result in every run it was part of, newest run first.
+     */
+    public function runResults(): HasMany
+    {
+        return $this->hasMany(TestRunResult::class)->latest('test_run_id');
     }
 
     public function attachmentDirectory(): string

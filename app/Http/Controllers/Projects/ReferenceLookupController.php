@@ -33,7 +33,7 @@ class ReferenceLookupController extends Controller
         $rows = $model::query()
             ->where('project_id', $project->id)
             ->with('assignee:id,name')
-            ->when($model === TestPoint::class, fn ($q) => $q->with('task:id,number,title'))
+            ->when($model === TestPoint::class, fn ($q) => $q->with(['task:id,number,title', 'creator:id,name']))
             ->when($search !== '', fn ($q) => $q->where(fn ($w) => $w
                 ->where('title', 'like', "%{$search}%")
                 ->when($number, fn ($n) => $n->orWhere('number', $number))))

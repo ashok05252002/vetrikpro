@@ -73,6 +73,11 @@ final class Permissions
                 'merge_requests' => ['label' => 'Merge requests', 'actions' => [
                     'review' => 'Review and merge on any project',
                 ]],
+                // The team leader's permission. Reporting a bug needs none:
+                // any project member may report one.
+                'testing' => ['label' => 'Testing', 'actions' => [
+                    'assign' => 'Assign bugs to people and move any bug through any step, on the projects they belong to',
+                ]],
             ],
             'Configuration' => [
                 'settings' => ['label' => 'Organisation settings', 'actions' => [

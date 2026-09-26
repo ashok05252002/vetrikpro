@@ -53,6 +53,7 @@ final class Cards
             ...$point->only('id', 'project_id', 'number', 'title', 'status', 'priority', 'position'),
             'reference' => $point->reference(),
             'assignee' => $point->assignee?->only('id', 'name'),
+            'reporter' => $point->creator?->only('id', 'name'),
             'task' => $point->task ? ['id' => $point->task->id, 'reference' => $point->task->reference(), 'title' => $point->task->title] : null,
             'last_tested_at' => $point->last_tested_at,
         ];

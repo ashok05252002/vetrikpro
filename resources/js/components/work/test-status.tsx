@@ -1,18 +1,20 @@
 import { cn } from '@/lib/utils';
 import type { TestPointStatus } from '@/types';
 import type { LucideIcon } from 'lucide-react';
-import { CheckCircle2, Circle, FlaskConical, XCircle } from 'lucide-react';
+import { CheckCircle2, Circle, CircleDot, FlaskConical, RotateCcw } from 'lucide-react';
 
 /**
- * The two waiting stages reuse the task stage ramp; the two outcomes use the
- * reserved status palette. Every mark ships an icon and the word, so colour
- * never carries pass/fail alone.
+ * The three working stages reuse the task stage ramp (light -> dark as the
+ * bug moves along); Repeated and Closed are verdicts and use the reserved
+ * status palette. Every mark ships an icon and the word, so colour never
+ * carries the meaning alone.
  */
 export const testStatusSpec: Record<TestPointStatus, { label: string; color: string; icon: LucideIcon }> = {
-    to_test: { label: 'To test', color: 'var(--stage-todo)', icon: Circle },
-    testing: { label: 'In testing', color: 'var(--stage-in-progress)', icon: FlaskConical },
-    passed: { label: 'Passed', color: 'var(--status-good)', icon: CheckCircle2 },
-    failed: { label: 'Failed', color: 'var(--status-critical)', icon: XCircle },
+    open: { label: 'Open', color: 'var(--stage-todo)', icon: Circle },
+    in_progress: { label: 'In progress', color: 'var(--stage-in-progress)', icon: CircleDot },
+    ready_for_test: { label: 'Ready for test', color: 'var(--stage-in-review)', icon: FlaskConical },
+    repeated: { label: 'Repeated', color: 'var(--status-critical)', icon: RotateCcw },
+    closed: { label: 'Closed', color: 'var(--status-good)', icon: CheckCircle2 },
 };
 
 export function TestStatusMark({ status, className }: { status: TestPointStatus; className?: string }) {

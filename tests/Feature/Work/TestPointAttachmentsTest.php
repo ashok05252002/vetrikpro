@@ -34,7 +34,7 @@ class TestPointAttachmentsTest extends TestCase
 
     private function upload(array $images, ?User $as = null)
     {
-        return $this->actingAs($as ?? $this->member)->post(route('projects.testing.attachments.store', [$this->project, $this->point]), ['images' => $images]);
+        return $this->actingAs($as ?? $this->member)->post(route('testing.points.attachments.store', [$this->project, $this->point]), ['images' => $images]);
     }
 
     public function test_images_can_be_attached_and_viewed()
@@ -45,7 +45,7 @@ class TestPointAttachmentsTest extends TestCase
         Storage::disk(EmployeeDocument::DISK)->assertExists($attachment->file_path);
 
         $this->actingAs($this->member)
-            ->get(route('projects.testing.attachments.show', [$this->project, $this->point, $attachment]))
+            ->get(route('testing.points.attachments.show', [$this->project, $this->point, $attachment]))
             ->assertOk()
             ->assertHeader('Content-Type', 'image/png')
             ->assertHeader('X-Content-Type-Options', 'nosniff');
@@ -75,7 +75,7 @@ class TestPointAttachmentsTest extends TestCase
         $outsider = User::factory()->create();
 
         $this->upload([UploadedFile::fake()->image('b.png')], $outsider)->assertForbidden();
-        $this->actingAs($outsider)->get(route('projects.testing.attachments.show', [$this->project, $this->point, $attachment]))->assertForbidden();
+        $this->actingAs($outsider)->get(route('testing.points.attachments.show', [$this->project, $this->point, $attachment]))->assertForbidden();
     }
 
     public function test_an_image_is_only_reachable_through_its_own_testing_point()
@@ -84,7 +84,7 @@ class TestPointAttachmentsTest extends TestCase
         $attachment = $this->point->attachments()->first();
         $other = TestPoint::factory()->create(['project_id' => $this->project->id]);
 
-        $this->actingAs($this->member)->get(route('projects.testing.attachments.show', [$this->project, $other, $attachment]))->assertNotFound();
+        $this->actingAs($this->member)->get(route('testing.points.attachments.show', [$this->project, $other, $attachment]))->assertNotFound();
     }
 
     public function test_only_the_uploader_or_a_project_editor_removes_an_image()
@@ -94,8 +94,8 @@ class TestPointAttachmentsTest extends TestCase
         $colleague = User::factory()->create();
         $this->project->members()->attach($colleague);
 
-        $this->actingAs($colleague)->delete(route('projects.testing.attachments.destroy', [$this->project, $this->point, $attachment]))->assertForbidden();
-        $this->actingAs($this->member)->delete(route('projects.testing.attachments.destroy', [$this->project, $this->point, $attachment]))->assertRedirect();
+        $this->actingAs($colleague)->delete(route('testing.points.attachments.destroy', [$this->project, $this->point, $attachment]))->assertForbidden();
+        $this->actingAs($this->member)->delete(route('testing.points.attachments.destroy', [$this->project, $this->point, $attachment]))->assertRedirect();
 
         $this->assertNull($attachment->fresh());
         Storage::disk(EmployeeDocument::DISK)->assertMissing($attachment->file_path);

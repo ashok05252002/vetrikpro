@@ -30,7 +30,7 @@ class TestingAndNumberingTest extends TestCase
             'title' => 'Leave request rejects overlapping dates',
             'steps' => '1. Request 3–5 May 2. Request 4–6 May',
             'expected_result' => 'The second request is refused.',
-            'status' => 'to_test',
+            'status' => 'open',
             'priority' => 'high',
             ...$overrides,
         ];
@@ -110,7 +110,7 @@ class TestingAndNumberingTest extends TestCase
         $member = $this->memberOf($project);
 
         $this->actingAs($member)
-            ->post(route('projects.testing.store', $project), $this->pointPayload())
+            ->post(route('testing.points.store', $project), $this->pointPayload())
             ->assertSessionHas('success', 'TP-1 “Leave request rejects overlapping dates” created.');
 
         $point = $project->testPoints()->first();
@@ -123,23 +123,23 @@ class TestingAndNumberingTest extends TestCase
         $project = Project::factory()->create();
         $outsider = User::factory()->create();
 
-        $this->actingAs($outsider)->get(route('projects.testing.index', $project))->assertForbidden();
-        $this->actingAs($outsider)->post(route('projects.testing.store', $project), $this->pointPayload())->assertForbidden();
+        $this->actingAs($outsider)->get(route('testing.points.index', $project))->assertForbidden();
+        $this->actingAs($outsider)->post(route('testing.points.store', $project), $this->pointPayload())->assertForbidden();
     }
 
     public function test_the_board_groups_points_by_status()
     {
         $project = Project::factory()->create();
         TestPoint::factory()->count(2)->create(['project_id' => $project->id]);
-        TestPoint::factory()->create(['project_id' => $project->id, 'status' => TestPointStatus::Failed]);
+        TestPoint::factory()->create(['project_id' => $project->id, 'status' => TestPointStatus::Repeated]);
 
         $this->actingAs($this->memberOf($project))
-            ->get(route('projects.testing.index', $project))
+            ->get(route('testing.points.index', $project))
             ->assertInertia(fn (Assert $page) => $page
-                ->component('projects/testing')
-                ->where('columns', fn ($columns) => collect($columns)->pluck('value')->all() === ['to_test', 'testing', 'passed', 'failed']
-                    && count(collect($columns)->firstWhere('value', 'to_test')['items']) === 2)
-                ->where('summary.failed', 1));
+                ->component('testing/points')
+                ->where('columns', fn ($columns) => collect($columns)->pluck('value')->all() === ['open', 'in_progress', 'ready_for_test', 'repeated', 'closed']
+                    && count(collect($columns)->firstWhere('value', 'open')['items']) === 2)
+                ->where('summary.repeated', 1));
     }
 
     public function test_reaching_an_outcome_records_who_ran_it_and_when()
@@ -149,10 +149,10 @@ class TestingAndNumberingTest extends TestCase
         $point = TestPoint::factory()->create(['project_id' => $project->id, 'assigned_to' => $tester->id]);
 
         $this->actingAs($tester)
-            ->patch(route('projects.testing.move', [$project, $point]), ['status' => 'passed', 'position' => 0]);
+            ->patch(route('testing.points.move', [$project, $point]), ['status' => 'closed', 'position' => 0]);
 
         $point->refresh();
-        $this->assertSame(TestPointStatus::Passed, $point->status);
+        $this->assertSame(TestPointStatus::Closed, $point->status);
         $this->assertSame($tester->id, $point->last_tested_by);
         $this->assertNotNull($point->last_tested_at);
     }
@@ -163,8 +163,8 @@ class TestingAndNumberingTest extends TestCase
         $tester = $this->memberOf($project);
         $point = TestPoint::factory()->create(['project_id' => $project->id, 'assigned_to' => $tester->id]);
 
-        $this->actingAs($tester)->patch(route('projects.testing.move', [$project, $point]), ['status' => 'failed', 'position' => 0]);
-        $this->actingAs($tester)->patch(route('projects.testing.move', [$project, $point]), ['status' => 'testing', 'position' => 0]);
+        $this->actingAs($tester)->patch(route('testing.points.move', [$project, $point]), ['status' => 'repeated', 'position' => 0]);
+        $this->actingAs($tester)->patch(route('testing.points.move', [$project, $point]), ['status' => 'ready_for_test', 'position' => 0]);
 
         $this->assertNotNull($point->fresh()->last_tested_at);
     }
@@ -175,9 +175,9 @@ class TestingAndNumberingTest extends TestCase
         $member = $this->memberOf($project);
         $points = collect(range(0, 2))->map(fn ($i) => TestPoint::factory()->create(['project_id' => $project->id, 'position' => $i, 'assigned_to' => $member->id]));
 
-        $this->actingAs($member)->patch(route('projects.testing.move', [$project, $points[2]]), ['status' => 'to_test', 'position' => 0]);
+        $this->actingAs($member)->patch(route('testing.points.move', [$project, $points[2]]), ['status' => 'open', 'position' => 0]);
 
-        $order = $project->testPoints()->where('status', 'to_test')->orderBy('position')->pluck('id')->all();
+        $order = $project->testPoints()->where('status', 'open')->orderBy('position')->pluck('id')->all();
         $this->assertSame([$points[2]->id, $points[0]->id, $points[1]->id], $order);
         $this->assertSame([0, 1, 2], $project->testPoints()->orderBy('position')->pluck('position')->all());
     }
@@ -190,11 +190,11 @@ class TestingAndNumberingTest extends TestCase
         $own = Task::factory()->create(['project_id' => $project->id]);
 
         $this->actingAs($member)
-            ->post(route('projects.testing.store', $project), $this->pointPayload(['task_id' => $foreign->id]))
+            ->post(route('testing.points.store', $project), $this->pointPayload(['task_id' => $foreign->id]))
             ->assertSessionHasErrors('task_id');
 
         $this->actingAs($member)
-            ->post(route('projects.testing.store', $project), $this->pointPayload(['task_id' => $own->id]))
+            ->post(route('testing.points.store', $project), $this->pointPayload(['task_id' => $own->id]))
             ->assertSessionHasNoErrors();
     }
 
@@ -204,7 +204,7 @@ class TestingAndNumberingTest extends TestCase
         $other = Project::factory()->create();
 
         $this->actingAs(User::factory()->admin()->create())
-            ->get(route('projects.testing.show', [$other, $point]))
+            ->get(route('testing.points.show', [$other, $point]))
             ->assertNotFound();
     }
 
@@ -215,8 +215,8 @@ class TestingAndNumberingTest extends TestCase
         $member = $this->memberOf($project);
         $point = TestPoint::factory()->create(['project_id' => $project->id]);
 
-        $this->actingAs($member)->delete(route('projects.testing.destroy', [$project, $point]))->assertForbidden();
-        $this->actingAs($owner)->delete(route('projects.testing.destroy', [$project, $point]))->assertRedirect(route('projects.testing.index', $project));
+        $this->actingAs($member)->delete(route('testing.points.destroy', [$project, $point]))->assertForbidden();
+        $this->actingAs($owner)->delete(route('testing.points.destroy', [$project, $point]))->assertRedirect(route('testing.points.index', $project));
 
         $this->assertNull($point->fresh());
     }
@@ -226,14 +226,14 @@ class TestingAndNumberingTest extends TestCase
         $project = Project::factory()->create();
         $member = $this->memberOf($project);
         TestPoint::factory()->create(['project_id' => $project->id, 'title' => 'First']);
-        TestPoint::factory()->create(['project_id' => $project->id, 'title' => 'Second', 'status' => TestPointStatus::Failed]);
+        TestPoint::factory()->create(['project_id' => $project->id, 'title' => 'Second', 'status' => TestPointStatus::Repeated]);
 
         $this->actingAs($member)
-            ->get(route('projects.testing.index', [$project, 'view' => 'list', 'status' => 'failed']))
+            ->get(route('testing.points.index', [$project, 'view' => 'list', 'status' => 'repeated']))
             ->assertInertia(fn (Assert $page) => $page->has('list.data', 1)->where('list.data.0.title', 'Second'));
 
         $this->actingAs($member)
-            ->get(route('projects.testing.index', [$project, 'view' => 'list', 'search' => 'TP-1']))
+            ->get(route('testing.points.index', [$project, 'view' => 'list', 'search' => 'TP-1']))
             ->assertInertia(fn (Assert $page) => $page->has('list.data', 1)->where('list.data.0.title', 'First'));
     }
 

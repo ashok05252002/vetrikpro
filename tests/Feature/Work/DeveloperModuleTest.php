@@ -299,8 +299,8 @@ class DeveloperModuleTest extends TestCase
     public function test_the_merge_request_page_reports_readiness()
     {
         $task = Task::factory()->create(['project_id' => $this->project->id, 'status' => 'in_progress']);
-        $passed = TestPoint::factory()->create(['project_id' => $this->project->id, 'status' => TestPointStatus::Passed]);
-        $failed = TestPoint::factory()->create(['project_id' => $this->project->id, 'status' => TestPointStatus::Failed]);
+        $passed = TestPoint::factory()->create(['project_id' => $this->project->id, 'status' => TestPointStatus::Closed]);
+        $failed = TestPoint::factory()->create(['project_id' => $this->project->id, 'status' => TestPointStatus::Repeated]);
         $this->register(['task_ids' => [$task->id], 'test_point_ids' => [$passed->id, $failed->id]]);
         $branch = $this->project->branches()->first();
         $this->requestMerge($branch);

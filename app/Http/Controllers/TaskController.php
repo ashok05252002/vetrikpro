@@ -164,7 +164,9 @@ class TaskController extends Controller
 
         if ($status !== null && $status !== $current && ! $card->statusChangeableBy($user)) {
             throw ValidationException::withMessages([
-                'status' => 'Only the creator, the assignee, the project owner or an administrator can change the status.',
+                'status' => $card instanceof TestPoint
+                    ? 'Only whoever reported it, whoever it is assigned to, a team leader, the project owner or an administrator can change the status.'
+                    : 'Only the creator, the assignee, the project owner or an administrator can change the status.',
             ]);
         }
     }

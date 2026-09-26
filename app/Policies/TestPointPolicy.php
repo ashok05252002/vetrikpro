@@ -35,6 +35,11 @@ class TestPointPolicy
         return $point->statusChangeableBy($user);
     }
 
+    public function assign(User $user, TestPoint $point): bool
+    {
+        return $point->assignableBy($user);
+    }
+
     public function delete(User $user, TestPoint $point): bool
     {
         return $user->can('projects.edit') || $point->project->owner_id === $user->id;

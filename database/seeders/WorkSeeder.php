@@ -4,6 +4,9 @@ namespace Database\Seeders;
 
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
+use App\Enums\TestPointStatus;
+use App\Enums\TestResult;
+use App\Enums\TestRunStatus;
 use App\Models\Project;
 use App\Models\Role;
 use App\Models\Task;
@@ -104,15 +107,16 @@ class WorkSeeder extends Seeder
             }
         }
 
-        // A few testing points on the attendance project, across every column.
+        // A few bugs on the attendance project, across every column.
         $attendance = Project::where('code', 'ATT')->first();
 
         if ($attendance && $attendance->testPoints()->doesntExist()) {
             $points = [
-                ['Check-in is refused outside office hours', 'passed'],
-                ['Late marks appear on the monthly report', 'failed'],
-                ['Manager sees the whole team for the day', 'testing'],
-                ['Regularisation request reaches the manager', 'to_test'],
+                ['Check-in is refused outside office hours', 'closed'],
+                ['Late marks appear on the monthly report', 'repeated'],
+                ['Manager sees the whole team for the day', 'ready_for_test'],
+                ['Regularisation request reaches the manager', 'in_progress'],
+                ['Half-day leave shows as a full day', 'open'],
             ];
 
             foreach ($points as $position => [$title, $status]) {
@@ -129,6 +133,40 @@ class WorkSeeder extends Seeder
                     'position' => 0,
                 ]));
             }
+        }
+
+        // One test run in progress on the attendance project, its results
+        // matching where the points already stand on the board. Written
+        // directly: nobody is signed in, and a seed should never move cards.
+        if ($attendance && $attendance->testRuns()->doesntExist() && $attendance->testPoints()->exists()) {
+            DB::transaction(function () use ($attendance, $admin, $staff) {
+                $run = $attendance->testRuns()->create([
+                    'name' => 'Sprint 3 attendance checks',
+                    'description' => 'Staging build of the late-marks work.',
+                    'status' => TestRunStatus::Open,
+                    'created_by' => $admin->id,
+                ]);
+
+                foreach ($attendance->testPoints()->orderBy('number')->get() as $position => $point) {
+                    $result = match ($point->status) {
+                        TestPointStatus::Closed => TestResult::Passed,
+                        TestPointStatus::Repeated => TestResult::Failed,
+                        default => TestResult::NotRun,
+                    };
+
+                    $row = $run->results()->make([
+                        'test_point_id' => $point->id,
+                        'point_number' => $point->number,
+                        'point_title' => $point->title,
+                        'result' => $result,
+                        'notes' => $result === TestResult::Failed ? 'Late check-ins show on the daily view but not on the monthly report.' : null,
+                        'position' => $position,
+                    ]);
+                    $row->tested_by = $result === TestResult::NotRun ? null : $staff->first()?->id;
+                    $row->tested_at = $result === TestResult::NotRun ? null : now()->subDay();
+                    $row->save();
+                }
+            });
         }
 
         // One branch waiting for review on the attendance project: Meera asks,

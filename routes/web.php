@@ -12,8 +12,10 @@ use App\Http\Controllers\Projects\ReferenceLookupController;
 use App\Http\Controllers\Projects\RequirementController;
 use App\Http\Controllers\Projects\TestPointAttachmentController;
 use App\Http\Controllers\Projects\TestPointController;
+use App\Http\Controllers\Projects\TestRunController;
 use App\Http\Controllers\TaskCommentController;
 use App\Http\Controllers\TaskController;
+use App\Http\Controllers\TestingController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -61,18 +63,8 @@ Route::middleware(['auth'])->group(function () {
 
         Route::get('lookups/{kind}', ReferenceLookupController::class)->whereIn('kind', ['tasks', 'test-points'])->name('lookups');
 
-        // A test point is only ever reached through its own project.
+        // Requirements, the developer module and merge requests belong to their project.
         Route::scopeBindings()->group(function () {
-            Route::get('testing', [TestPointController::class, 'index'])->name('testing.index');
-            Route::post('testing', [TestPointController::class, 'store'])->name('testing.store');
-            Route::get('testing/{testPoint}', [TestPointController::class, 'show'])->name('testing.show');
-            Route::put('testing/{testPoint}', [TestPointController::class, 'update'])->name('testing.update');
-            Route::patch('testing/{testPoint}/move', [TestPointController::class, 'move'])->name('testing.move');
-            Route::delete('testing/{testPoint}', [TestPointController::class, 'destroy'])->name('testing.destroy');
-            Route::post('testing/{testPoint}/attachments', [TestPointAttachmentController::class, 'store'])->name('testing.attachments.store');
-            Route::get('testing/{testPoint}/attachments/{attachment}', [TestPointAttachmentController::class, 'show'])->name('testing.attachments.show');
-            Route::delete('testing/{testPoint}/attachments/{attachment}', [TestPointAttachmentController::class, 'destroy'])->name('testing.attachments.destroy');
-
             Route::get('requirements', [RequirementController::class, 'index'])->name('requirements.index');
             Route::post('requirements', [RequirementController::class, 'store'])->name('requirements.store');
             Route::get('requirements/{requirement}', [RequirementController::class, 'show'])->name('requirements.show');
@@ -95,6 +87,31 @@ Route::middleware(['auth'])->group(function () {
             Route::post('merge-requests/{mergeRequest}/transition', [MergeRequestController::class, 'transition'])->name('merge-requests.transition');
             Route::post('merge-requests/{mergeRequest}/comments', [MergeRequestController::class, 'comment'])->name('merge-requests.comments.store');
         });
+    });
+
+    // Testing is its own module: every project a person can see, then that
+    // project's testing points and test runs. A point or run is only ever
+    // reached through its own project.
+    Route::get('testing', TestingController::class)->name('testing.index');
+
+    Route::prefix('testing/{project}')->name('testing.')->scopeBindings()->group(function () {
+        Route::get('/', [TestPointController::class, 'index'])->name('points.index');
+        Route::post('points', [TestPointController::class, 'store'])->name('points.store');
+        Route::get('points/{testPoint}', [TestPointController::class, 'show'])->name('points.show');
+        Route::put('points/{testPoint}', [TestPointController::class, 'update'])->name('points.update');
+        Route::patch('points/{testPoint}/move', [TestPointController::class, 'move'])->name('points.move');
+        Route::delete('points/{testPoint}', [TestPointController::class, 'destroy'])->name('points.destroy');
+        Route::post('points/{testPoint}/attachments', [TestPointAttachmentController::class, 'store'])->name('points.attachments.store');
+        Route::get('points/{testPoint}/attachments/{attachment}', [TestPointAttachmentController::class, 'show'])->name('points.attachments.show');
+        Route::delete('points/{testPoint}/attachments/{attachment}', [TestPointAttachmentController::class, 'destroy'])->name('points.attachments.destroy');
+
+        Route::get('runs', [TestRunController::class, 'index'])->name('runs.index');
+        Route::post('runs', [TestRunController::class, 'store'])->name('runs.store');
+        Route::get('runs/{testRun}', [TestRunController::class, 'show'])->name('runs.show');
+        Route::post('runs/{testRun}/complete', [TestRunController::class, 'complete'])->name('runs.complete');
+        Route::post('runs/{testRun}/reopen', [TestRunController::class, 'reopen'])->name('runs.reopen');
+        Route::delete('runs/{testRun}', [TestRunController::class, 'destroy'])->name('runs.destroy');
+        Route::patch('runs/{testRun}/results/{result}', [TestRunController::class, 'record'])->name('runs.results.update');
     });
 
     Route::get('merge-requests', MergeRequestInboxController::class)->name('merge-requests.index');

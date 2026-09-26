@@ -30,4 +30,17 @@ final class ProjectWorkspace
             ],
         ];
     }
+
+    /**
+     * Counts for the Testing module's two tabs: testing points and runs.
+     *
+     * @return array{points: int, runs: int}
+     */
+    public static function testingCounts(Project $project): array
+    {
+        return [
+            'points' => $project->testPoints()->count(),
+            'runs' => $project->testRuns()->count(),
+        ];
+    }
 }

@@ -102,7 +102,7 @@ class BranchController extends Controller
             'creator:id,name',
             'liveMergeRequest',
             'tasks' => fn ($q) => $q->with('assignee:id,name')->orderBy('number'),
-            'testPoints' => fn ($q) => $q->with(['assignee:id,name', 'task:id,number,title'])->orderBy('number'),
+            'testPoints' => fn ($q) => $q->with(['assignee:id,name', 'creator:id,name', 'task:id,number,title'])->orderBy('number'),
             'mergeRequests.requester:id,name',
         ]);
 

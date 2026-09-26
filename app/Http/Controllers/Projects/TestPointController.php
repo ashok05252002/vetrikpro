@@ -9,6 +9,7 @@ use App\Http\Controllers\TaskController;
 use App\Http\Requests\TestPointRequest;
 use App\Models\Project;
 use App\Models\TestPoint;
+use App\Models\User;
 use App\Services\BoardOrdering;
 use App\Support\Cards;
 use App\Support\ProjectPeople;
@@ -19,12 +20,13 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * The project's Testing tab: test points on a board like tasks, or as a
- * filterable list.
+ * A project's testing points in the Testing module: on a board like tasks,
+ * or as a filterable list. Runs over these points live in TestRunController.
  */
 class TestPointController extends Controller
 {
@@ -33,7 +35,7 @@ class TestPointController extends Controller
         $this->authorize('view', $project);
 
         $view = $request->string('view')->value() === 'list' ? 'list' : 'board';
-        $base = $project->testPoints()->with(['assignee:id,name', 'task:id,number,title', 'project:id,owner_id']);
+        $base = $project->testPoints()->with(['assignee:id,name', 'creator:id,name', 'task:id,number,title', 'project:id,owner_id']);
         $viewer = $request->user();
 
         $payload = $view === 'board'
@@ -52,8 +54,9 @@ class TestPointController extends Controller
                     ->through(fn (TestPoint $p) => Cards::testPoint($p, $viewer)),
             ];
 
-        return Inertia::render('projects/testing', [
+        return Inertia::render('testing/points', [
             'project' => ProjectWorkspace::header($project, $request->user()),
+            'counts' => ProjectWorkspace::testingCounts($project),
             'view' => $view,
             ...$payload,
             // Counts per outcome for the summary strip; cheap, one grouped query.
@@ -62,7 +65,10 @@ class TestPointController extends Controller
             'priorities' => TaskPriority::options(),
             'assignees' => ProjectPeople::assignable($project),
             'filters' => $request->only('search', 'status', 'priority', 'assignee'),
-            'can' => ['create' => $request->user()->can('create', new TestPoint(['project_id' => $project->id]))],
+            'can' => [
+                'create' => $request->user()->can('create', new TestPoint(['project_id' => $project->id])),
+                'assign' => (new TestPoint)->setRelation('project', $project)->assignableBy($request->user()),
+            ],
         ]);
     }
 
@@ -72,20 +78,27 @@ class TestPointController extends Controller
 
         $testPoint->load(['assignee:id,name', 'creator:id,name', 'lastTester:id,name', 'task:id,number,title,status']);
 
-        return Inertia::render('projects/test-point', [
+        return Inertia::render('testing/point', [
             'project' => ProjectWorkspace::header($project, $request->user()),
+            'counts' => ProjectWorkspace::testingCounts($project),
             'point' => [
                 ...Cards::testPoint($testPoint, $request->user()),
                 'history' => Cards::history($testPoint),
                 'attachments' => $testPoint->attachments()->with('uploader:id,name')->get()->map(fn ($a) => [
                     ...$a->only('id', 'original_name', 'size', 'created_at'),
                     'uploaded_by' => $a->uploader?->only('id', 'name'),
-                    'url' => route('projects.testing.attachments.show', [$project, $testPoint, $a]),
+                    'url' => route('testing.points.attachments.show', [$project, $testPoint, $a]),
                     'can_delete' => $a->uploaded_by === $request->user()->id || $request->user()->can('projects.edit') || $project->owner_id === $request->user()->id,
                 ]),
                 ...$testPoint->only('steps', 'expected_result', 'actual_result', 'assigned_to', 'task_id', 'created_at'),
                 'creator' => $testPoint->creator?->only('id', 'name'),
                 'last_tester' => $testPoint->lastTester?->only('id', 'name'),
+                // Its outcome in every run it was part of, newest first.
+                'runs' => $testPoint->runResults()->with(['run:id,project_id,number,name,status', 'tester:id,name'])->get()->map(fn ($r) => [
+                    ...$r->only('id', 'result', 'notes', 'tested_at'),
+                    'run' => [...$r->run->only('id', 'name', 'status'), 'reference' => $r->run->reference()],
+                    'tester' => $r->tester?->only('id', 'name'),
+                ]),
             ],
             'statuses' => TestPointStatus::options(),
             'priorities' => TaskPriority::options(),
@@ -93,6 +106,7 @@ class TestPointController extends Controller
             'can' => [
                 'update' => $request->user()->can('update', $testPoint),
                 'changeStatus' => $request->user()->can('move', $testPoint),
+                'assign' => $request->user()->can('assign', $testPoint),
                 'delete' => $request->user()->can('delete', $testPoint),
             ],
         ]);
@@ -104,6 +118,8 @@ class TestPointController extends Controller
         $this->authorize('create', $point);
 
         $point->created_by = $request->user()->id;
+        // A new bug has nobody yet, so naming anyone at all is an assignment.
+        self::guardAssignment($request->user(), $point, $request->validated('assigned_to'), null);
 
         // In a transaction so the TP number is allocated under lock.
         DB::transaction(function () use ($point) {
@@ -118,6 +134,7 @@ class TestPointController extends Controller
     {
         $this->authorize('update', $testPoint);
         TaskController::guardStatus($request->user(), $testPoint, $request->validated('status'));
+        self::guardAssignment($request->user(), $testPoint, $request->validated('assigned_to'), $testPoint->assigned_to);
 
         $testPoint->update($request->validated());
 
@@ -145,7 +162,23 @@ class TestPointController extends Controller
         $reference = $testPoint->reference();
         $testPoint->delete();
 
-        return to_route('projects.testing.index', $project)->with('success', "{$reference} deleted.");
+        return to_route('testing.points.index', $project)->with('success', "{$reference} deleted.");
+    }
+
+    /**
+     * Anyone on the project reports a bug; only the team leader (testing.assign),
+     * the project owner or an administrator decides who it is for. Sending the
+     * current assignee back unchanged is not an assignment.
+     */
+    private static function guardAssignment(User $user, TestPoint $point, mixed $assignee, ?int $current): void
+    {
+        $to = $assignee === null || $assignee === '' ? null : (int) $assignee;
+
+        if ($to !== $current && ! $point->assignableBy($user)) {
+            throw ValidationException::withMessages([
+                'assigned_to' => 'Only a team leader, the project owner or an administrator can assign a bug.',
+            ]);
+        }
     }
 
     /**

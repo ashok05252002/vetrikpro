@@ -295,7 +295,7 @@ export interface EmployeeDocument {
     uploaded_at: string;
 }
 
-export type TestPointStatus = 'to_test' | 'testing' | 'passed' | 'failed';
+export type TestPointStatus = 'open' | 'in_progress' | 'ready_for_test' | 'repeated' | 'closed';
 
 export interface TestPointSummary {
     id: number;
@@ -307,6 +307,8 @@ export interface TestPointSummary {
     priority: TaskPriority;
     position?: number;
     assignee?: Pick<User, 'id' | 'name'> | null;
+    /** Who reported it. */
+    reporter?: Pick<User, 'id' | 'name'> | null;
     task?: { id: number; reference: string; title: string } | null;
     last_tested_at: string | null;
     can_move?: boolean;
@@ -321,6 +323,48 @@ export interface TestPointDetail extends TestPointSummary {
     created_at: string;
     creator?: Pick<User, 'id' | 'name'> | null;
     last_tester?: Pick<User, 'id' | 'name'> | null;
+}
+
+export type TestResult = 'not_run' | 'passed' | 'failed' | 'blocked';
+export type TestRunStatus = 'open' | 'completed';
+
+export interface TestRunSummary {
+    id: number;
+    number: number;
+    reference: string;
+    name: string;
+    status: TestRunStatus;
+    created_at: string;
+    completed_at: string | null;
+    creator?: Pick<User, 'id' | 'name'> | null;
+    tally: Record<TestResult, number>;
+    total: number;
+}
+
+export interface TestRunResultRow {
+    id: number;
+    reference: string;
+    title: string;
+    result: TestResult;
+    notes: string | null;
+    tested_at: string | null;
+    tester: Pick<User, 'id' | 'name'> | null;
+    /** Null once the point itself has been deleted; the run keeps its copy. */
+    point: {
+        id: number;
+        steps: string | null;
+        expected_result: string | null;
+        priority: TaskPriority;
+        status: TestPointStatus;
+        assignee: Pick<User, 'id' | 'name'> | null;
+    } | null;
+    can_record: boolean;
+}
+
+/** The Testing module's two tabs. */
+export interface TestingCounts {
+    points: number;
+    runs: number;
 }
 
 export interface RequirementVersion {

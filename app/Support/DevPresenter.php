@@ -51,8 +51,8 @@ final class DevPresenter
     public static function readiness(Branch $branch): array
     {
         $tasksOpen = $branch->tasks->where('status', '!=', TaskStatus::Done)->count();
-        $notPassed = $branch->testPoints->where('status', '!=', TestPointStatus::Passed)->count();
-        $failed = $branch->testPoints->where('status', TestPointStatus::Failed)->count();
+        $notPassed = $branch->testPoints->where('status', '!=', TestPointStatus::Closed)->count();
+        $failed = $branch->testPoints->where('status', TestPointStatus::Repeated)->count();
 
         return [
             'tasks_open' => $tasksOpen,

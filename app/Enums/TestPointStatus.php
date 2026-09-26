@@ -3,29 +3,37 @@
 namespace App\Enums;
 
 /**
- * Board columns for testing. Passed and Failed are outcomes, not further
- * steps along a scale, so the board colours them with the status palette.
+ * The life of a reported bug. A tester reports it (Open); the developer it is
+ * assigned to works on it (In progress) and hands it back (Ready for test);
+ * the tester retests — a pass closes it, a fail sends it back as Repeated,
+ * and the loop runs again from In progress.
  */
 enum TestPointStatus: string
 {
-    case ToTest = 'to_test';
-    case Testing = 'testing';
-    case Passed = 'passed';
-    case Failed = 'failed';
+    case Open = 'open';
+    case InProgress = 'in_progress';
+    case ReadyForTest = 'ready_for_test';
+    case Repeated = 'repeated';
+    case Closed = 'closed';
 
     public function label(): string
     {
         return match ($this) {
-            self::ToTest => 'To test',
-            self::Testing => 'In testing',
-            self::Passed => 'Passed',
-            self::Failed => 'Failed',
+            self::Open => 'Open',
+            self::InProgress => 'In progress',
+            self::ReadyForTest => 'Ready for test',
+            self::Repeated => 'Repeated',
+            self::Closed => 'Closed',
         };
     }
 
+    /**
+     * A tester's verdict on a retest: closed (passed) or repeated (failed
+     * again). Reaching one records who tested it and when.
+     */
     public function isOutcome(): bool
     {
-        return $this === self::Passed || $this === self::Failed;
+        return $this === self::Closed || $this === self::Repeated;
     }
 
     /**

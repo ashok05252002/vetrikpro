@@ -133,12 +133,12 @@ class StatusWorkflowTest extends TestCase
     public function test_only_the_creator_tester_owner_or_admin_move_a_testing_point()
     {
         $point = TestPoint::factory()->create(['project_id' => $this->project->id, 'created_by' => $this->creator->id, 'assigned_to' => $this->assignee->id]);
-        $move = fn (User $as) => $this->actingAs($as)->patch(route('projects.testing.move', [$this->project, $point]), ['status' => 'passed', 'position' => 0]);
+        $move = fn (User $as) => $this->actingAs($as)->patch(route('testing.points.move', [$this->project, $point]), ['status' => 'closed', 'position' => 0]);
 
         $move($this->colleague)->assertForbidden();
         $move($this->assignee)->assertRedirect();
 
-        $this->assertSame(TestPointStatus::Passed, $point->fresh()->status);
-        $this->assertSame(['to_test', 'passed'], $point->statusChanges()->pluck('to_status')->all());
+        $this->assertSame(TestPointStatus::Closed, $point->fresh()->status);
+        $this->assertSame(['open', 'closed'], $point->statusChanges()->pluck('to_status')->all());
     }
 }

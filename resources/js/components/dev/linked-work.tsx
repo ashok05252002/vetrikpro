@@ -26,7 +26,7 @@ export function ReadinessNote({ readiness, taskCount, testCount }: { readiness: 
         return (
             <Alert>
                 <CheckCircle2 className="size-4" style={{ color: 'var(--status-good)' }} />
-                <AlertDescription>Every linked task is done and every testing point has passed.</AlertDescription>
+                <AlertDescription>Every linked task is done and every testing point is closed.</AlertDescription>
             </Alert>
         );
     }
@@ -34,8 +34,9 @@ export function ReadinessNote({ readiness, taskCount, testCount }: { readiness: 
     const notRun = readiness.tests_not_passed - readiness.tests_failed;
     const parts = [
         readiness.tasks_open > 0 && `${readiness.tasks_open} linked task${readiness.tasks_open === 1 ? ' is' : 's are'} not done`,
-        readiness.tests_failed > 0 && `${readiness.tests_failed} testing point${readiness.tests_failed === 1 ? ' has' : 's have'} failed`,
-        notRun > 0 && `${notRun} testing point${notRun === 1 ? ' has' : 's have'} not passed yet`,
+        readiness.tests_failed > 0 &&
+            `${readiness.tests_failed} testing point${readiness.tests_failed === 1 ? ' has' : 's have'} failed retest (Repeated)`,
+        notRun > 0 && `${notRun} testing point${notRun === 1 ? ' is' : 's are'} not closed yet`,
     ].filter(Boolean);
 
     return (
@@ -130,7 +131,7 @@ export function LinkedTestPoints({
                     key={point.id}
                     reference={point.reference}
                     title={point.title}
-                    href={route('projects.testing.show', [point.project_id, point.id])}
+                    href={route('testing.points.show', [point.project_id, point.id])}
                     status={<TestStatusBadge status={point.status} />}
                     priority={<PriorityBadge priority={point.priority} />}
                     onRemove={onRemove ? () => onRemove(point) : undefined}
