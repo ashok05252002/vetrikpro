@@ -1,5 +1,6 @@
 import PriorityBadge from '@/components/work/priority-badge';
 import UserAvatar from '@/components/work/user-avatar';
+import { CardPeople } from '@/components/work/work-people';
 import { cn } from '@/lib/utils';
 import type { TestPointSummary } from '@/types';
 import { useSortable } from '@dnd-kit/sortable';
@@ -56,17 +57,12 @@ export default function TestPointCard({
                     </span>
                 )}
 
-                <span className="text-muted-foreground ml-auto inline-flex items-center gap-1.5 text-xs">
-                    {point.reporter && (
-                        <span className="max-w-24 truncate" title={`Reported by ${point.reporter.name}`}>
-                            by {point.reporter.name.split(' ')[0]}
-                        </span>
-                    )}
-                    <span title={point.assignee ? `Assigned to ${point.assignee.name}` : 'Not assigned yet'}>
-                        <UserAvatar name={point.assignee?.name} className="size-6" />
-                    </span>
+                <span className="ml-auto" title={point.assignee ? `Assigned to ${point.assignee.name}` : 'Not assigned yet'}>
+                    <UserAvatar name={point.assignee?.name} className="size-6" />
                 </span>
             </div>
+
+            <CardPeople creator={point.reporter} assigner={point.assigner} addedVerb="Reported" />
         </div>
     );
 }

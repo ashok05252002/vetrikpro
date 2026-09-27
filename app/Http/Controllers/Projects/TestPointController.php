@@ -35,7 +35,7 @@ class TestPointController extends Controller
         $this->authorize('view', $project);
 
         $view = $request->string('view')->value() === 'list' ? 'list' : 'board';
-        $base = $project->testPoints()->with(['assignee:id,name', 'creator:id,name', 'task:id,number,title', 'project:id,owner_id']);
+        $base = $project->testPoints()->with(['assignee:id,name', 'creator:id,name', 'assigner:id,name', 'task:id,number,title', 'project:id,owner_id']);
         $viewer = $request->user();
 
         $payload = $view === 'board'
@@ -76,7 +76,7 @@ class TestPointController extends Controller
     {
         $this->authorize('view', $testPoint);
 
-        $testPoint->load(['assignee:id,name', 'creator:id,name', 'lastTester:id,name', 'task:id,number,title,status']);
+        $testPoint->load(['assignee:id,name', 'creator:id,name', 'assigner:id,name', 'lastTester:id,name', 'task:id,number,title,status']);
 
         return Inertia::render('testing/point', [
             'project' => ProjectWorkspace::header($project, $request->user()),

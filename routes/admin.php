@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\EmployeeDocumentController;
 use App\Http\Controllers\Admin\EmployeeOnboardingController;
 use App\Http\Controllers\Admin\EmployeeProfileController;
 use App\Http\Controllers\Admin\ProjectController;
+use App\Http\Controllers\Admin\PromotionController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\UserLookupController;
@@ -41,6 +42,9 @@ Route::middleware(['auth'])
 
         $crud(Route::resource('departments', DepartmentController::class)->except('show'), 'departments');
         $crud(Route::resource('designations', DesignationController::class)->except('show'), 'designations');
+        // In-use master data is switched off, not deleted.
+        Route::patch('departments/{department}/active', [DepartmentController::class, 'active'])->middleware('can:departments.edit')->name('departments.active');
+        Route::patch('designations/{designation}/active', [DesignationController::class, 'active'])->middleware('can:designations.edit')->name('designations.active');
 
         // Staff profile tabs. Overview is employees.show; the rest hang off it.
         Route::prefix('employees/{employee}')->name('employees.')->scopeBindings()->group(function () {
@@ -59,6 +63,9 @@ Route::middleware(['auth'])
                 Route::post('send-back', [EmployeeOnboardingController::class, 'sendBack'])->name('send-back');
             });
 
+            Route::post('promotions', [PromotionController::class, 'store'])->middleware('can:employees.promote')->name('promotions.store');
+            Route::get('promotions/{promotion}/letter', [PromotionController::class, 'letter'])->middleware('can:employees.view')->name('promotions.letter');
+
             Route::middleware('can:employees.view')->group(function () {
                 Route::get('projects', [EmployeeProfileController::class, 'projects'])->name('projects');
                 Route::get('tasks', [EmployeeProfileController::class, 'tasks'])->name('tasks');
@@ -72,6 +79,8 @@ Route::middleware(['auth'])
         });
 
         $crud(Route::resource('employees', EmployeeController::class), 'employees');
+        Route::post('employees/{employee}/archive', [EmployeeController::class, 'archive'])->middleware('can:employees.edit')->name('employees.archive');
+        Route::post('employees/{employee}/restore', [EmployeeController::class, 'restore'])->middleware('can:employees.edit')->name('employees.restore');
         Route::patch('employees/{employee}/status', [EmployeeController::class, 'status'])->middleware('can:employees.edit')->name('employees.status');
         Route::post('employees/{employee}/password-reset', [EmployeeController::class, 'sendPasswordReset'])->middleware('can:employees.edit')->name('employees.password-reset');
 

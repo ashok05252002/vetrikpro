@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import PriorityBadge from '@/components/work/priority-badge';
 import StageBadge from '@/components/work/stage-badge';
-import UserAvatar from '@/components/work/user-avatar';
+import { AssigneeCell } from '@/components/work/work-people';
 import { useFormat } from '@/hooks/use-format';
 import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
@@ -145,6 +145,7 @@ export default function TasksIndex({ tasks, statuses, priorities, filters, canSe
                                     <TableHead>Stage</TableHead>
                                     <TableHead>Priority</TableHead>
                                     <TableHead>Assignee</TableHead>
+                                    <TableHead className="hidden lg:table-cell">Added by</TableHead>
                                     <TableHead className="text-right">Due</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -173,10 +174,10 @@ export default function TasksIndex({ tasks, statuses, priorities, filters, canSe
                                             <PriorityBadge priority={task.priority} />
                                         </TableCell>
                                         <TableCell>
-                                            <span className="text-muted-foreground flex items-center gap-2 text-sm">
-                                                <UserAvatar name={task.assignee?.name} className="size-5" />
-                                                {task.assignee?.name ?? 'Unassigned'}
-                                            </span>
+                                            <AssigneeCell assignee={task.assignee} assigner={task.assigner} />
+                                        </TableCell>
+                                        <TableCell className="text-muted-foreground hidden text-xs lg:table-cell">
+                                            {task.creator?.name ?? '—'}
                                         </TableCell>
                                         <TableCell
                                             className={cn(

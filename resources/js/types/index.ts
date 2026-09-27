@@ -97,8 +97,11 @@ export interface Department {
     name: string;
     code: string | null;
     description: string | null;
+    is_active: boolean;
     designations_count?: number;
     employees_count?: number;
+    /** Named by anyone or anything, now or in history — then it can only be switched off. */
+    in_use?: boolean;
 }
 
 export interface Designation {
@@ -106,8 +109,11 @@ export interface Designation {
     department_id: number | null;
     name: string;
     description: string | null;
+    is_active: boolean;
     department?: Pick<Department, 'id' | 'name'> | null;
     employees_count?: number;
+    /** Held by anyone, now or in their promotion history — then it can only be switched off. */
+    in_use?: boolean;
 }
 
 export interface Employee {
@@ -173,6 +179,10 @@ export interface TaskSummary {
     position?: number;
     project?: Pick<ProjectSummary, 'id' | 'name' | 'code'> | null;
     assignee?: Pick<User, 'id' | 'name'> | null;
+    /** Who added it. */
+    creator?: Pick<User, 'id' | 'name'> | null;
+    /** Who gave it to the assignee; null for work assigned before this was recorded. */
+    assigner?: Pick<User, 'id' | 'name'> | null;
     comments_count?: number;
     is_overdue?: boolean;
     /** Whether the viewer may change the status (creator, assignee, project owner, admin). */
@@ -211,8 +221,10 @@ export interface PipelineStage {
 
 export interface Company {
     name: string;
-    /** Public URL, or null when no logo has been uploaded. */
+    /** Public URL of the logo for light backgrounds, or null when none has been uploaded. */
     logo: string | null;
+    /** Public URL of the logo for dark backgrounds (navy sidebar, dark mode), or null. */
+    logo_dark: string | null;
 }
 
 export type DateFormat = 'dmy' | 'mdy' | 'ymd';
@@ -263,6 +275,8 @@ export interface EmployeeProfileHeader {
     name: string;
     email: string;
     is_active: boolean;
+    archived_at: string | null;
+    archived_by: string | null;
     deactivated_at: string | null;
     deactivated_by: string | null;
     user_id: number;
@@ -309,6 +323,8 @@ export interface TestPointSummary {
     assignee?: Pick<User, 'id' | 'name'> | null;
     /** Who reported it. */
     reporter?: Pick<User, 'id' | 'name'> | null;
+    /** Who gave it to the assignee; null for work assigned before this was recorded. */
+    assigner?: Pick<User, 'id' | 'name'> | null;
     task?: { id: number; reference: string; title: string } | null;
     last_tested_at: string | null;
     can_move?: boolean;
@@ -501,3 +517,62 @@ export interface OnboardingState {
     offer_letter: { name: string } | null;
     slots: OnboardingSlot[];
 }
+
+export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'cancelled';
+
+export interface Customer {
+    id: number;
+    name: string;
+    contact_person: string | null;
+    email: string | null;
+    phone: string | null;
+    address: string | null;
+    state_code: string | null;
+    state_name?: string | null;
+    gstin: string | null;
+    is_active: boolean;
+    invoices_count?: number;
+}
+
+export type ProductType = 'product' | 'service';
+
+export interface Product {
+    id: number;
+    name: string;
+    type: ProductType;
+    code: string | null;
+    hsn_sac: string | null;
+    unit: string;
+    price: string;
+    gst_rate: string;
+    description: string | null;
+    is_active: boolean;
+    invoice_items_count?: number;
+}
+
+export interface InvoiceSummary {
+    id: number;
+    number: number | null;
+    reference: string;
+    status: InvoiceStatus;
+    bill_name: string;
+    issue_date: string;
+    due_date: string | null;
+    total: string;
+    sent_at: string | null;
+    sent_to: string | null;
+    paid_at: string | null;
+    is_overdue: boolean;
+}
+
+/** A type alias, not an interface, so it satisfies useForm's index-signature constraint. */
+export type InvoiceLine = {
+    product_id: number | null;
+    description: string;
+    hsn_sac: string | null;
+    quantity: string | number;
+    unit: string;
+    unit_price: string | number;
+    discounted_price: string | number;
+    gst_rate: string | number;
+};

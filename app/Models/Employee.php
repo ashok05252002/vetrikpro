@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\OnboardingStatus;
 use Database\Factories\EmployeeFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -49,6 +50,7 @@ class Employee extends Model
             'invited_at' => 'datetime',
             'onboarding_submitted_at' => 'datetime',
             'onboarding_completed_at' => 'datetime',
+            'archived_at' => 'datetime',
         ];
     }
 
@@ -62,6 +64,29 @@ class Employee extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function isArchived(): bool
+    {
+        return $this->archived_at !== null;
+    }
+
+    /** @param  Builder<Employee>  $query */
+    public function scopeCurrent(Builder $query): Builder
+    {
+        return $query->whereNull('archived_at');
+    }
+
+    /** @param  Builder<Employee>  $query */
+    public function scopeArchived(Builder $query): Builder
+    {
+        return $query->whereNotNull('archived_at');
+    }
+
+    /** Promotions and salary revisions, newest first. */
+    public function promotions(): HasMany
+    {
+        return $this->hasMany(Promotion::class)->latest('effective_date')->latest('id');
     }
 
     public function documents(): HasMany

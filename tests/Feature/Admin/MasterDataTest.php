@@ -4,6 +4,7 @@ namespace Tests\Feature\Admin;
 
 use App\Models\Department;
 use App\Models\Designation;
+use App\Models\Employee;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -80,5 +81,72 @@ class MasterDataTest extends TestCase
             ->assertForbidden();
 
         $this->assertFalse(Department::where('name', 'Sneaky')->exists());
+    }
+
+    public function test_an_unused_department_can_be_deleted()
+    {
+        $department = Department::factory()->create();
+
+        $this->actingAs(User::factory()->admin()->create())
+            ->delete(route('admin.departments.destroy', $department))
+            ->assertRedirect(route('admin.departments.index'));
+
+        $this->assertNull(Department::find($department->id));
+    }
+
+    public function test_a_department_in_use_cannot_be_deleted_only_switched_off()
+    {
+        $department = Department::factory()->create();
+        Employee::factory()->create(['department_id' => $department->id]);
+        $admin = User::factory()->admin()->create();
+
+        $this->actingAs($admin)
+            ->delete(route('admin.departments.destroy', $department))
+            ->assertSessionHas('error');
+        $this->assertNotNull($department->fresh());
+
+        $this->actingAs($admin)
+            ->patch(route('admin.departments.active', $department), ['is_active' => false])
+            ->assertSessionHas('success');
+        $this->assertFalse($department->fresh()->is_active);
+    }
+
+    public function test_a_designation_held_by_someone_cannot_be_deleted()
+    {
+        $designation = Designation::factory()->create();
+        Employee::factory()->create(['designation_id' => $designation->id]);
+
+        $this->actingAs(User::factory()->admin()->create())
+            ->delete(route('admin.designations.destroy', $designation))
+            ->assertSessionHas('error');
+
+        $this->assertNotNull($designation->fresh());
+    }
+
+    public function test_an_inactive_designation_is_refused_for_new_holders_but_kept_by_existing_ones()
+    {
+        $designation = Designation::factory()->create(['is_active' => false]);
+        $holder = Employee::factory()->create(['designation_id' => $designation->id]);
+        $other = Employee::factory()->create();
+        $admin = User::factory()->admin()->create();
+
+        $payload = fn (Employee $e) => [
+            'name' => $e->user->name, 'email' => $e->user->email, 'employee_code' => $e->employee_code,
+            'employment_type' => 'full_time', 'status' => 'active', 'designation_id' => $designation->id,
+        ];
+
+        $this->actingAs($admin)->put(route('admin.employees.update', $holder), $payload($holder))->assertSessionHasNoErrors();
+        $this->actingAs($admin)->put(route('admin.employees.update', $other), $payload($other))->assertSessionHasErrors('designation_id');
+    }
+
+    public function test_switching_master_data_off_needs_edit_permission()
+    {
+        $department = Department::factory()->create();
+
+        $this->actingAs(User::factory()->create())
+            ->patch(route('admin.departments.active', $department), ['is_active' => false])
+            ->assertForbidden();
+
+        $this->assertTrue($department->fresh()->is_active);
     }
 }

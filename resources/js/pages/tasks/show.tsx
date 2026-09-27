@@ -198,6 +198,8 @@ export default function ShowTask({ task, statuses, priorities, assignees, can }:
 
                                     <Field label="Created by">{task.creator?.name ?? '—'}</Field>
 
+                                    <Field label="Assigned by">{task.assignee ? (task.assigner?.name ?? '—') : '—'}</Field>
+
                                     {task.completed_at && <Field label="Completed">{format.dateTime(task.completed_at)}</Field>}
                                 </dl>
                             </CardContent>

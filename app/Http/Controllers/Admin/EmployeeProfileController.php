@@ -13,6 +13,7 @@ use App\Models\EmployeeDocument;
 use App\Models\Project;
 use App\Models\Role;
 use App\Models\Task;
+use App\Models\User;
 use App\Support\EmployeeProfile;
 use App\Support\Permissions;
 use Illuminate\Http\RedirectResponse;
@@ -82,7 +83,46 @@ class EmployeeProfileController extends Controller
             'employee' => EmployeeProfile::header($employee, $request->user()),
             'projects' => $projects,
             'roles' => ProjectMemberRole::options(),
+            // The project opened on this page: their tasks in it, shown in place.
+            'selected' => fn () => $this->selectedProject($request, $user),
         ]);
+    }
+
+    /**
+     * The tasks this person holds on one of their projects, for the Projects
+     * tab to show without leaving the profile. Null when no project is open or
+     * it isn't one of theirs.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function selectedProject(Request $request, User $user): ?array
+    {
+        $project = Project::query()
+            ->whereKey($request->integer('project'))
+            ->where(fn ($query) => $query
+                ->where('owner_id', $user->id)
+                ->orWhereHas('members', fn ($m) => $m->whereKey($user->id)))
+            ->first(['id', 'name', 'code']);
+
+        if ($project === null) {
+            return null;
+        }
+
+        $tasks = $project->tasks()
+            ->where('assigned_to', $user->id)
+            ->with(['creator:id,name', 'assigner:id,name'])
+            ->orderByRaw("CASE WHEN status = 'done' THEN 1 ELSE 0 END")
+            ->orderByRaw('CASE WHEN due_date IS NULL THEN 1 ELSE 0 END, due_date')
+            ->get()
+            ->map(fn (Task $task) => [
+                ...$task->only('id', 'title', 'status', 'priority', 'due_date'),
+                'reference' => $task->reference(),
+                'is_overdue' => $task->isOverdue(),
+                'creator' => $task->creator?->only('id', 'name'),
+                'assigner' => $task->assigner?->only('id', 'name'),
+            ]);
+
+        return [...$project->only('id', 'name', 'code'), 'tasks' => $tasks];
     }
 
     public function tasks(Request $request, Employee $employee): Response

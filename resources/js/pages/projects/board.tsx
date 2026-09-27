@@ -8,8 +8,8 @@ import PriorityBadge from '@/components/work/priority-badge';
 import StageBadge, { stageColor } from '@/components/work/stage-badge';
 import TaskCard from '@/components/work/task-card';
 import TaskDialog from '@/components/work/task-dialog';
-import UserAvatar from '@/components/work/user-avatar';
 import ViewToggle, { type WorkView } from '@/components/work/view-toggle';
+import { AssigneeCell } from '@/components/work/work-people';
 import { useFormat } from '@/hooks/use-format';
 import ProjectWorkspaceLayout from '@/layouts/project/workspace-layout';
 import type { BoardColumn, Option, Paginated, ProjectWorkspaceHeader, TaskStatus, TaskSummary, User } from '@/types';
@@ -69,13 +69,14 @@ function TaskList({
                             <TableHead>Stage</TableHead>
                             <TableHead className="hidden sm:table-cell">Priority</TableHead>
                             <TableHead className="hidden md:table-cell">Assignee</TableHead>
+                            <TableHead className="hidden lg:table-cell">Added by</TableHead>
                             <TableHead className="hidden lg:table-cell">Due</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {list.data.length === 0 && (
                             <TableRow>
-                                <TableCell colSpan={6} className="text-muted-foreground py-10 text-center">
+                                <TableCell colSpan={7} className="text-muted-foreground py-10 text-center">
                                     No tasks match.
                                 </TableCell>
                             </TableRow>
@@ -95,14 +96,9 @@ function TaskList({
                                     <PriorityBadge priority={task.priority} />
                                 </TableCell>
                                 <TableCell className="hidden md:table-cell">
-                                    {task.assignee ? (
-                                        <span className="flex items-center gap-2 text-sm">
-                                            <UserAvatar name={task.assignee.name} /> {task.assignee.name}
-                                        </span>
-                                    ) : (
-                                        <span className="text-muted-foreground">Unassigned</span>
-                                    )}
+                                    <AssigneeCell assignee={task.assignee} assigner={task.assigner} />
                                 </TableCell>
+                                <TableCell className="text-muted-foreground hidden text-xs lg:table-cell">{task.creator?.name ?? '—'}</TableCell>
                                 <TableCell className="hidden lg:table-cell">
                                     {task.due_date ? (
                                         <span className={task.is_overdue ? 'text-destructive font-medium' : 'text-muted-foreground'}>

@@ -32,8 +32,8 @@ export default function EmployeeAccess({ employee, access, roles, permissionGrou
 
     return (
         <EmployeeProfileLayout employee={employee} tab="access">
-            <form onSubmit={submit} className="max-w-3xl space-y-6">
-                <p className="text-muted-foreground text-sm">
+            <form onSubmit={submit} className="max-w-6xl space-y-6">
+                <p className="text-muted-foreground max-w-3xl text-sm">
                     What {employee.name} can do across the app. The role sets the baseline; allow or deny single permissions for this person only. It
                     currently comes to {access.effective.length} permission{access.effective.length === 1 ? '' : 's'}.
                 </p>

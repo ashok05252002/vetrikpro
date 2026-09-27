@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Models\Department;
 use App\Models\Designation;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -17,7 +18,7 @@ class DesignationRequest extends FormRequest
         $id = $this->route('designation')?->id;
 
         return [
-            'department_id' => ['nullable', 'exists:departments,id'],
+            'department_id' => ['nullable', 'exists:departments,id', Department::selectableRule($this->route('designation')?->department_id)],
             'name' => [
                 'required', 'string', 'max:255',
                 Rule::unique(Designation::class)

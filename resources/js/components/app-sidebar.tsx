@@ -5,14 +5,17 @@ import { usePermission } from '@/hooks/use-permission';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
 import {
+    Boxes,
     Briefcase,
     Building2,
+    Contact,
     FlaskConical,
     FolderKanban,
     GitPullRequest,
     IdCard,
     LayoutGrid,
     ListChecks,
+    ReceiptIndianRupee,
     Settings,
     ShieldCheck,
     UsersRound,
@@ -46,6 +49,17 @@ const adminNavItems: AdminItem[] = [
         ],
     },
     { title: 'Manage projects', url: '/admin/projects', icon: FolderKanban, permission: 'projects.view' },
+    {
+        title: 'Accounts',
+        url: '/accounts/invoices',
+        icon: ReceiptIndianRupee,
+        permission: ['invoices.view', 'customers.view', 'products.view'],
+        children: [
+            { title: 'Invoices', url: '/accounts/invoices', icon: ReceiptIndianRupee, permission: 'invoices.view' },
+            { title: 'Customers', url: '/accounts/customers', icon: Contact, permission: 'customers.view' },
+            { title: 'Products & services', url: '/accounts/products', icon: Boxes, permission: 'products.view' },
+        ],
+    },
     // The hub's overview shows every area the person may open.
     {
         title: 'Configuration hub',

@@ -22,7 +22,8 @@ class DesignationController extends Controller
             ->when($request->string('search')->trim()->value(), fn ($query, string $search) => $query->where('name', 'like', "%{$search}%"))
             ->orderBy('name')
             ->paginate(10)
-            ->withQueryString();
+            ->withQueryString()
+            ->through(fn (Designation $designation) => [...$designation->toArray(), 'in_use' => $designation->isInUse()]);
 
         return Inertia::render('admin/designations/index', [
             'designations' => $designations,
@@ -48,7 +49,7 @@ class DesignationController extends Controller
     {
         return Inertia::render('admin/designations/edit', [
             'designation' => $designation->only('id', 'department_id', 'name', 'description'),
-            'departments' => $this->departments(),
+            'departments' => $this->departments($designation->department_id),
         ]);
     }
 
@@ -61,16 +62,31 @@ class DesignationController extends Controller
 
     public function destroy(Designation $designation): RedirectResponse
     {
+        if ($designation->isInUse()) {
+            return back()->with('error', "“{$designation->name}” is in use. Mark it inactive instead, so it stops being offered.");
+        }
+
         $designation->delete();
 
         return to_route('admin.designations.index')->with('success', 'Designation deleted.');
     }
 
     /**
+     * Switch a designation on or off. Off takes it out of pickers; everyone
+     * who holds it keeps it.
+     */
+    public function active(Request $request, Designation $designation): RedirectResponse
+    {
+        $designation->update($request->validate(['is_active' => ['required', 'boolean']]));
+
+        return back()->with('success', $designation->is_active ? "“{$designation->name}” is active again." : "“{$designation->name}” is now inactive.");
+    }
+
+    /**
      * @return Collection<int, Department>
      */
-    private function departments()
+    private function departments(?int $keep = null)
     {
-        return Department::query()->orderBy('name')->get(['id', 'name']);
+        return Department::query()->selectable($keep)->orderBy('name')->get(['id', 'name']);
     }
 }

@@ -61,8 +61,8 @@ export default function RoleForm({ groups, initial, action, submitLabel, superRo
     };
 
     return (
-        <form onSubmit={submit} className="max-w-3xl space-y-8">
-            <section className="space-y-6">
+        <form onSubmit={submit} className="max-w-6xl space-y-8">
+            <section className="max-w-3xl space-y-6">
                 <div className="grid gap-2">
                     <Label htmlFor="name">Name</Label>
                     <Input id="name" value={data.name} onChange={(e) => setData('name', e.target.value)} required autoFocus placeholder="Team Lead" />

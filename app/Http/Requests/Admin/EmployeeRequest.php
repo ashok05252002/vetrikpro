@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Models\Department;
+use App\Models\Designation;
 use App\Models\Employee;
 use App\Models\Role;
 use App\Models\User;
@@ -44,8 +46,8 @@ class EmployeeRequest extends FormRequest
             'offer_letter_mode' => $creating ? ['nullable', Rule::in(['generate', 'upload', 'none'])] : ['prohibited'],
             'offer_letter' => $creating ? ['nullable', 'required_if:offer_letter_mode,upload', 'file', 'max:10240', 'mimes:pdf,doc,docx'] : ['prohibited'],
             'employee_code' => ['required', 'string', 'max:50', Rule::unique(Employee::class, 'employee_code')->ignore($id)],
-            'department_id' => ['nullable', 'exists:departments,id'],
-            'designation_id' => ['nullable', 'exists:designations,id'],
+            'department_id' => ['nullable', 'exists:departments,id', Department::selectableRule($employee?->department_id)],
+            'designation_id' => ['nullable', 'exists:designations,id', Designation::selectableRule($employee?->designation_id)],
             'phone' => ['nullable', 'string', 'max:30'],
             'date_of_birth' => ['nullable', 'date', 'before:today'],
             'gender' => ['nullable', Rule::in(['male', 'female', 'other'])],

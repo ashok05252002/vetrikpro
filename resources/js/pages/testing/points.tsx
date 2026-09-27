@@ -6,9 +6,9 @@ import KanbanBoard from '@/components/work/kanban-board';
 import PriorityBadge from '@/components/work/priority-badge';
 import TestPointCard from '@/components/work/test-point-card';
 import TestPointDialog from '@/components/work/test-point-dialog';
-import TestStatusBadge, { TestStatusMark, testStatusSpec } from '@/components/work/test-status';
-import UserAvatar from '@/components/work/user-avatar';
+import TestStatusBadge, { TestStatusMark, TestStatusSelect, testStatusSpec } from '@/components/work/test-status';
 import ViewToggle, { type WorkView } from '@/components/work/view-toggle';
+import { AssigneeCell } from '@/components/work/work-people';
 import { useFormat } from '@/hooks/use-format';
 import TestingLayout from '@/layouts/testing/testing-layout';
 import type { BoardColumn, Option, Paginated, ProjectWorkspaceHeader, TestingCounts, TestPointStatus, TestPointSummary, User } from '@/types';
@@ -116,7 +116,15 @@ function TestPointList({
                                     </Link>
                                 </TableCell>
                                 <TableCell>
-                                    <TestStatusBadge status={point.status} />
+                                    {point.can_move ? (
+                                        <TestStatusSelect
+                                            status={point.status}
+                                            moveUrl={route('testing.points.move', [project.id, point.id])}
+                                            reload={['list', 'summary', 'counts', 'flash']}
+                                        />
+                                    ) : (
+                                        <TestStatusBadge status={point.status} />
+                                    )}
                                 </TableCell>
                                 <TableCell className="hidden sm:table-cell">
                                     <PriorityBadge priority={point.priority} />
@@ -135,13 +143,7 @@ function TestPointList({
                                     )}
                                 </TableCell>
                                 <TableCell className="hidden md:table-cell">
-                                    {point.assignee ? (
-                                        <span className="flex items-center gap-2 text-sm">
-                                            <UserAvatar name={point.assignee.name} /> {point.assignee.name}
-                                        </span>
-                                    ) : (
-                                        <span className="text-muted-foreground">Unassigned</span>
-                                    )}
+                                    <AssigneeCell assignee={point.assignee} assigner={point.assigner} />
                                 </TableCell>
                                 <TableCell className="text-muted-foreground hidden text-xs lg:table-cell">{point.reporter?.name ?? '—'}</TableCell>
                                 <TableCell className="text-muted-foreground hidden text-xs xl:table-cell">

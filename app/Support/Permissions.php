@@ -44,6 +44,7 @@ final class Permissions
                     'edit' => 'Edit employees, send password resets, activate or deactivate',
                     'delete' => 'Delete employees and their login',
                     'onboard' => 'Send invites and review onboarding',
+                    'promote' => 'Promote people and revise salaries, with a letter by email',
                 ]],
                 'documents' => ['label' => 'Employee documents', 'actions' => [
                     'view' => 'Open and download employee documents',
@@ -77,6 +78,27 @@ final class Permissions
                 // any project member may report one.
                 'testing' => ['label' => 'Testing', 'actions' => [
                     'assign' => 'Assign bugs to people and move any bug through any step, on the projects they belong to',
+                ]],
+            ],
+            'Accounts' => [
+                'invoices' => ['label' => 'Invoices', 'actions' => [
+                    'view' => 'See invoices',
+                    'create' => 'Create draft invoices',
+                    'edit' => 'Edit drafts, mark invoices paid or cancel them',
+                    'delete' => 'Delete draft invoices',
+                    'send' => 'Issue invoices and email them to customers',
+                ]],
+                'customers' => ['label' => 'Customers', 'actions' => [
+                    'view' => 'See customers',
+                    'create' => 'Add customers',
+                    'edit' => 'Edit customers and switch them off',
+                    'delete' => 'Delete customers never invoiced',
+                ]],
+                'products' => ['label' => 'Products & services', 'actions' => [
+                    'view' => 'See products and services',
+                    'create' => 'Add products and services',
+                    'edit' => 'Edit them and switch them off',
+                    'delete' => 'Delete ones never invoiced',
                 ]],
             ],
             'Configuration' => [

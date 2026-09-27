@@ -6,6 +6,7 @@ use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
 use App\Models\Concerns\HasProjectNumber;
 use App\Models\Concerns\HasStatusWorkflow;
+use App\Models\Concerns\RecordsAssigner;
 use App\Notifications\TaskMarkedUrgent;
 use Database\Factories\TaskFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -18,7 +19,7 @@ use Illuminate\Support\Facades\DB;
 class Task extends Model
 {
     /** @use HasFactory<TaskFactory> */
-    use HasFactory, HasProjectNumber, HasStatusWorkflow;
+    use HasFactory, HasProjectNumber, HasStatusWorkflow, RecordsAssigner;
 
     public const REFERENCE_PREFIX = 'T';
 

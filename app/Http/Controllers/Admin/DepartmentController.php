@@ -19,7 +19,8 @@ class DepartmentController extends Controller
             ->when($request->string('search')->trim()->value(), fn ($query, string $search) => $query->where('name', 'like', "%{$search}%"))
             ->orderBy('name')
             ->paginate(10)
-            ->withQueryString();
+            ->withQueryString()
+            ->through(fn (Department $department) => [...$department->toArray(), 'in_use' => $department->isInUse()]);
 
         return Inertia::render('admin/departments/index', [
             'departments' => $departments,
@@ -55,8 +56,23 @@ class DepartmentController extends Controller
 
     public function destroy(Department $department): RedirectResponse
     {
+        if ($department->isInUse()) {
+            return back()->with('error', "“{$department->name}” is in use. Mark it inactive instead, so it stops being offered.");
+        }
+
         $department->delete();
 
         return to_route('admin.departments.index')->with('success', 'Department deleted.');
+    }
+
+    /**
+     * Switch a department on or off. Off takes it out of pickers; everyone
+     * already in it stays in it.
+     */
+    public function active(Request $request, Department $department): RedirectResponse
+    {
+        $department->update($request->validate(['is_active' => ['required', 'boolean']]));
+
+        return back()->with('success', $department->is_active ? "“{$department->name}” is active again." : "“{$department->name}” is now inactive.");
     }
 }

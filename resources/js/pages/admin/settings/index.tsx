@@ -8,15 +8,20 @@ import { Textarea } from '@/components/ui/textarea';
 import { usePermission } from '@/hooks/use-permission';
 import ConfigLayout from '@/layouts/config/config-layout';
 import { formatDate, formatMoney } from '@/lib/dates';
+import { cn } from '@/lib/utils';
 import type { DateFormat, Option } from '@/types';
 import { useForm } from '@inertiajs/react';
 import { Building2, Upload, X } from 'lucide-react';
-import { FormEventHandler, useRef, useState } from 'react';
+import { FormEventHandler, useMemo, useRef } from 'react';
 
 interface SettingsValues {
     company_name: string;
     company_legal_name: string;
     company_tax_id: string;
+    company_state: string;
+    invoice_due_days: number;
+    invoice_terms: string;
+    invoice_bank_details: string;
     company_email: string;
     company_phone: string;
     company_website: string;
@@ -30,51 +35,165 @@ interface SettingsValues {
 type SettingsForm = SettingsValues & {
     logo: File | null;
     remove_logo: boolean;
-    [key: string]: string | File | boolean | null;
+    logo_dark: File | null;
+    remove_logo_dark: boolean;
+    favicon: File | null;
+    remove_favicon: boolean;
+    [key: string]: string | number | File | boolean | null;
 };
+
+type ImageField = 'logo' | 'logo_dark' | 'favicon';
 
 interface Props {
     settings: SettingsValues;
-    logoUrl: string | null;
+    images: Record<ImageField, string | null>;
     timezones: string[];
     dateFormats: Option[];
+    states: Option[];
+}
+
+interface Slot {
+    field: ImageField;
+    label: string;
+    hint: string;
+    accept: string;
+    /** The background the image is previewed on, as it will be used. */
+    surface: 'light' | 'dark';
+}
+
+const IMAGE_SLOTS: Slot[] = [
+    {
+        field: 'logo',
+        label: 'Logo — light background',
+        hint: 'Also used on emails, offer letters and invoices.',
+        accept: 'image/png,image/jpeg,image/svg+xml,image/webp',
+        surface: 'light',
+    },
+    {
+        field: 'logo_dark',
+        label: 'Logo — dark background',
+        hint: 'Usually a white or light version of the logo.',
+        accept: 'image/png,image/jpeg,image/svg+xml,image/webp',
+        surface: 'dark',
+    },
+    {
+        field: 'favicon',
+        label: 'Favicon',
+        hint: 'The browser-tab icon. ICO, PNG or SVG, square, up to 512 KB.',
+        accept: '.ico,image/x-icon,image/vnd.microsoft.icon,image/png,image/svg+xml',
+        surface: 'light',
+    },
+];
+
+/** One upload: preview on the surface it will sit on, choose, remove. Saved with the form. */
+function ImageSlot({
+    slot,
+    current,
+    file,
+    error,
+    disabled,
+    onPick,
+    onRemove,
+}: {
+    slot: Slot;
+    current: string | null;
+    file: File | null;
+    error?: string;
+    disabled: boolean;
+    onPick: (file: File | null) => void;
+    onRemove: () => void;
+}) {
+    const input = useRef<HTMLInputElement>(null);
+    const preview = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
+    const shown = preview ?? current;
+
+    return (
+        <div className="space-y-2 py-4 first:pt-0 last:pb-0">
+            <div className="flex items-center gap-4">
+                <div
+                    className={cn(
+                        'flex shrink-0 items-center justify-center overflow-hidden rounded-lg border p-1.5',
+                        slot.field === 'favicon' ? 'size-12' : 'h-14 w-24',
+                        slot.surface === 'dark' ? 'border-sidebar-border bg-sidebar' : 'bg-white',
+                    )}
+                >
+                    {shown ? (
+                        <img src={shown} alt={slot.label} className="size-full object-contain" />
+                    ) : (
+                        <Building2 className={cn('size-5', slot.surface === 'dark' ? 'text-sidebar-foreground/60' : 'text-neutral-400')} />
+                    )}
+                </div>
+
+                <div className="min-w-0 flex-1 space-y-1">
+                    <p className="text-sm font-medium">{slot.label}</p>
+                    <p className="text-muted-foreground text-xs">{file ? `${file.name} — not saved until you press Save.` : slot.hint}</p>
+                </div>
+
+                {!disabled && (
+                    <div className="flex shrink-0 gap-1">
+                        <Button type="button" variant="outline" size="sm" onClick={() => input.current?.click()}>
+                            <Upload className="size-4" />
+                            <span className="sr-only sm:not-sr-only">{shown ? 'Replace' : 'Upload'}</span>
+                        </Button>
+                        {shown && (
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                    onRemove();
+                                    if (input.current) {
+                                        input.current.value = '';
+                                    }
+                                }}
+                            >
+                                <X className="size-4" />
+                                <span className="sr-only">Remove {slot.label}</span>
+                            </Button>
+                        )}
+                    </div>
+                )}
+            </div>
+
+            <input ref={input} type="file" accept={slot.accept} className="hidden" onChange={(e) => onPick(e.target.files?.[0] ?? null)} />
+            <InputError message={error} />
+        </div>
+    );
 }
 
 /** A few common codes up front; anything valid can still be typed. */
 const CURRENCIES = ['INR', 'USD', 'EUR', 'GBP', 'AED', 'SGD', 'AUD', 'CAD'];
 
-export default function SettingsPage({ settings, logoUrl, timezones, dateFormats }: Props) {
-    const fileInput = useRef<HTMLInputElement>(null);
-    const [preview, setPreview] = useState<string | null>(null);
-
-    const { data, setData, post, processing, errors, recentlySuccessful } = useForm<SettingsForm>({
+export default function SettingsPage({ settings, images, timezones, dateFormats, states }: Props) {
+    const { data, setData, post, processing, errors, recentlySuccessful, reset } = useForm<SettingsForm>({
         ...settings,
         logo: null,
         remove_logo: false,
+        logo_dark: null,
+        remove_logo_dark: false,
+        favicon: null,
+        remove_favicon: false,
     });
-
-    const pickLogo = (file: File | null) => {
-        setData((current) => ({ ...current, logo: file, remove_logo: false }));
-        setPreview(file ? URL.createObjectURL(file) : null);
-    };
-
-    const dropLogo = () => {
-        setData((current) => ({ ...current, logo: null, remove_logo: true }));
-        setPreview(null);
-        if (fileInput.current) {
-            fileInput.current.value = '';
-        }
-    };
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
         // POST rather than PUT: a multipart body needs a real POST, and method
         // spoofing here buys nothing.
-        post(route('admin.settings.update'), { preserveScroll: true, forceFormData: true });
+        post(route('admin.settings.update'), {
+            preserveScroll: true,
+            forceFormData: true,
+            // A new favicon only shows on a full load; the tab icon is outside Inertia's reach.
+            onSuccess: () => {
+                if (data.favicon || data.remove_favicon) {
+                    window.location.reload();
+                }
+                // The saved images now come back as URLs; the picked files are done with.
+                reset('logo', 'remove_logo', 'logo_dark', 'remove_logo_dark', 'favicon', 'remove_favicon');
+            },
+        });
     };
 
     const canEdit = usePermission().can('settings.edit');
-    const shownLogo = preview ?? (data.remove_logo ? null : logoUrl);
 
     // Live preview of the regional choices, using today's date and a sample amount.
     const sample = { timezone: data.display_timezone, dateFormat: data.display_date_format, currency: data.display_currency };
@@ -134,53 +253,55 @@ export default function SettingsPage({ settings, logoUrl, timezones, dateFormats
                                 <Input id="company_tax_id" value={data.company_tax_id} onChange={(e) => setData('company_tax_id', e.target.value)} />
                                 <InputError message={errors.company_tax_id} />
                             </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="company_state">GST state</Label>
+                                <Select value={data.company_state || undefined} onValueChange={(value) => setData('company_state', value)}>
+                                    <SelectTrigger id="company_state">
+                                        <SelectValue placeholder="Where the company is registered" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {states.map((state) => (
+                                            <SelectItem key={state.value} value={state.value}>
+                                                {state.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <p className="text-muted-foreground text-xs">Invoices to this state carry CGST + SGST; to any other, IGST.</p>
+                                <InputError message={errors.company_state} />
+                            </div>
                         </CardContent>
                     </Card>
 
                     <Card>
                         <CardHeader>
-                            <CardTitle className="text-base">Logo</CardTitle>
-                            <CardDescription>Shown beside the company name. PNG, JPG, SVG or WebP, up to 2 MB.</CardDescription>
+                            <CardTitle className="text-base">Branding</CardTitle>
+                            <CardDescription>
+                                PNG, JPG, SVG or WebP up to 2 MB. The dark version is used on the navy sidebar, the sign-in panel and in dark mode;
+                                without one, the light logo is shown on a white tile.
+                            </CardDescription>
                         </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="flex items-center gap-4">
-                                <div className="bg-muted/40 flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border">
-                                    {shownLogo ? (
-                                        <img src={shownLogo} alt="Company logo" className="size-full object-contain" />
-                                    ) : (
-                                        <Building2 className="text-muted-foreground size-6" />
-                                    )}
-                                </div>
-
-                                <div className="flex flex-wrap gap-2">
-                                    <Button type="button" variant="outline" size="sm" onClick={() => fileInput.current?.click()}>
-                                        <Upload className="size-4" /> Choose file
-                                    </Button>
-                                    {shownLogo && (
-                                        <Button type="button" variant="ghost" size="sm" onClick={dropLogo}>
-                                            <X className="size-4" /> Remove
-                                        </Button>
-                                    )}
-                                </div>
-                            </div>
-
-                            <input
-                                ref={fileInput}
-                                type="file"
-                                accept="image/png,image/jpeg,image/svg+xml,image/webp"
-                                className="hidden"
-                                onChange={(e) => pickLogo(e.target.files?.[0] ?? null)}
-                            />
-                            <InputError message={errors.logo} />
-
-                            {data.logo && <p className="text-muted-foreground text-xs">{data.logo.name} — not saved until you press Save.</p>}
+                        <CardContent className="divide-y">
+                            {IMAGE_SLOTS.map((slot) => (
+                                <ImageSlot
+                                    key={slot.field}
+                                    slot={slot}
+                                    current={data[`remove_${slot.field}`] ? null : images[slot.field]}
+                                    file={data[slot.field] as File | null}
+                                    error={errors[slot.field]}
+                                    disabled={!canEdit}
+                                    onPick={(file) => setData((current) => ({ ...current, [slot.field]: file, [`remove_${slot.field}`]: false }))}
+                                    onRemove={() => setData((current) => ({ ...current, [slot.field]: null, [`remove_${slot.field}`]: true }))}
+                                />
+                            ))}
                         </CardContent>
                     </Card>
 
                     <Card>
                         <CardHeader>
                             <CardTitle className="text-base">Contact</CardTitle>
-                            <CardDescription>Stored on the organisation record. Nothing renders these yet.</CardDescription>
+                            <CardDescription>Printed on offer letters, promotion letters and invoices.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="grid gap-4 sm:grid-cols-2">
@@ -228,6 +349,51 @@ export default function SettingsPage({ settings, logoUrl, timezones, dateFormats
                                     onChange={(e) => setData('company_address', e.target.value)}
                                 />
                                 <InputError message={errors.company_address} />
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-base">Invoices</CardTitle>
+                            <CardDescription>Defaults for each new invoice; every one can still be changed on the invoice.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="grid max-w-40 gap-2">
+                                <Label htmlFor="invoice_due_days">Payment due after (days)</Label>
+                                <Input
+                                    id="invoice_due_days"
+                                    type="number"
+                                    min={0}
+                                    max={365}
+                                    value={data.invoice_due_days}
+                                    onChange={(e) => setData('invoice_due_days', Number(e.target.value))}
+                                />
+                                <InputError message={errors.invoice_due_days} />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="invoice_terms">Terms</Label>
+                                <Textarea
+                                    id="invoice_terms"
+                                    rows={3}
+                                    value={data.invoice_terms}
+                                    onChange={(e) => setData('invoice_terms', e.target.value)}
+                                />
+                                <InputError message={errors.invoice_terms} />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="invoice_bank_details">
+                                    Bank details for payment <span className="text-muted-foreground">(optional)</span>
+                                </Label>
+                                <Textarea
+                                    id="invoice_bank_details"
+                                    rows={3}
+                                    value={data.invoice_bank_details}
+                                    onChange={(e) => setData('invoice_bank_details', e.target.value)}
+                                    placeholder={'Account name, number, IFSC, bank'}
+                                />
+                                <p className="text-muted-foreground text-xs">Printed on every invoice.</p>
+                                <InputError message={errors.invoice_bank_details} />
                             </div>
                         </CardContent>
                     </Card>

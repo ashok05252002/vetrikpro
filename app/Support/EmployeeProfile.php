@@ -25,6 +25,8 @@ final class EmployeeProfile
             'name' => $user->name,
             'email' => $user->email,
             'is_active' => $user->is_active,
+            'archived_at' => $employee->archived_at,
+            'archived_by' => $employee->archived_by ? User::whereKey($employee->archived_by)->value('name') : null,
             'deactivated_at' => $user->deactivated_at,
             'deactivated_by' => $user->deactivated_by ? User::whereKey($user->deactivated_by)->value('name') : null,
             'user_id' => $user->id,

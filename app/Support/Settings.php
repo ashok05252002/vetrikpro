@@ -35,6 +35,9 @@ class Settings
             'company.name' => ['type' => 'string', 'default' => 'HRMS Task', 'group' => 'company'],
             'company.legal_name' => ['type' => 'string', 'default' => '', 'group' => 'company'],
             'company.tax_id' => ['type' => 'string', 'default' => '', 'group' => 'company'],
+            // GST state code of the company's registration, e.g. "33". Decides
+            // whether an invoice carries CGST+SGST or IGST.
+            'company.state' => ['type' => 'string', 'default' => '', 'group' => 'company'],
 
             // Contact
             'company.email' => ['type' => 'string', 'default' => '', 'group' => 'contact'],
@@ -42,8 +45,12 @@ class Settings
             'company.website' => ['type' => 'string', 'default' => '', 'group' => 'contact'],
             'company.address' => ['type' => 'string', 'default' => '', 'group' => 'contact'],
 
-            // Branding — a path relative to the `uploads` disk, never a URL.
+            // Branding — paths relative to the `uploads` disk, never URLs.
+            // `logo` is for light backgrounds (and letters, emails, PDFs);
+            // `logo_dark` for dark ones — the navy sidebar and dark mode.
             'company.logo' => ['type' => 'string', 'default' => '', 'group' => 'branding'],
+            'company.logo_dark' => ['type' => 'string', 'default' => '', 'group' => 'branding'],
+            'company.favicon' => ['type' => 'string', 'default' => '', 'group' => 'branding'],
 
             /*
              * Display-only regional settings. These deliberately do NOT touch
@@ -54,6 +61,11 @@ class Settings
             'display.timezone' => ['type' => 'string', 'default' => 'UTC', 'group' => 'regional'],
             'display.date_format' => ['type' => 'string', 'default' => 'dmy', 'group' => 'regional'],
             'display.currency' => ['type' => 'string', 'default' => 'INR', 'group' => 'regional'],
+
+            // Invoices: defaults for a new invoice, each editable on the invoice.
+            'invoice.due_days' => ['type' => 'int', 'default' => 15, 'group' => 'invoice'],
+            'invoice.terms' => ['type' => 'string', 'default' => 'Payment is due within the period stated above. Please quote the invoice number with your payment.', 'group' => 'invoice'],
+            'invoice.bank_details' => ['type' => 'string', 'default' => '', 'group' => 'invoice'],
 
             // Offer letter template (Configuration hub → Offer letter). The body
             // is plain text with {placeholders}; see App\Services\OfferLetter.
@@ -119,7 +131,16 @@ class Settings
      */
     public function logoUrl(): ?string
     {
-        $path = (string) $this->get('company.logo');
+        return $this->imageUrl('company.logo');
+    }
+
+    /**
+     * Public URL for an uploaded branding image (company.logo, company.logo_dark,
+     * company.favicon), or null when none is set.
+     */
+    public function imageUrl(string $key): ?string
+    {
+        $path = (string) $this->get($key);
 
         return $path === '' ? null : '/uploads/'.ltrim($path, '/');
     }
@@ -135,6 +156,7 @@ class Settings
             'company' => [
                 'name' => $this->get('company.name'),
                 'logo' => $this->logoUrl(),
+                'logo_dark' => $this->imageUrl('company.logo_dark'),
             ],
             'display' => [
                 'timezone' => $this->get('display.timezone'),

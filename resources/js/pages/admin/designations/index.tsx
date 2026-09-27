@@ -1,3 +1,4 @@
+import ActiveToggle, { InactiveBadge } from '@/components/admin/active-toggle';
 import DeleteButton from '@/components/admin/delete-button';
 import PageHeader from '@/components/admin/page-header';
 import Pagination from '@/components/admin/pagination';
@@ -24,7 +25,7 @@ export default function DesignationsIndex({ designations, filters }: { designati
             <div className="flex flex-col gap-4 p-4">
                 <PageHeader
                     title="Designations"
-                    description="Job titles, optionally scoped to a department."
+                    description="Job titles, optionally scoped to a department. One in use can be marked inactive, not deleted."
                     action={
                         can('designations.create') && (
                             <Button asChild>
@@ -59,7 +60,10 @@ export default function DesignationsIndex({ designations, filters }: { designati
 
                             {designations.data.map((designation) => (
                                 <TableRow key={designation.id}>
-                                    <TableCell className="font-medium">{designation.name}</TableCell>
+                                    <TableCell className={designation.is_active ? 'font-medium' : 'text-muted-foreground font-medium'}>
+                                        {designation.name}
+                                        <InactiveBadge active={designation.is_active} />
+                                    </TableCell>
                                     <TableCell className="text-muted-foreground">{designation.department?.name ?? '—'}</TableCell>
                                     <TableCell>{designation.employees_count ?? 0}</TableCell>
                                     <TableCell>
@@ -72,7 +76,14 @@ export default function DesignationsIndex({ designations, filters }: { designati
                                                     </Link>
                                                 </Button>
                                             )}
-                                            {can('designations.delete') && (
+                                            {can('designations.edit') && (
+                                                <ActiveToggle
+                                                    url={route('admin.designations.active', designation.id)}
+                                                    active={designation.is_active}
+                                                />
+                                            )}
+                                            {/* In use, it can only be switched off: deleting would strip it from every record. */}
+                                            {can('designations.delete') && !designation.in_use && (
                                                 <DeleteButton url={route('admin.designations.destroy', designation.id)} label={designation.name} />
                                             )}
                                         </div>

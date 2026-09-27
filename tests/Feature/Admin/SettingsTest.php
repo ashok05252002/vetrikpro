@@ -210,4 +210,49 @@ class SettingsTest extends TestCase
             ]))
             ->assertSessionHasErrors('logo');
     }
+
+    public function test_dark_logo_and_favicon_are_stored_separately_from_the_logo()
+    {
+        Storage::fake('uploads');
+        $admin = User::factory()->admin()->create();
+
+        $this->actingAs($admin)->post(route('admin.settings.update'), $this->payload([
+            'logo' => UploadedFile::fake()->image('light.png'),
+            'logo_dark' => UploadedFile::fake()->image('dark.png'),
+            'favicon' => UploadedFile::fake()->image('icon.png', 32, 32),
+        ]))->assertSessionHasNoErrors();
+
+        $settings = app(Settings::class);
+        $paths = [$settings->get('company.logo'), $settings->get('company.logo_dark'), $settings->get('company.favicon')];
+
+        $this->assertCount(3, array_unique($paths));
+        foreach ($paths as $path) {
+            Storage::disk('uploads')->assertExists($path);
+        }
+
+        // Every page gets the dark logo; the favicon goes in the document head.
+        $this->actingAs($admin)->get(route('dashboard'))
+            ->assertSee('/uploads/'.$paths[2], false)
+            ->assertInertia(fn ($page) => $page->where('company.logo_dark', '/uploads/'.$paths[1]));
+
+        // Removing one leaves the others alone.
+        $this->actingAs($admin)->post(route('admin.settings.update'), $this->payload(['remove_logo_dark' => true]));
+        $this->assertSame('', app(Settings::class)->get('company.logo_dark'));
+        Storage::disk('uploads')->assertMissing($paths[1]);
+        Storage::disk('uploads')->assertExists($paths[0]);
+    }
+
+    public function test_an_ico_file_is_accepted_as_a_favicon_but_a_pdf_is_not()
+    {
+        Storage::fake('uploads');
+        $admin = User::factory()->admin()->create();
+
+        $this->actingAs($admin)->post(route('admin.settings.update'), $this->payload([
+            'favicon' => UploadedFile::fake()->createWithContent('favicon.ico', file_get_contents(public_path('favicon.ico'))),
+        ]))->assertSessionHasNoErrors();
+
+        $this->actingAs($admin)->post(route('admin.settings.update'), $this->payload([
+            'favicon' => UploadedFile::fake()->create('icon.pdf', 10, 'application/pdf'),
+        ]))->assertSessionHasErrors('favicon');
+    }
 }

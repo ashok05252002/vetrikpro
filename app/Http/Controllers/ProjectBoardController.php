@@ -62,7 +62,7 @@ class ProjectBoardController extends Controller
         $this->authorize('view', $project);
 
         $view = $request->string('view')->value() === 'list' ? 'list' : 'board';
-        $base = $project->tasks()->with(['assignee:id,name', 'project:id,owner_id'])->withCount('comments');
+        $base = $project->tasks()->with(['assignee:id,name', 'creator:id,name', 'assigner:id,name', 'project:id,owner_id'])->withCount('comments');
         $viewer = $request->user();
 
         $payload = $view === 'board'

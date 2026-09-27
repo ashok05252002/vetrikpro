@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Employee;
 use App\Models\EmployeeDocument;
+use App\Support\Letterhead;
 use App\Support\Settings;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Carbon;
@@ -59,7 +60,7 @@ TEXT;
         ];
     }
 
-    public function __construct(private readonly Settings $settings) {}
+    public function __construct(private readonly Settings $settings, private readonly Letterhead $letterhead) {}
 
     /**
      * @return array<string, string>
@@ -143,16 +144,7 @@ TEXT;
         $s = $this->settings;
 
         return view('pdf.offer-letter', [
-            'company' => [
-                'name' => (string) $s->get('company.name'),
-                'legal_name' => (string) $s->get('company.legal_name'),
-                'address' => (string) $s->get('company.address'),
-                'email' => (string) $s->get('company.email'),
-                'phone' => (string) $s->get('company.phone'),
-                'website' => (string) $s->get('company.website'),
-                'tax_id' => (string) $s->get('company.tax_id'),
-                'logo' => $this->logoDataUri(),
-            ],
+            'company' => $this->letterhead->company(),
             'title' => $this->fill((string) $s->get('offer.title'), $values),
             'paragraphs' => $this->paragraphs((string) $s->get('offer.body'), $values),
             'values' => $values,
@@ -217,44 +209,11 @@ TEXT;
 
     private function date(Carbon $date): string
     {
-        return match ($this->settings->get('display.date_format')) {
-            'mdy' => $date->format('F j, Y'),
-            'ymd' => $date->format('Y-m-d'),
-            default => $date->format('j F Y'),
-        };
+        return $this->letterhead->date($date);
     }
 
     private function money(float $amount): string
     {
-        $currency = (string) $this->settings->get('display.currency', 'INR');
-        // "Rs." rather than ₹: the PDF's built-in fonts have no rupee glyph.
-        $symbol = ['INR' => 'Rs. ', 'USD' => '$', 'EUR' => 'EUR ', 'GBP' => 'GBP ', 'AED' => 'AED ', 'SGD' => 'SGD '][$currency] ?? $currency.' ';
-
-        return $symbol.($currency === 'INR' ? $this->indianGrouping($amount) : number_format($amount, 0));
-    }
-
-    /** 1234567 -> 12,34,567 */
-    private function indianGrouping(float $amount): string
-    {
-        $whole = (string) (int) round($amount);
-        $last3 = substr($whole, -3);
-        $rest = substr($whole, 0, -3);
-
-        return $rest === '' ? $last3 : preg_replace('/\B(?=(\d{2})+(?!\d))/', ',', $rest).','.$last3;
-    }
-
-    private function logoDataUri(): ?string
-    {
-        $path = (string) $this->settings->get('company.logo');
-        $disk = Storage::disk('uploads');
-
-        if ($path === '' || ! $disk->exists($path)) {
-            return null;
-        }
-
-        $mime = $disk->mimeType($path) ?: 'image/png';
-
-        // dompdf cannot draw SVG reliably; better no logo than a broken one.
-        return str_contains($mime, 'svg') ? null : 'data:'.$mime.';base64,'.base64_encode($disk->get($path));
+        return $this->letterhead->money($amount);
     }
 }

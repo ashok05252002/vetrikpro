@@ -6,6 +6,9 @@
 
         <title inertia>{{ config('app.name', 'Laravel') }}</title>
 
+        {{-- The uploaded favicon when there is one (Settings → Branding), else the default. --}}
+        <link rel="icon" href="{{ app(\App\Support\Settings::class)->imageUrl('company.favicon') ?? '/favicon.ico' }}">
+
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
 

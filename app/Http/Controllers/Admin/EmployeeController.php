@@ -9,6 +9,7 @@ use App\Models\Department;
 use App\Models\Designation;
 use App\Models\Employee;
 use App\Models\EmployeeDocument;
+use App\Models\Promotion;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\OfferLetter;
@@ -37,8 +38,12 @@ class EmployeeController extends Controller
     {
         $viewer = $request->user();
 
+        $archived = $request->boolean('archived');
+
         $employees = Employee::query()
             ->with(['user:id,name,email,role_id,is_active', 'user.role:id,name,slug,is_super', 'department:id,name', 'designation:id,name'])
+            // Archived people have their own view; the default list is the current staff.
+            ->when($archived, fn ($query) => $query->archived(), fn ($query) => $query->current())
             ->when($request->string('search')->trim()->value(), function ($query, string $search) {
                 $query->where(fn ($q) => $q
                     ->where('employee_code', 'like', "%{$search}%")
@@ -68,7 +73,8 @@ class EmployeeController extends Controller
             'departments' => $this->departments(),
             'roles' => Role::orderBy('name')->get()->map(fn (Role $role) => ['value' => $role->slug, 'label' => $role->name]),
             'onboardingStatuses' => OnboardingStatus::options(),
-            'filters' => $request->only('search', 'department', 'role', 'account', 'onboarding'),
+            'filters' => [...$request->only('search', 'department', 'role', 'account', 'onboarding'), 'archived' => $archived],
+            'archivedCount' => Employee::archived()->count(),
         ]);
     }
 
@@ -147,9 +153,20 @@ class EmployeeController extends Controller
     {
         $employee->load(['user:id,name,email,role_id,is_active', 'department:id,name', 'designation:id,name']);
 
+        $canPromote = $request->user()->can('employees.promote') && ! $request->user()->is($employee->user) && $request->user()->canGrant($employee->user->permissions());
+
         return Inertia::render('admin/employees/show', [
             'employee' => $employee,
             'profile' => EmployeeProfile::header($employee, $request->user()),
+            'promotions' => $employee->promotions()->with('creator:id,name')->get()->map(fn (Promotion $p) => [
+                ...$p->only('id', 'from_designation_name', 'to_designation_name', 'from_salary', 'to_salary', 'effective_date', 'note', 'emailed_at', 'created_at'),
+                'is_promotion' => $p->isDesignationChange(),
+                'increment_percent' => $p->incrementPercent(),
+                'creator' => $p->creator?->only('id', 'name'),
+                'letter_url' => $p->letter_path ? route('admin.employees.promotions.letter', [$employee, $p]) : null,
+            ]),
+            // Only what the Promote dialog needs, and only for those who may use it.
+            'promoteOptions' => $canPromote && ! $employee->isArchived() ? $this->formOptions($employee) : null,
         ]);
     }
 
@@ -166,7 +183,7 @@ class EmployeeController extends Controller
                 'name' => $employee->user->name,
                 'email' => $employee->user->email,
             ],
-            ...$this->formOptions(),
+            ...$this->formOptions($employee),
         ]);
     }
 
@@ -184,7 +201,9 @@ class EmployeeController extends Controller
 
     /**
      * Deleting an employee removes the person: their login, HR record and
-     * files together.
+     * files together. Only for someone who never touched the work — a mistaken
+     * entry. Anyone with history is archived instead, so nothing they did
+     * loses its name.
      */
     public function destroy(Request $request, Employee $employee): RedirectResponse
     {
@@ -196,11 +215,55 @@ class EmployeeController extends Controller
 
         abort_unless($request->user()->canGrant($user->permissions()), 403, 'This person has access you do not have.');
 
+        if ($user->hasWorkHistory()) {
+            return back()->with('error', "{$user->name} has tasks, bugs or project history. Archive them instead, so that history keeps their name.");
+        }
+
         $name = $user->name;
         // The employee row goes by cascade; User's deleting hook clears the files.
         $user->delete();
 
         return to_route('admin.employees.index')->with('success', "{$name} was deleted.");
+    }
+
+    /**
+     * Archive someone who has left: they can no longer sign in, and they leave
+     * the employee list and every picker — but their records, documents and
+     * work history stay, under their name.
+     */
+    public function archive(Request $request, Employee $employee): RedirectResponse
+    {
+        $user = $employee->user;
+
+        if ($user->is($request->user())) {
+            return back()->with('error', 'You cannot archive yourself.');
+        }
+
+        abort_unless($request->user()->canGrant($user->permissions()), 403, 'This person has access you do not have.');
+
+        DB::transaction(function () use ($employee, $user, $request) {
+            $employee->forceFill(['archived_at' => now(), 'archived_by' => $request->user()->id])->save();
+            $user->forceFill(['is_active' => false, 'deactivated_at' => now(), 'deactivated_by' => $request->user()->id])->save();
+        });
+
+        return back()->with('success', "{$user->name} was archived and can no longer sign in.");
+    }
+
+    /**
+     * Bring an archived person back, with their sign-in switched on again.
+     */
+    public function restore(Request $request, Employee $employee): RedirectResponse
+    {
+        $user = $employee->user;
+
+        abort_unless($request->user()->canGrant($user->permissions()), 403, 'This person has access you do not have.');
+
+        DB::transaction(function () use ($employee, $user) {
+            $employee->forceFill(['archived_at' => null, 'archived_by' => null])->save();
+            $user->forceFill(['is_active' => true, 'deactivated_at' => null, 'deactivated_by' => null])->save();
+        });
+
+        return to_route('admin.employees.show', $employee)->with('success', "{$user->name} is back and can sign in again.");
     }
 
     /**
@@ -219,6 +282,10 @@ class EmployeeController extends Controller
         abort_unless($request->user()->canGrant($user->permissions()), 403, 'This person has access you do not have.');
 
         $active = (bool) $data['is_active'];
+
+        if ($active && $employee->isArchived()) {
+            return back()->with('error', "{$user->name} is archived. Restore them to let them sign in again.");
+        }
 
         $user->forceFill([
             'is_active' => $active,
@@ -258,11 +325,11 @@ class EmployeeController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function formOptions(): array
+    private function formOptions(?Employee $employee = null): array
     {
         return [
-            'departments' => $this->departments(),
-            'designations' => Designation::query()->orderBy('name')->get(['id', 'name', 'department_id']),
+            'departments' => Department::query()->selectable($employee?->department_id)->orderBy('name')->get(['id', 'name']),
+            'designations' => Designation::query()->selectable($employee?->designation_id)->orderBy('name')->get(['id', 'name', 'department_id']),
         ];
     }
 

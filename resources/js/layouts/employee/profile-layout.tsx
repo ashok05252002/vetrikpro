@@ -1,4 +1,5 @@
 import AccessToggle from '@/components/admin/access-toggle';
+import ArchiveButton from '@/components/admin/archive-button';
 import PageHeader from '@/components/admin/page-header';
 import TabNav, { type TabLink } from '@/components/tab-nav';
 import { Badge } from '@/components/ui/badge';
@@ -76,7 +77,10 @@ export default function EmployeeProfileLayout({
                     action={
                         <div className="flex flex-wrap items-center gap-2">
                             {actions}
-                            {employee.viewer.can_toggle_access && (
+                            {employee.viewer.can_toggle_access && employee.archived_at !== null && (
+                                <ArchiveButton employeeId={employee.id} name={employee.name} archived />
+                            )}
+                            {employee.viewer.can_toggle_access && employee.archived_at === null && (
                                 <>
                                     <Button
                                         variant="outline"
@@ -88,6 +92,7 @@ export default function EmployeeProfileLayout({
                                         <KeyRound className="size-4" /> Send password reset
                                     </Button>
                                     <AccessToggle employeeId={employee.id} name={employee.name} active={employee.is_active} />
+                                    <ArchiveButton employeeId={employee.id} name={employee.name} archived={false} />
                                 </>
                             )}
                             {employee.viewer.can_edit && (
@@ -108,7 +113,13 @@ export default function EmployeeProfileLayout({
                     </a>
                     <Badge variant={employee.status === 'active' ? 'default' : 'secondary'}>{statusLabels[employee.status] ?? employee.status}</Badge>
                     {employee.role && <Badge variant="outline">{employee.role.name}</Badge>}
-                    {!employee.is_active && (
+                    {employee.archived_at !== null && (
+                        <Badge variant="secondary">
+                            Archived {format.date(employee.archived_at)}
+                            {employee.archived_by && ` by ${employee.archived_by}`}
+                        </Badge>
+                    )}
+                    {!employee.is_active && employee.archived_at === null && (
                         <Badge variant="destructive">
                             Deactivated{employee.deactivated_at && ` ${format.date(employee.deactivated_at)}`}
                             {employee.deactivated_by && ` by ${employee.deactivated_by}`}

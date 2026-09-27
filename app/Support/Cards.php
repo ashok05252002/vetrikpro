@@ -38,6 +38,7 @@ final class Cards
             ...$task->only('id', 'project_id', 'number', 'title', 'status', 'priority', 'due_date', 'position'),
             'reference' => $task->reference(),
             'assignee' => $task->assignee?->only('id', 'name'),
+            ...self::people($task),
             'comments_count' => $task->comments_count ?? null,
             'is_overdue' => $task->isOverdue(),
         ];
@@ -54,8 +55,23 @@ final class Cards
             'reference' => $point->reference(),
             'assignee' => $point->assignee?->only('id', 'name'),
             'reporter' => $point->creator?->only('id', 'name'),
+            ...self::people($point),
             'task' => $point->task ? ['id' => $point->task->id, 'reference' => $point->task->reference(), 'title' => $point->task->title] : null,
             'last_tested_at' => $point->last_tested_at,
+        ];
+    }
+
+    /**
+     * Who added it and who assigned it — only where the caller loaded them, so
+     * a screen that doesn't show them pays no query for them.
+     *
+     * @return array<string, mixed>
+     */
+    private static function people(Task|TestPoint $card): array
+    {
+        return [
+            ...($card->relationLoaded('creator') ? ['creator' => $card->creator?->only('id', 'name')] : []),
+            ...($card->relationLoaded('assigner') ? ['assigner' => $card->assigner?->only('id', 'name')] : []),
         ];
     }
 }

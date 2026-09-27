@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\SettingsRequest;
+use App\Support\IndianStates;
 use App\Support\Settings;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
@@ -13,6 +14,13 @@ use Inertia\Response;
 
 class SettingsController extends Controller
 {
+    /** Upload field => setting key, for each branding image. */
+    private const IMAGES = [
+        'logo' => 'company.logo',
+        'logo_dark' => 'company.logo_dark',
+        'favicon' => 'company.favicon',
+    ];
+
     public function __construct(private readonly Settings $settings) {}
 
     public function edit(): Response
@@ -22,6 +30,10 @@ class SettingsController extends Controller
                 'company_name' => $this->settings->get('company.name'),
                 'company_legal_name' => $this->settings->get('company.legal_name'),
                 'company_tax_id' => $this->settings->get('company.tax_id'),
+                'company_state' => $this->settings->get('company.state'),
+                'invoice_due_days' => $this->settings->get('invoice.due_days'),
+                'invoice_terms' => $this->settings->get('invoice.terms'),
+                'invoice_bank_details' => $this->settings->get('invoice.bank_details'),
                 'company_email' => $this->settings->get('company.email'),
                 'company_phone' => $this->settings->get('company.phone'),
                 'company_website' => $this->settings->get('company.website'),
@@ -30,8 +42,9 @@ class SettingsController extends Controller
                 'display_date_format' => $this->settings->get('display.date_format'),
                 'display_currency' => $this->settings->get('display.currency'),
             ],
-            'logoUrl' => $this->settings->logoUrl(),
+            'images' => collect(self::IMAGES)->mapWithKeys(fn (string $key, string $field) => [$field => $this->settings->imageUrl($key)]),
             'timezones' => timezone_identifiers_list(),
+            'states' => IndianStates::options(),
             'dateFormats' => [
                 ['value' => 'dmy', 'label' => 'Day Month Year — 24 Sep 2026'],
                 ['value' => 'mdy', 'label' => 'Month Day Year — Sep 24, 2026'],
@@ -48,6 +61,10 @@ class SettingsController extends Controller
             'company.name' => $data['company_name'],
             'company.legal_name' => $data['company_legal_name'] ?? '',
             'company.tax_id' => $data['company_tax_id'] ?? '',
+            'company.state' => $data['company_state'] ?? '',
+            'invoice.due_days' => (int) ($data['invoice_due_days'] ?? 15),
+            'invoice.terms' => $data['invoice_terms'] ?? '',
+            'invoice.bank_details' => $data['invoice_bank_details'] ?? '',
             'company.email' => $data['company_email'] ?? '',
             'company.phone' => $data['company_phone'] ?? '',
             'company.website' => $data['company_website'] ?? '',
@@ -57,19 +74,21 @@ class SettingsController extends Controller
             'display.currency' => strtoupper($data['display_currency']),
         ];
 
-        $existing = (string) $this->settings->get('company.logo');
+        foreach (self::IMAGES as $field => $key) {
+            $existing = (string) $this->settings->get($key);
 
-        if ($request->hasFile('logo')) {
-            $file = $request->file('logo');
-            $path = 'company/logo-'.Str::random(12).'.'.$file->getClientOriginalExtension();
+            if ($request->hasFile($field)) {
+                $file = $request->file($field);
+                $path = 'company/'.str_replace('_', '-', $field).'-'.Str::random(12).'.'.strtolower($file->getClientOriginalExtension());
 
-            Storage::disk('uploads')->put($path, $file->get());
+                Storage::disk('uploads')->put($path, $file->get());
 
-            $this->deleteLogo($existing);
-            $values['company.logo'] = $path;
-        } elseif ($request->boolean('remove_logo')) {
-            $this->deleteLogo($existing);
-            $values['company.logo'] = '';
+                $this->deleteImage($existing);
+                $values[$key] = $path;
+            } elseif ($request->boolean("remove_{$field}")) {
+                $this->deleteImage($existing);
+                $values[$key] = '';
+            }
         }
 
         $this->settings->set($values);
@@ -77,7 +96,7 @@ class SettingsController extends Controller
         return to_route('admin.settings.edit')->with('success', 'Settings saved.');
     }
 
-    private function deleteLogo(string $path): void
+    private function deleteImage(string $path): void
     {
         if ($path !== '' && Storage::disk('uploads')->exists($path)) {
             Storage::disk('uploads')->delete($path);

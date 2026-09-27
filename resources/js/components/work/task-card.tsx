@@ -1,5 +1,6 @@
 import PriorityBadge from '@/components/work/priority-badge';
 import UserAvatar from '@/components/work/user-avatar';
+import { CardPeople } from '@/components/work/work-people';
 import { useFormat } from '@/hooks/use-format';
 import { cn } from '@/lib/utils';
 import type { TaskSummary } from '@/types';
@@ -64,10 +65,12 @@ export default function TaskCard({ task, draggable = true, overlay = false }: Pr
                     </span>
                 )}
 
-                <span className="ml-auto" title={task.assignee?.name ?? 'Unassigned'}>
+                <span className="ml-auto" title={task.assignee ? `Assigned to ${task.assignee.name}` : 'Unassigned'}>
                     <UserAvatar name={task.assignee?.name} className="size-6" />
                 </span>
             </div>
+
+            <CardPeople creator={task.creator} assigner={task.assigner} />
         </div>
     );
 }

@@ -33,7 +33,7 @@ class TaskController extends Controller
         $showAll = $scope === 'all' && $user->can('projects.view');
 
         $tasks = Task::query()
-            ->with(['project:id,name,code', 'assignee:id,name'])
+            ->with(['project:id,name,code', 'assignee:id,name', 'creator:id,name', 'assigner:id,name'])
             ->withCount('comments')
             ->unless($showAll, fn ($query) => $query->where('assigned_to', $user->id))
             ->when($request->string('search')->trim()->value(), fn ($query, string $search) => $query
@@ -52,6 +52,8 @@ class TaskController extends Controller
                 'reference' => $task->reference(),
                 'project' => $task->project?->only('id', 'name', 'code'),
                 'assignee' => $task->assignee?->only('id', 'name'),
+                'creator' => $task->creator?->only('id', 'name'),
+                'assigner' => $task->assigner?->only('id', 'name'),
                 'comments_count' => $task->comments_count,
                 'is_overdue' => $task->isOverdue(),
             ]);
@@ -77,6 +79,7 @@ class TaskController extends Controller
             'project:id,name,code,owner_id',
             'assignee:id,name',
             'creator:id,name',
+            'assigner:id,name',
             'comments.user:id,name',
         ]);
 
@@ -87,6 +90,7 @@ class TaskController extends Controller
                 'project' => $task->project?->only('id', 'name', 'code'),
                 'assignee' => $task->assignee?->only('id', 'name'),
                 'creator' => $task->creator?->only('id', 'name'),
+                'assigner' => $task->assigner?->only('id', 'name'),
                 'history' => Cards::history($task),
                 'is_overdue' => $task->isOverdue(),
                 'created_at' => $task->created_at,

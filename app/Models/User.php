@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\DB;
 
 class User extends Authenticatable
 {
@@ -75,6 +76,44 @@ class User extends Authenticatable
     public function ownedProjects(): HasMany
     {
         return $this->hasMany(Project::class, 'owner_id');
+    }
+
+    /**
+     * Whether this person has left a mark on the work: anything they created,
+     * were given, reviewed, tested or commented on. Someone with history is
+     * archived rather than deleted, so none of it loses its name.
+     */
+    public function hasWorkHistory(): bool
+    {
+        $id = $this->id;
+        $touches = [
+            'tasks' => ['created_by', 'assigned_to', 'assigned_by'],
+            'test_points' => ['created_by', 'assigned_to', 'assigned_by', 'last_tested_by'],
+            'task_comments' => ['user_id'],
+            'status_changes' => ['user_id'],
+            'projects' => ['owner_id'],
+            'project_user' => ['user_id'],
+            'branches' => ['created_by'],
+            'merge_requests' => ['requested_by', 'reviewed_by', 'merged_by'],
+            'merge_request_events' => ['user_id'],
+            'requirement_documents' => ['created_by'],
+            'test_runs' => ['created_by', 'completed_by'],
+            'test_run_results' => ['tested_by'],
+        ];
+
+        foreach ($touches as $table => $columns) {
+            $query = DB::table($table)->where(function ($q) use ($columns, $id) {
+                foreach ($columns as $column) {
+                    $q->orWhere($column, $id);
+                }
+            });
+
+            if ($query->exists()) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function assignedTasks(): HasMany

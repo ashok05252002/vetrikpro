@@ -106,6 +106,12 @@ export default function TestPointPage({ project, counts, point, statuses, priori
                         </span>
                         <span className="text-muted-foreground">
                             Assigned to <span className="text-foreground">{point.assignee?.name ?? 'nobody yet'}</span>
+                            {point.assignee && point.assigner && (
+                                <>
+                                    {' '}
+                                    by <span className="text-foreground">{point.assigner.name}</span>
+                                </>
+                            )}
                         </span>
                         <span className="text-muted-foreground">
                             Last tested:{' '}

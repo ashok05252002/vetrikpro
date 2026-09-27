@@ -1,4 +1,5 @@
 import AccessToggle from '@/components/admin/access-toggle';
+import ArchiveButton from '@/components/admin/archive-button';
 import DeleteButton from '@/components/admin/delete-button';
 import FilterBar from '@/components/admin/filter-bar';
 import PageHeader from '@/components/admin/page-header';
@@ -31,7 +32,8 @@ interface Props {
     departments: Department[];
     roles: Option[];
     onboardingStatuses: Option[];
-    filters: { search?: string; department?: string; role?: string; account?: string; onboarding?: string };
+    filters: { search?: string; department?: string; role?: string; account?: string; onboarding?: string; archived: boolean };
+    archivedCount: number;
 }
 
 const accountOptions: Option[] = [
@@ -39,7 +41,8 @@ const accountOptions: Option[] = [
     { value: 'deactivated', label: 'Deactivated' },
 ];
 
-export default function EmployeesIndex({ employees, departments, roles, onboardingStatuses, filters }: Props) {
+export default function EmployeesIndex({ employees, departments, roles, onboardingStatuses, filters, archivedCount }: Props) {
+    const { archived, ...narrowing } = filters;
     const { can } = usePermission();
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -60,9 +63,33 @@ export default function EmployeesIndex({ employees, departments, roles, onboardi
                     }
                 />
 
+                <div className="flex gap-1 border-b">
+                    {[
+                        { label: 'Current staff', on: !archived, href: route('admin.employees.index') },
+                        {
+                            label: `Archived${archivedCount ? ` (${archivedCount})` : ''}`,
+                            on: archived,
+                            href: route('admin.employees.index', { archived: 1 }),
+                        },
+                    ].map((view) => (
+                        <Link
+                            key={view.label}
+                            href={view.href}
+                            className={
+                                view.on
+                                    ? 'border-primary text-foreground -mb-px border-b-2 px-3 py-2 text-sm font-medium'
+                                    : 'text-muted-foreground hover:text-foreground px-3 py-2 text-sm'
+                            }
+                        >
+                            {view.label}
+                        </Link>
+                    ))}
+                </div>
+
                 <FilterBar
                     url={route('admin.employees.index')}
-                    filters={filters}
+                    filters={narrowing}
+                    keep={archived ? { archived: '1' } : undefined}
                     searchPlaceholder="Search name, email or code…"
                     selects={[
                         { name: 'role', placeholder: 'All roles', options: roles },
@@ -93,7 +120,11 @@ export default function EmployeesIndex({ employees, departments, roles, onboardi
                             {employees.data.length === 0 && (
                                 <TableRow>
                                     <TableCell colSpan={7} className="text-muted-foreground py-10 text-center">
-                                        {Object.values(filters).some(Boolean) ? 'Nobody matches these filters.' : 'No employees yet.'}
+                                        {Object.values(narrowing).some(Boolean)
+                                            ? 'Nobody matches these filters.'
+                                            : archived
+                                              ? 'Nobody is archived.'
+                                              : 'No employees yet.'}
                                     </TableCell>
                                 </TableRow>
                             )}
@@ -162,23 +193,41 @@ export default function EmployeesIndex({ employees, departments, roles, onboardi
                                     </TableCell>
                                     <TableCell>
                                         <div className="flex items-center justify-end gap-1">
-                                            {employee.can_toggle_access && (
-                                                <AccessToggle employeeId={employee.id} name={employee.user.name} active={employee.user.is_active} />
-                                            )}
-                                            {can('employees.edit') && (
-                                                <Button asChild variant="ghost" size="sm">
-                                                    <Link href={route('admin.employees.edit', employee.id)}>
-                                                        <Pencil className="size-4" />
-                                                        <span className="sr-only">Edit</span>
-                                                    </Link>
-                                                </Button>
-                                            )}
-                                            {can('employees.delete') && employee.can_toggle_access && (
-                                                <DeleteButton
-                                                    url={route('admin.employees.destroy', employee.id)}
-                                                    label={employee.user.name}
-                                                    description="Their login, HR record and uploaded documents are all removed permanently. To stop them signing in but keep their records, deactivate instead."
-                                                />
+                                            {archived ? (
+                                                <>
+                                                    {employee.can_toggle_access && (
+                                                        <ArchiveButton employeeId={employee.id} name={employee.user.name} archived />
+                                                    )}
+                                                    {/* Refused by the server for anyone with work history — only a mistaken entry goes for good. */}
+                                                    {can('employees.delete') && employee.can_toggle_access && (
+                                                        <DeleteButton
+                                                            url={route('admin.employees.destroy', employee.id)}
+                                                            label={employee.user.name}
+                                                            description="Only for someone added by mistake: their login, HR record and documents are removed permanently. Anyone with tasks, bugs or project history cannot be deleted — they stay archived."
+                                                        />
+                                                    )}
+                                                </>
+                                            ) : (
+                                                <>
+                                                    {employee.can_toggle_access && (
+                                                        <AccessToggle
+                                                            employeeId={employee.id}
+                                                            name={employee.user.name}
+                                                            active={employee.user.is_active}
+                                                        />
+                                                    )}
+                                                    {can('employees.edit') && (
+                                                        <Button asChild variant="ghost" size="sm">
+                                                            <Link href={route('admin.employees.edit', employee.id)}>
+                                                                <Pencil className="size-4" />
+                                                                <span className="sr-only">Edit</span>
+                                                            </Link>
+                                                        </Button>
+                                                    )}
+                                                    {employee.can_toggle_access && (
+                                                        <ArchiveButton employeeId={employee.id} name={employee.user.name} archived={false} compact />
+                                                    )}
+                                                </>
                                             )}
                                         </div>
                                     </TableCell>

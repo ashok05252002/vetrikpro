@@ -1,3 +1,4 @@
+import ActiveToggle, { InactiveBadge } from '@/components/admin/active-toggle';
 import DeleteButton from '@/components/admin/delete-button';
 import PageHeader from '@/components/admin/page-header';
 import Pagination from '@/components/admin/pagination';
@@ -24,7 +25,7 @@ export default function DepartmentsIndex({ departments, filters }: { departments
             <div className="flex flex-col gap-4 p-4">
                 <PageHeader
                     title="Departments"
-                    description="The organisational units employees belong to."
+                    description="The organisational units employees belong to. One in use can be marked inactive, not deleted."
                     action={
                         can('departments.create') && (
                             <Button asChild>
@@ -60,7 +61,10 @@ export default function DepartmentsIndex({ departments, filters }: { departments
 
                             {departments.data.map((department) => (
                                 <TableRow key={department.id}>
-                                    <TableCell className="font-medium">{department.name}</TableCell>
+                                    <TableCell className={department.is_active ? 'font-medium' : 'text-muted-foreground font-medium'}>
+                                        {department.name}
+                                        <InactiveBadge active={department.is_active} />
+                                    </TableCell>
                                     <TableCell className="text-muted-foreground">{department.code ?? '—'}</TableCell>
                                     <TableCell>{department.designations_count ?? 0}</TableCell>
                                     <TableCell>{department.employees_count ?? 0}</TableCell>
@@ -74,12 +78,12 @@ export default function DepartmentsIndex({ departments, filters }: { departments
                                                     </Link>
                                                 </Button>
                                             )}
-                                            {can('departments.delete') && (
-                                                <DeleteButton
-                                                    url={route('admin.departments.destroy', department.id)}
-                                                    label={department.name}
-                                                    description="Employees and designations in this department will keep their records but lose the department link."
-                                                />
+                                            {can('departments.edit') && (
+                                                <ActiveToggle url={route('admin.departments.active', department.id)} active={department.is_active} />
+                                            )}
+                                            {/* In use, it can only be switched off: deleting would strip it from every record. */}
+                                            {can('departments.delete') && !department.in_use && (
+                                                <DeleteButton url={route('admin.departments.destroy', department.id)} label={department.name} />
                                             )}
                                         </div>
                                     </TableCell>

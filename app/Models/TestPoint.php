@@ -6,6 +6,7 @@ use App\Enums\TaskPriority;
 use App\Enums\TestPointStatus;
 use App\Models\Concerns\HasProjectNumber;
 use App\Models\Concerns\HasStatusWorkflow;
+use App\Models\Concerns\RecordsAssigner;
 use Database\Factories\TestPointFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -16,7 +17,7 @@ use Illuminate\Support\Facades\Storage;
 class TestPoint extends Model
 {
     /** @use HasFactory<TestPointFactory> */
-    use HasFactory, HasProjectNumber;
+    use HasFactory, HasProjectNumber, RecordsAssigner;
 
     use HasStatusWorkflow {
         statusChangeableBy as ownsWork;
