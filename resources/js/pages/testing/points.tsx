@@ -193,6 +193,7 @@ export default function TestingPoints({ project, counts, view, columns, list, su
                     moveUrl={(id) => route('testing.points.move', [project.id, id])}
                     reloadOnError={['columns', 'summary']}
                     columnMark={(status) => <TestStatusMark status={status} />}
+                    columnColor={(status) => testStatusSpec[status].color}
                     onAdd={can.create ? openNew : undefined}
                     renderCard={(point, { overlay }) => (
                         <TestPointCard point={point} overlay={overlay} draggable={!overlay && Boolean(point.can_move)} />

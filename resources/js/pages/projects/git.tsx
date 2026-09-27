@@ -10,7 +10,7 @@ import { useFormat } from '@/hooks/use-format';
 import ProjectWorkspaceLayout from '@/layouts/project/workspace-layout';
 import type { BranchRow, MergeRequestRow, Option, Paginated, ProjectWorkspaceHeader } from '@/types';
 import { Link, router } from '@inertiajs/react';
-import { ExternalLink, GitBranchPlus } from 'lucide-react';
+import { ExternalLink, GitBranchPlus, Github } from 'lucide-react';
 import { useState } from 'react';
 
 type Show = 'branches' | 'merge-requests';
@@ -88,6 +88,35 @@ function Branches({ project, branches }: { project: ProjectWorkspaceHeader; bran
     );
 }
 
+/** The repository as GitHub shows it: the mark, owner/repo, and the branch work merges into. */
+function RepoBar({ url, defaultBranch }: { url: string | null; defaultBranch: string }) {
+    const slug = url?.match(/github\.com[/:]([^/]+\/[^/.]+)/)?.[1] ?? null;
+
+    return (
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+            {url ? (
+                <a
+                    href={url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="hover:bg-muted inline-flex items-center gap-1.5 rounded-md border px-2 py-1 font-medium"
+                    style={{ color: 'var(--tone-github)' }}
+                >
+                    <Github className="size-3.5" aria-hidden />
+                    <span className="text-foreground">{slug ?? 'Repository'}</span>
+                    <ExternalLink className="text-muted-foreground size-3" aria-hidden />
+                </a>
+            ) : (
+                <span className="text-muted-foreground inline-flex items-center gap-1.5">
+                    <Github className="size-3.5" aria-hidden /> No repository linked
+                </span>
+            )}
+            <span className="text-muted-foreground">merges into</span>
+            <BranchName name={defaultBranch} />
+        </div>
+    );
+}
+
 export default function Git({ project, show, branches, mergeRequests, branchStatuses, mergeStatuses, filters, can }: Props) {
     const [registering, setRegistering] = useState(false);
     const url = route('projects.git', project.id);
@@ -98,7 +127,12 @@ export default function Git({ project, show, branches, mergeRequests, branchStat
             tab="git"
             actions={
                 can.create && (
-                    <Button size="sm" onClick={() => setRegistering(true)}>
+                    <Button
+                        size="sm"
+                        className="text-white hover:opacity-90"
+                        style={{ background: 'var(--gh-open-bg)' }}
+                        onClick={() => setRegistering(true)}
+                    >
                         <GitBranchPlus className="size-4" /> Register branch
                     </Button>
                 )
@@ -120,16 +154,7 @@ export default function Git({ project, show, branches, mergeRequests, branchStat
                     </ToggleGroupItem>
                 </ToggleGroup>
 
-                <div className="text-muted-foreground flex flex-wrap items-center gap-3 text-xs">
-                    <span>
-                        Merges into <code className="font-mono">{project.default_branch}</code> by default
-                    </span>
-                    {project.repository_url && (
-                        <a href={project.repository_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 hover:underline">
-                            Repository <ExternalLink className="size-3" />
-                        </a>
-                    )}
-                </div>
+                <RepoBar url={project.repository_url} defaultBranch={project.default_branch} />
             </div>
 
             <FilterBar

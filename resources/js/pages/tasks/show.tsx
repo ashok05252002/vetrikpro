@@ -3,6 +3,7 @@ import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import CardHeading from '@/components/ui/card-heading';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import PriorityBadge from '@/components/work/priority-badge';
@@ -16,7 +17,7 @@ import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
 import type { BreadcrumbItem, Option, TaskDetail, TaskStatus, User } from '@/types';
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { Pencil } from 'lucide-react';
+import { AlignLeft, History, Info, Pencil } from 'lucide-react';
 import { FormEventHandler, useState } from 'react';
 
 interface Props {
@@ -106,7 +107,9 @@ export default function ShowTask({ task, statuses, priorities, assignees, can }:
                     <div className="space-y-4 lg:col-span-2">
                         <Card>
                             <CardHeader>
-                                <CardTitle className="text-base">Description</CardTitle>
+                                <CardHeading icon={AlignLeft} tone="violet">
+                                    Description
+                                </CardHeading>
                             </CardHeader>
                             <CardContent>
                                 {task.description ? (
@@ -158,7 +161,9 @@ export default function ShowTask({ task, statuses, priorities, assignees, can }:
                     <div className="space-y-4">
                         <Card className="h-fit">
                             <CardHeader>
-                                <CardTitle className="text-base">Details</CardTitle>
+                                <CardHeading icon={Info} tone="sky">
+                                    Details
+                                </CardHeading>
                             </CardHeader>
                             <CardContent>
                                 <dl className="space-y-5">
@@ -207,7 +212,9 @@ export default function ShowTask({ task, statuses, priorities, assignees, can }:
 
                         <Card className="h-fit">
                             <CardHeader>
-                                <CardTitle className="text-base">Status history</CardTitle>
+                                <CardHeading icon={History} tone="violet">
+                                    Status history
+                                </CardHeading>
                             </CardHeader>
                             <CardContent>
                                 <StatusHistory history={task.history} badge={(status) => <StageBadge status={status as TaskStatus} />} />

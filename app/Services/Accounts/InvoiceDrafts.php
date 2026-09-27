@@ -27,7 +27,8 @@ final class InvoiceDrafts
             $interstate = InvoiceCalculator::isInterstate((string) $this->settings->get('company.state'), $placeOfSupply);
 
             $lines = array_values($data['items']);
-            $totals = InvoiceCalculator::compute($lines, $interstate);
+            $chargeTax = (bool) ($data['charge_tax'] ?? true);
+            $totals = InvoiceCalculator::compute($lines, $interstate, $chargeTax);
 
             $invoice->fill([
                 'customer_id' => $customer->id,
@@ -37,6 +38,7 @@ final class InvoiceDrafts
                 'bill_gstin' => $customer->gstin,
                 'place_of_supply' => $placeOfSupply,
                 'is_interstate' => $interstate,
+                'charge_tax' => $chargeTax,
                 'issue_date' => $data['issue_date'],
                 'due_date' => $data['due_date'] ?? null,
                 'notes' => $data['notes'] ?? null,

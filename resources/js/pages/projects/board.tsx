@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import KanbanBoard from '@/components/work/kanban-board';
 import PriorityBadge from '@/components/work/priority-badge';
-import StageBadge, { stageColor } from '@/components/work/stage-badge';
+import StageBadge, { StageSelect, stageColor } from '@/components/work/stage-badge';
 import TaskCard from '@/components/work/task-card';
 import TaskDialog from '@/components/work/task-dialog';
 import ViewToggle, { type WorkView } from '@/components/work/view-toggle';
@@ -90,7 +90,11 @@ function TaskList({
                                     </Link>
                                 </TableCell>
                                 <TableCell>
-                                    <StageBadge status={task.status} />
+                                    {task.can_move ? (
+                                        <StageSelect status={task.status} moveUrl={route('tasks.move', task.id)} reload={['list', 'flash']} />
+                                    ) : (
+                                        <StageBadge status={task.status} />
+                                    )}
                                 </TableCell>
                                 <TableCell className="hidden sm:table-cell">
                                     <PriorityBadge priority={task.priority} />
@@ -155,6 +159,7 @@ export default function Board({ project, view, columns, list, statuses, prioriti
                     moveUrl={(id) => route('tasks.move', id)}
                     reloadOnError={['columns', 'project']}
                     columnMark={(status) => <span aria-hidden className="size-2.5 rounded-full" style={{ background: stageColor[status] }} />}
+                    columnColor={(status) => stageColor[status]}
                     onAdd={can.createTask ? openNew : undefined}
                     renderCard={(task, { overlay }) => <TaskCard task={task} overlay={overlay} draggable={!overlay && Boolean(task.can_move)} />}
                 />

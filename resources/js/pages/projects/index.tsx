@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import Meter from '@/components/viz/meter';
 import { useFormat } from '@/hooks/use-format';
 import AppLayout from '@/layouts/app-layout';
+import { SECTIONS } from '@/lib/sections';
 import type { BreadcrumbItem, Option, ProjectSummary } from '@/types';
 import { Head, Link } from '@inertiajs/react';
 import { FolderKanban, Plus, Users } from 'lucide-react';
@@ -29,6 +30,8 @@ export default function ProjectsIndex({ projects, statuses, filters, canCreate }
 
             <div className="flex flex-col gap-4 p-4 md:p-6">
                 <PageHeader
+                    icon={SECTIONS.projects.icon}
+                    tone={SECTIONS.projects.tone}
                     title="Projects"
                     description="Boards you own or belong to."
                     action={

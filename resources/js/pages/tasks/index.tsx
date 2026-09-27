@@ -6,10 +6,11 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import PriorityBadge from '@/components/work/priority-badge';
-import StageBadge from '@/components/work/stage-badge';
+import StageBadge, { StageSelect } from '@/components/work/stage-badge';
 import { AssigneeCell } from '@/components/work/work-people';
 import { useFormat } from '@/hooks/use-format';
 import AppLayout from '@/layouts/app-layout';
+import { SECTIONS } from '@/lib/sections';
 import { cn } from '@/lib/utils';
 import type { BreadcrumbItem, Option, Paginated, TaskSummary } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
@@ -71,6 +72,8 @@ export default function TasksIndex({ tasks, statuses, priorities, filters, canSe
 
             <div className="flex flex-col gap-4 p-4 md:p-6">
                 <PageHeader
+                    icon={SECTIONS.tasks.icon}
+                    tone={SECTIONS.tasks.tone}
                     title={filters.scope === 'all' ? 'All tasks' : 'My tasks'}
                     description={filters.scope === 'all' ? 'Every task across the organisation.' : 'Everything assigned to you, in workflow order.'}
                 />
@@ -168,7 +171,15 @@ export default function TasksIndex({ tasks, statuses, priorities, filters, canSe
                                             )}
                                         </TableCell>
                                         <TableCell>
-                                            <StageBadge status={task.status} />
+                                            {task.can_move ? (
+                                                <StageSelect
+                                                    status={task.status}
+                                                    moveUrl={route('tasks.move', task.id)}
+                                                    reload={['tasks', 'flash']}
+                                                />
+                                            ) : (
+                                                <StageBadge status={task.status} />
+                                            )}
                                         </TableCell>
                                         <TableCell>
                                             <PriorityBadge priority={task.priority} />

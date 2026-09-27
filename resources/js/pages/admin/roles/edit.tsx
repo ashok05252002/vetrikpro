@@ -1,5 +1,6 @@
 import PageHeader from '@/components/admin/page-header';
 import AppLayout from '@/layouts/app-layout';
+import { SECTIONS } from '@/lib/sections';
 import type { BreadcrumbItem, PermissionGroup, Role } from '@/types';
 import { Head } from '@inertiajs/react';
 import RoleForm from './role-form';
@@ -22,6 +23,8 @@ export default function EditRole({ role, permissionGroups }: Props) {
 
             <div className="flex flex-col gap-6 p-4">
                 <PageHeader
+                    icon={SECTIONS.roles.icon}
+                    tone={SECTIONS.roles.tone}
                     back={route('admin.roles.index')}
                     title={`Edit ${role.name}`}
                     description={`${role.users_count} ${role.users_count === 1 ? 'person has' : 'people have'} this role. Changes apply to them at once.`}

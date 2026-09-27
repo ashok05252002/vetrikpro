@@ -97,7 +97,11 @@ export default function ProjectMembers({ project, members, roles, departments, d
                                             )}
                                             <p className="text-muted-foreground truncate text-xs">{member.email}</p>
                                         </div>
-                                        {!member.is_active && <Badge variant="secondary">Disabled</Badge>}
+                                        {member.is_archived ? (
+                                            <Badge variant="secondary">Archived</Badge>
+                                        ) : (
+                                            !member.is_active && <Badge variant="secondary">Disabled</Badge>
+                                        )}
                                     </div>
                                 </TableCell>
                                 <TableCell className="text-muted-foreground hidden md:table-cell">{member.department ?? '—'}</TableCell>

@@ -1,5 +1,6 @@
 import PageHeader from '@/components/admin/page-header';
 import AppLayout from '@/layouts/app-layout';
+import { SECTIONS } from '@/lib/sections';
 import type { BreadcrumbItem, Option } from '@/types';
 import { Head } from '@inertiajs/react';
 import ProjectForm, { NO_OWNER } from './project-form';
@@ -16,7 +17,13 @@ export default function CreateProject({ statuses }: { statuses: Option[] }) {
             <Head title="New project" />
 
             <div className="flex flex-col gap-6 p-4 md:p-6">
-                <PageHeader back={route('admin.projects.index')} title="New project" description="Set it up here; you’ll add its members next." />
+                <PageHeader
+                    icon={SECTIONS.projects.icon}
+                    tone={SECTIONS.projects.tone}
+                    back={route('admin.projects.index')}
+                    title="New project"
+                    description="Set it up here; you’ll add its members next."
+                />
 
                 <ProjectForm
                     statuses={statuses}

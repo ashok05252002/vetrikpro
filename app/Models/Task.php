@@ -7,19 +7,22 @@ use App\Enums\TaskStatus;
 use App\Models\Concerns\HasProjectNumber;
 use App\Models\Concerns\HasStatusWorkflow;
 use App\Models\Concerns\RecordsAssigner;
+use App\Models\Concerns\SendsWorkMail;
 use App\Notifications\TaskMarkedUrgent;
+use App\Support\Clock;
+use App\Support\SendsMailSafely;
+use App\Support\Settings;
 use Database\Factories\TaskFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Facades\DB;
 
 class Task extends Model
 {
     /** @use HasFactory<TaskFactory> */
-    use HasFactory, HasProjectNumber, HasStatusWorkflow, RecordsAssigner;
+    use HasFactory, HasProjectNumber, HasStatusWorkflow, RecordsAssigner, SendsWorkMail;
 
     public const REFERENCE_PREFIX = 'T';
 
@@ -94,7 +97,7 @@ class Task extends Model
      */
     public function notifyIfUrgent(): void
     {
-        if ($this->priority !== TaskPriority::Urgent || $this->assigned_to === null) {
+        if ($this->priority !== TaskPriority::Urgent || $this->assigned_to === null || ! app(Settings::class)->get('notify.task.urgent')) {
             return;
         }
 
@@ -113,22 +116,22 @@ class Task extends Model
             return;
         }
 
-        DB::afterCommit(function () use ($why, $actor) {
-            $this->assignee?->notify(new TaskMarkedUrgent($this, $actor, $why));
-        });
+        SendsMailSafely::afterCommit(fn () => $this->assignee?->notify(new TaskMarkedUrgent($this, $actor, $why)));
     }
 
     public function isOverdue(): bool
     {
+        // Overdue from the day after the due date, in the organisation's timezone —
+        // the same rule as scopeOverdue(), the dashboard and the overdue email.
         return $this->due_date !== null
             && $this->status !== TaskStatus::Done
-            && $this->due_date->isPast();
+            && $this->due_date->lt(Clock::today());
     }
 
     public function scopeOverdue(Builder $query): Builder
     {
         return $query->whereNotNull('due_date')
-            ->where('due_date', '<', today())
+            ->where('due_date', '<', Clock::today()->toDateString())
             ->where('status', '!=', TaskStatus::Done);
     }
 }

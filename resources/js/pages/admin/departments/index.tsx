@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
+import { SECTIONS } from '@/lib/sections';
 import type { BreadcrumbItem, Department, Paginated } from '@/types';
 import { Head, Link } from '@inertiajs/react';
 import { Pencil, Plus } from 'lucide-react';
@@ -24,6 +25,8 @@ export default function DepartmentsIndex({ departments, filters }: { departments
 
             <div className="flex flex-col gap-4 p-4">
                 <PageHeader
+                    icon={SECTIONS.departments.icon}
+                    tone={SECTIONS.departments.tone}
                     title="Departments"
                     description="The organisational units employees belong to. One in use can be marked inactive, not deleted."
                     action={

@@ -3,13 +3,14 @@ import FilterBar from '@/components/admin/filter-bar';
 import Pagination from '@/components/admin/pagination';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import IconChip, { type Tone } from '@/components/viz/icon-chip';
 import { useFormat } from '@/hooks/use-format';
 import { usePermission } from '@/hooks/use-permission';
 import AccountsLayout from '@/layouts/accounts/accounts-layout';
 import { cn } from '@/lib/utils';
 import type { InvoiceSummary, Option, Paginated } from '@/types';
 import { Link, router } from '@inertiajs/react';
-import { Plus } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, CircleDashed, Plus, Send, type LucideIcon } from 'lucide-react';
 
 interface Props {
     invoices: Paginated<InvoiceSummary>;
@@ -19,10 +20,29 @@ interface Props {
     filters: { search?: string; status?: string; customer?: string };
 }
 
-function Tile({ label, value, hint, tone, href }: { label: string; value: string; hint?: string; tone?: 'critical' | 'good'; href?: string }) {
+function Tile({
+    label,
+    value,
+    hint,
+    tone,
+    href,
+    icon,
+    chip,
+}: {
+    label: string;
+    value: string;
+    hint?: string;
+    tone?: 'critical' | 'good';
+    href?: string;
+    icon: LucideIcon;
+    chip: Tone;
+}) {
     const body = (
         <>
-            <p className="text-muted-foreground text-xs font-medium">{label}</p>
+            <div className="flex items-center justify-between gap-2">
+                <p className="text-muted-foreground text-xs font-medium">{label}</p>
+                <IconChip icon={icon} tone={chip} size="xs" />
+            </div>
             <p
                 className={cn(
                     'mt-1 text-xl font-semibold tabular-nums',
@@ -66,12 +86,16 @@ export default function Invoices({ invoices, summary, statuses, customers, filte
         >
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
                 <Tile
+                    icon={Send}
+                    chip="blue"
                     label="Outstanding"
                     value={format.money(summary.outstanding)}
                     hint="Sent, not yet paid"
                     href={route('accounts.invoices.index', { status: 'sent' })}
                 />
                 <Tile
+                    icon={AlertTriangle}
+                    chip="red"
                     label="Overdue"
                     value={format.money(summary.overdue)}
                     hint={
@@ -83,12 +107,16 @@ export default function Invoices({ invoices, summary, statuses, customers, filte
                     href={route('accounts.invoices.index', { status: 'overdue' })}
                 />
                 <Tile
+                    icon={CheckCircle2}
+                    chip="green"
                     label="Paid this month"
                     value={format.money(summary.paid_this_month)}
                     tone="good"
                     href={route('accounts.invoices.index', { status: 'paid' })}
                 />
                 <Tile
+                    icon={CircleDashed}
+                    chip="slate"
                     label="Drafts"
                     value={String(summary.drafts)}
                     hint="Not sent yet"

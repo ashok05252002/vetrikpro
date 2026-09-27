@@ -1,6 +1,7 @@
 import PageHeader from '@/components/admin/page-header';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
+import { SECTIONS } from '@/lib/sections';
 import type { BreadcrumbItem, Option, ProjectSummary, User } from '@/types';
 import { Head, Link } from '@inertiajs/react';
 import { Users } from 'lucide-react';
@@ -31,6 +32,8 @@ export default function EditProject({ project, statuses }: Props) {
 
             <div className="flex flex-col gap-6 p-4 md:p-6">
                 <PageHeader
+                    icon={SECTIONS.projects.icon}
+                    tone={SECTIONS.projects.tone}
                     back={route('admin.projects.index')}
                     title="Edit project"
                     description={project.code}

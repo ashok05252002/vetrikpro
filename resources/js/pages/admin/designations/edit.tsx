@@ -1,5 +1,6 @@
 import PageHeader from '@/components/admin/page-header';
 import AppLayout from '@/layouts/app-layout';
+import { SECTIONS } from '@/lib/sections';
 import type { BreadcrumbItem, Department, Designation } from '@/types';
 import { Head } from '@inertiajs/react';
 import DesignationForm, { NONE } from './designation-form';
@@ -21,7 +22,12 @@ export default function EditDesignation({ designation, departments }: Props) {
             <Head title={`Edit ${designation.name}`} />
 
             <div className="flex flex-col gap-6 p-4">
-                <PageHeader back={route('admin.designations.index')} title="Edit designation" />
+                <PageHeader
+                    icon={SECTIONS.designations.icon}
+                    tone={SECTIONS.designations.tone}
+                    back={route('admin.designations.index')}
+                    title="Edit designation"
+                />
 
                 <DesignationForm
                     departments={departments}

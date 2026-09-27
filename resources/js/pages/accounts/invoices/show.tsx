@@ -35,6 +35,7 @@ interface Props {
         issue_date: string;
         due_date: string | null;
         total: string;
+        issued_at: string | null;
         sent_at: string | null;
         sent_to: string | null;
         paid_at: string | null;
@@ -68,8 +69,13 @@ function SendDialog({ invoice }: { invoice: Props['invoice'] }) {
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button size="sm" variant={resend ? 'outline' : 'default'}>
-                    <Send className="size-4" /> {resend ? 'Send again' : 'Send invoice'}
+                <Button
+                    size="sm"
+                    variant={resend ? 'outline' : 'default'}
+                    className={resend ? undefined : 'text-white hover:opacity-90'}
+                    style={resend ? undefined : { background: 'var(--mail-bg)' }}
+                >
+                    <Send className="size-4" style={resend ? { color: 'var(--tone-blue)' } : undefined} /> {resend ? 'Send again' : 'Send invoice'}
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-lg">
@@ -124,7 +130,7 @@ function SendDialog({ invoice }: { invoice: Props['invoice'] }) {
                                 Cancel
                             </Button>
                         </DialogClose>
-                        <Button disabled={processing}>
+                        <Button disabled={processing} className="text-white hover:opacity-90" style={{ background: 'var(--mail-bg)' }}>
                             <Send className="size-4" /> Send
                         </Button>
                     </DialogFooter>
@@ -221,8 +227,9 @@ export default function ShowInvoice({ invoice, preview, companyStateSet }: Props
         ['Amount', format.money(invoice.total)],
         ['Invoice date', format.date(invoice.issue_date)],
         ['Due', invoice.due_date ? format.date(invoice.due_date) : '—'],
+        ...(invoice.issued_at ? ([['Issued', format.date(invoice.issued_at)]] as [string, string][]) : []),
         ...(invoice.sent_at
-            ? ([['Sent', `${format.date(invoice.sent_at)}${invoice.sent_to ? ` to ${invoice.sent_to}` : ''}`]] as [string, string][])
+            ? ([['Emailed', `${format.date(invoice.sent_at)}${invoice.sent_to ? ` to ${invoice.sent_to}` : ''}`]] as [string, string][])
             : []),
         ...(invoice.paid_at ? ([['Paid', format.date(invoice.paid_at)]] as [string, string][]) : []),
         ...(invoice.cancelled_at ? ([['Cancelled', format.date(invoice.cancelled_at)]] as [string, string][]) : []),

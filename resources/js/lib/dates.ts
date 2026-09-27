@@ -46,6 +46,18 @@ export function formatDateTime(value?: string | null, settings: DisplaySettings 
 }
 
 /**
+ * Today's date, YYYY-MM-DD, in the organisation's timezone — the same "today"
+ * the server uses (App\Support\Clock), so "late" means the same on both sides.
+ */
+export function todayIn(timezone: string): string {
+    try {
+        return new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+    } catch {
+        return new Intl.DateTimeFormat('en-CA').format(new Date());
+    }
+}
+
+/**
  * "Today" / "In 3 days" / "5 days late" — a due date read the way people
  * actually ask about it.
  */
@@ -54,11 +66,7 @@ export function relativeDue(value?: string | null, settings: DisplaySettings = D
         return 'No due date';
     }
 
-    const due = new Date(`${value}T12:00:00`);
-    const today = new Date();
-    today.setHours(12, 0, 0, 0);
-
-    const days = Math.round((due.getTime() - today.getTime()) / 86_400_000);
+    const days = Math.round((Date.parse(`${value.slice(0, 10)}T12:00:00Z`) - Date.parse(`${todayIn(settings.timezone)}T12:00:00Z`)) / 86_400_000);
 
     if (days === 0) return 'Today';
     if (days === 1) return 'Tomorrow';

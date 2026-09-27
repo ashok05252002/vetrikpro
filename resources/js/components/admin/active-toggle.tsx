@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import Pill from '@/components/ui/pill';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { router } from '@inertiajs/react';
 import { Power, PowerOff } from 'lucide-react';
@@ -43,5 +44,9 @@ export default function ActiveToggle({ url, active }: Props) {
 
 /** The state beside a master-data row's name. Only inactive rows are labelled. */
 export function InactiveBadge({ active }: { active: boolean }) {
-    return active ? null : <span className="text-muted-foreground ml-2 rounded-full border px-2 py-0.5 text-[11px] font-medium">Inactive</span>;
+    return active ? null : (
+        <Pill color="var(--muted-foreground)" icon={PowerOff} className="ml-2">
+            Inactive
+        </Pill>
+    );
 }

@@ -38,6 +38,18 @@ class ConfigHubController extends Controller
                     'active' => DocumentType::active()->count(),
                     'required' => DocumentType::active()->where('is_required', true)->count(),
                 ] : null,
+                'notifications' => $user->can('settings.view') ? [
+                    'on' => count(array_filter([
+                        $settings->get('notify.task.assigned'), $settings->get('notify.task.urgent'),
+                        $settings->get('notify.bug.assigned'), $settings->get('notify.overdue.enabled'),
+                    ])) + count((array) $settings->get('notify.task.status')) + count((array) $settings->get('notify.bug.status')),
+                    'overdue' => $settings->get('notify.overdue.enabled') ? (string) $settings->get('notify.overdue.time') : null,
+                ] : null,
+                'invoices' => $user->can('settings.view') ? [
+                    'state' => (string) $settings->get('company.state'),
+                    'due_days' => (int) $settings->get('invoice.due_days'),
+                    'bank' => filled($settings->get('invoice.bank_details')),
+                ] : null,
                 'offer' => $user->can('settings.view') ? [
                     'title' => $settings->get('offer.title'),
                     'signatory' => $settings->get('offer.signatory_name'),

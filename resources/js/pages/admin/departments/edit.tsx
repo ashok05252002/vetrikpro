@@ -1,5 +1,6 @@
 import PageHeader from '@/components/admin/page-header';
 import AppLayout from '@/layouts/app-layout';
+import { SECTIONS } from '@/lib/sections';
 import type { BreadcrumbItem, Department } from '@/types';
 import { Head } from '@inertiajs/react';
 import DepartmentForm from './department-form';
@@ -16,7 +17,12 @@ export default function EditDepartment({ department }: { department: Department 
             <Head title={`Edit ${department.name}`} />
 
             <div className="flex flex-col gap-6 p-4">
-                <PageHeader back={route('admin.departments.index')} title="Edit department" />
+                <PageHeader
+                    icon={SECTIONS.departments.icon}
+                    tone={SECTIONS.departments.tone}
+                    back={route('admin.departments.index')}
+                    title="Edit department"
+                />
 
                 <DepartmentForm
                     initial={{ name: department.name, code: department.code ?? '', description: department.description ?? '' }}

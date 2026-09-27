@@ -20,6 +20,8 @@ export interface NavItem {
     title: string;
     url: string;
     icon?: LucideIcon | null;
+    /** The section colour for its icon (lib/sections.ts). */
+    tone?: import('@/components/viz/icon-chip').Tone;
     isActive?: boolean;
     /** Extra path prefixes that count as this item being open. */
     match?: string[];
@@ -255,6 +257,8 @@ export interface DirectoryUser {
     employee_code: string | null;
     department: string | null;
     designation: string | null;
+    /** Left the organisation: kept on the project for history, never given new work. */
+    is_archived: boolean;
 }
 
 export type ProjectMemberRole = 'member' | 'dev_admin';
@@ -559,6 +563,7 @@ export interface InvoiceSummary {
     issue_date: string;
     due_date: string | null;
     total: string;
+    issued_at: string | null;
     sent_at: string | null;
     sent_to: string | null;
     paid_at: string | null;

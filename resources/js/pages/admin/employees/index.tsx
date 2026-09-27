@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import UserAvatar from '@/components/work/user-avatar';
 import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
+import { SECTIONS } from '@/lib/sections';
 import type { BreadcrumbItem, Department, Employee, OnboardingStatus, Option, Paginated, User } from '@/types';
 import { Head, Link } from '@inertiajs/react';
 import { Pencil, Plus } from 'lucide-react';
@@ -50,6 +51,8 @@ export default function EmployeesIndex({ employees, departments, roles, onboardi
 
             <div className="flex flex-col gap-4 p-4">
                 <PageHeader
+                    icon={SECTIONS.employees.icon}
+                    tone={SECTIONS.employees.tone}
                     title="Employees"
                     description="Everyone in the organisation: their login, role and HR record, in one place."
                     action={

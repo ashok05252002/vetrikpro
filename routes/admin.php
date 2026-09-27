@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\Config\ConfigHubController;
 use App\Http\Controllers\Admin\Config\DocumentTypeController;
+use App\Http\Controllers\Admin\Config\NotificationSettingsController;
 use App\Http\Controllers\Admin\Config\OfferLetterTemplateController;
 use App\Http\Controllers\Admin\DepartmentController;
 use App\Http\Controllers\Admin\DesignationController;
@@ -96,6 +97,9 @@ Route::middleware(['auth'])
             Route::get('offer-letter', [OfferLetterTemplateController::class, 'edit'])->middleware('can:settings.view')->name('offer-letter.edit');
             Route::put('offer-letter', [OfferLetterTemplateController::class, 'update'])->middleware('can:settings.edit')->name('offer-letter.update');
             Route::get('offer-letter/preview', [OfferLetterTemplateController::class, 'preview'])->middleware('can:settings.view')->name('offer-letter.preview');
+
+            Route::get('notifications', [NotificationSettingsController::class, 'edit'])->middleware('can:settings.view')->name('notifications.edit');
+            Route::put('notifications', [NotificationSettingsController::class, 'update'])->middleware('can:settings.edit')->name('notifications.update');
 
             Route::get('document-types', [DocumentTypeController::class, 'index'])->middleware('can:document_types.view')->name('document-types.index');
             Route::post('document-types', [DocumentTypeController::class, 'store'])->middleware('can:document_types.create')->name('document-types.store');

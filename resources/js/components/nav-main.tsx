@@ -11,9 +11,28 @@ import {
     SidebarMenuSubItem,
     useSidebar,
 } from '@/components/ui/sidebar';
+import { cn } from '@/lib/utils';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
 import { ChevronRight } from 'lucide-react';
+import type { CSSProperties } from 'react';
+
+/**
+ * A nav icon in its section's colour — the light step made for the navy
+ * sidebar. On the active pill it turns white with the label.
+ */
+function NavIcon({ item, className }: { item: NavItem; className?: string }) {
+    if (!item.icon) {
+        return null;
+    }
+
+    return (
+        <item.icon
+            className={cn('text-[var(--nav-icon)] in-data-[active=true]:text-current', className)}
+            style={item.tone ? ({ '--nav-icon': `var(--nav-${item.tone})` } as CSSProperties) : undefined}
+        />
+    );
+}
 
 /** The active page is a brand-coloured pill, not a faint grey wash. */
 const ACTIVE = 'data-[active=true]:bg-sidebar-primary data-[active=true]:text-sidebar-primary-foreground data-[active=true]:shadow-sm';
@@ -42,7 +61,7 @@ function NavGroupItem({ item }: { item: NavItem & { children: NavItem[] } }) {
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <SidebarMenuButton isActive={open} tooltip={item.title} className={ACTIVE}>
-                            {item.icon && <item.icon />}
+                            <NavIcon item={item} />
                             <span>{item.title}</span>
                         </SidebarMenuButton>
                     </DropdownMenuTrigger>
@@ -51,7 +70,7 @@ function NavGroupItem({ item }: { item: NavItem & { children: NavItem[] } }) {
                         {item.children.map((child) => (
                             <DropdownMenuItem key={child.url} asChild>
                                 <Link href={child.url} prefetch className="flex items-center gap-2">
-                                    {child.icon && <child.icon className="size-4" />}
+                                    <NavIcon item={child} className="size-4" />
                                     {child.title}
                                 </Link>
                             </DropdownMenuItem>
@@ -67,7 +86,7 @@ function NavGroupItem({ item }: { item: NavItem & { children: NavItem[] } }) {
             <SidebarMenuItem>
                 <CollapsibleTrigger asChild>
                     <SidebarMenuButton tooltip={item.title}>
-                        {item.icon && <item.icon />}
+                        <NavIcon item={item} />
                         <span>{item.title}</span>
                         <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                     </SidebarMenuButton>
@@ -78,7 +97,7 @@ function NavGroupItem({ item }: { item: NavItem & { children: NavItem[] } }) {
                             <SidebarMenuSubItem key={child.url}>
                                 <SidebarMenuSubButton asChild isActive={isActive(child)} className={ACTIVE}>
                                     <Link href={child.url} prefetch>
-                                        {child.icon && <child.icon />}
+                                        <NavIcon item={child} />
                                         <span>{child.title}</span>
                                     </Link>
                                 </SidebarMenuSubButton>
@@ -105,7 +124,7 @@ export function NavMain({ items = [], label = 'Platform' }: { items: NavItem[]; 
                         <SidebarMenuItem key={item.title}>
                             <SidebarMenuButton asChild isActive={isActive(item)} tooltip={item.title} className={ACTIVE}>
                                 <Link href={item.url} prefetch>
-                                    {item.icon && <item.icon />}
+                                    <NavIcon item={item} />
                                     <span>{item.title}</span>
                                 </Link>
                             </SidebarMenuButton>

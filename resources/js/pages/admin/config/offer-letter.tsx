@@ -1,13 +1,14 @@
 import InputError from '@/components/input-error';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card';
+import CardHeading from '@/components/ui/card-heading';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import ConfigLayout from '@/layouts/config/config-layout';
 import { Link, useForm } from '@inertiajs/react';
-import { AlertTriangle, Eye, RotateCcw } from 'lucide-react';
+import { AlertTriangle, Braces, Eye, PenLine, RotateCcw } from 'lucide-react';
 import { FormEventHandler, useRef } from 'react';
 
 interface Props {
@@ -61,7 +62,9 @@ export default function OfferLetterTemplate({ template, defaultBody, placeholder
             <form onSubmit={submit} className="grid gap-4 xl:grid-cols-[1fr_320px]">
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-base">Letter wording</CardTitle>
+                        <CardHeading icon={PenLine} tone="violet">
+                            Letter wording
+                        </CardHeading>
                         <CardDescription>
                             Plain text. A blank line starts a new paragraph, and <code>**text**</code> makes it bold. The offer summary table and
                             signature blocks are added automatically.
@@ -150,7 +153,9 @@ export default function OfferLetterTemplate({ template, defaultBody, placeholder
 
                 <Card className="self-start">
                     <CardHeader>
-                        <CardTitle className="text-base">Placeholders</CardTitle>
+                        <CardHeading icon={Braces} tone="violet">
+                            Placeholders
+                        </CardHeading>
                         <CardDescription>{can.edit ? 'Click one to insert it at the cursor.' : 'Filled in for each employee.'}</CardDescription>
                     </CardHeader>
                     <CardContent>

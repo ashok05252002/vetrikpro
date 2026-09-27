@@ -15,10 +15,12 @@ namespace App\Services\Accounts;
 final class InvoiceCalculator
 {
     /**
+     * With `$chargeTax` off, every line's tax is nil whatever its rate says.
+     *
      * @param  list<array{quantity: float|string, unit_price: float|string, discounted_price: float|string, gst_rate: float|string}>  $lines
      * @return array{lines: list<array{taxable: float, tax: float, amount: float}>, subtotal: float, discount_total: float, taxable_total: float, cgst_total: float, sgst_total: float, igst_total: float, total: float}
      */
-    public static function compute(array $lines, bool $interstate): array
+    public static function compute(array $lines, bool $interstate, bool $chargeTax = true): array
     {
         $out = [];
         $subtotal = $discount = $taxable = $cgst = $sgst = $igst = 0.0;
@@ -27,7 +29,7 @@ final class InvoiceCalculator
             $qty = (float) $line['quantity'];
             $cost = (float) $line['unit_price'];
             $price = (float) $line['discounted_price'];
-            $rate = (float) $line['gst_rate'];
+            $rate = $chargeTax ? (float) $line['gst_rate'] : 0.0;
 
             $lineGross = round($qty * $cost, 2);
             $lineTaxable = round($qty * $price, 2);

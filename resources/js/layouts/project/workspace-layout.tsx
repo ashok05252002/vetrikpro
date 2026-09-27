@@ -6,6 +6,7 @@ import Meter from '@/components/viz/meter';
 import { useFormat } from '@/hooks/use-format';
 import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
+import { SECTIONS } from '@/lib/sections';
 import type { BreadcrumbItem, ProjectWorkspaceHeader } from '@/types';
 import { Head, Link } from '@inertiajs/react';
 import { Settings2 } from 'lucide-react';
@@ -64,6 +65,8 @@ export default function ProjectWorkspaceLayout({ project, tab, actions, crumbs =
 
             <div className="flex h-full min-w-0 flex-col gap-4 p-4 md:p-6">
                 <PageHeader
+                    icon={SECTIONS.projects.icon}
+                    tone={SECTIONS.projects.tone}
                     back={route('projects.index')}
                     title={project.name}
                     description={meta.join(' · ')}

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Employee;
 use App\Models\EmployeeDocument;
+use App\Support\Clock;
 use App\Support\Letterhead;
 use App\Support\Settings;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -99,7 +100,7 @@ TEXT;
             'designation' => 'Software Engineer',
             'department' => 'Engineering',
             'employment_type' => 'Full time',
-            'joining_date' => $this->date(today()->addWeeks(3)),
+            'joining_date' => $this->date(Clock::today()->addWeeks(3)),
             'monthly_salary' => $this->money(65000),
             'annual_ctc' => $this->money(65000 * 12),
             ...$this->commonValues(),
@@ -149,7 +150,7 @@ TEXT;
             'paragraphs' => $this->paragraphs((string) $s->get('offer.body'), $values),
             'values' => $values,
             'email' => $email,
-            'reference' => 'OL/'.$values['employee_code'].'/'.today()->format('Y'),
+            'reference' => 'OL/'.$values['employee_code'].'/'.Clock::today()->format('Y'),
             'signatory' => ['name' => (string) $s->get('offer.signatory_name'), 'title' => (string) $s->get('offer.signatory_title')],
         ])->render();
     }
@@ -201,9 +202,9 @@ TEXT;
     private function commonValues(): array
     {
         return [
-            'offer_valid_until' => $this->date(today()->addDays((int) $this->settings->get('offer.valid_days', 7))),
+            'offer_valid_until' => $this->date(Clock::today()->addDays((int) $this->settings->get('offer.valid_days', 7))),
             'company_name' => (string) $this->settings->get('company.name'),
-            'today' => $this->date(today()),
+            'today' => $this->date(Clock::today()),
         ];
     }
 

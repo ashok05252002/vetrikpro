@@ -26,13 +26,20 @@ export default function TabNav<K extends string>({ tabs, active, label }: { tabs
                             className={cn(
                                 '-mb-px inline-flex h-10 items-center gap-1.5 border-b-2 px-3 text-sm transition-colors',
                                 tab.key === active
-                                    ? 'border-foreground text-foreground font-medium'
+                                    ? 'border-primary text-primary font-semibold dark:border-[var(--ring)] dark:text-[var(--ring)]'
                                     : 'text-muted-foreground hover:text-foreground border-transparent',
                             )}
                         >
                             {tab.label}
                             {tab.count !== undefined && tab.count !== null && (
-                                <span className="bg-muted text-muted-foreground rounded-full px-1.5 text-[11px] tabular-nums">{tab.count}</span>
+                                <span
+                                    className={cn(
+                                        'rounded-full px-1.5 text-[11px] tabular-nums',
+                                        tab.key === active ? 'bg-primary/10 text-primary dark:text-[var(--ring)]' : 'bg-muted text-muted-foreground',
+                                    )}
+                                >
+                                    {tab.count}
+                                </span>
                             )}
                         </Link>
                     </li>

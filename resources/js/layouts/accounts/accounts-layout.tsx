@@ -2,6 +2,7 @@ import PageHeader from '@/components/admin/page-header';
 import TabNav, { type TabLink } from '@/components/tab-nav';
 import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
+import { SECTIONS } from '@/lib/sections';
 import type { BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
 import type { ReactNode } from 'react';
@@ -54,7 +55,14 @@ export default function AccountsLayout({
             <Head title={`${trail.at(-1)?.title ?? current?.label ?? 'Accounts'} · Accounts`} />
 
             <div className="flex min-w-0 flex-col gap-4 p-4 md:p-6">
-                <PageHeader back={back} title={title ?? 'Accounts'} description={description} action={actions} />
+                <PageHeader
+                    back={back}
+                    icon={SECTIONS[tab].icon}
+                    tone={SECTIONS[tab].tone}
+                    title={title ?? 'Accounts'}
+                    description={description}
+                    action={actions}
+                />
                 {trail.length === 0 && <TabNav tabs={tabs} active={tab} label="Accounts sections" />}
                 {children}
             </div>

@@ -146,7 +146,7 @@ export default function Dashboard({ stats, taskPipeline, myTasks, projects, orgW
                 <Hero name={auth.user.name.split(' ')[0]} stats={stats} orgWide={orgWide} />
 
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    <StatTile label="Open tasks" value={stats.openTasks} icon={ListChecks} tone="indigo" href="/tasks" />
+                    <StatTile label="Open tasks" value={stats.openTasks} icon={ListChecks} tone="violet" href="/tasks" />
                     <StatTile
                         label="Overdue"
                         value={stats.overdueTasks}
@@ -164,21 +164,21 @@ export default function Dashboard({ stats, taskPipeline, myTasks, projects, orgW
                         href="/tasks"
                         note="In the next 7 days"
                     />
-                    <StatTile label="Active projects" value={stats.activeProjects} icon={FolderKanban} tone="violet" href="/projects" />
+                    <StatTile label="Active projects" value={stats.activeProjects} icon={FolderKanban} tone="sky" href="/projects" />
                 </div>
 
                 <div className="grid gap-4 lg:grid-cols-5">
                     <SectionCard
                         className="lg:col-span-3"
                         icon={BarChart3}
-                        tone="sky"
+                        tone="violet"
                         title="Task pipeline"
                         description={totalTasks === 0 ? 'No tasks yet.' : `Where all ${totalTasks} tasks currently sit.`}
                     >
                         <PipelineBar stages={taskPipeline} />
                     </SectionCard>
 
-                    <SectionCard className="lg:col-span-2" icon={Target} tone="teal" title="Active projects" description="Share of tasks completed.">
+                    <SectionCard className="lg:col-span-2" icon={Target} tone="sky" title="Active projects" description="Share of tasks completed.">
                         <div className="space-y-5">
                             {projects.length === 0 && <p className="text-muted-foreground text-sm">No active projects.</p>}
 
@@ -201,7 +201,7 @@ export default function Dashboard({ stats, taskPipeline, myTasks, projects, orgW
 
                 <SectionCard
                     icon={ListChecks}
-                    tone="indigo"
+                    tone="violet"
                     title="Assigned to you"
                     description="Soonest due first."
                     action={
@@ -248,12 +248,12 @@ export default function Dashboard({ stats, taskPipeline, myTasks, projects, orgW
                         <h2 className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">People</h2>
                         <div className="grid gap-4 sm:grid-cols-3">
                             <StatTile label="Employees" value={stats.employees ?? 0} icon={IdCard} tone="teal" href="/admin/employees" />
-                            <StatTile label="Departments" value={stats.departments ?? 0} icon={Building2} tone="pink" href="/admin/departments" />
+                            <StatTile label="Departments" value={stats.departments ?? 0} icon={Building2} tone="teal" href="/admin/departments" />
                             <StatTile
                                 label="Administrators"
                                 value={stats.admins ?? 0}
                                 icon={ShieldCheck}
-                                tone="violet"
+                                tone="teal"
                                 href="/admin/employees?role=admin"
                             />
                         </div>

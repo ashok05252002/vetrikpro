@@ -38,6 +38,8 @@ const eventText: Record<MergeRequestEvent['action'], string> = {
     commented: 'commented',
 };
 
+const GH_ACTION: Partial<Record<string, string>> = { approved: 'var(--gh-open-bg)', merged: 'var(--gh-merged-bg)' };
+
 function actionsFor(mr: MergeRequestDetail, can: Props['can']): Action[] {
     const next = new Set(mr.next);
     const actions: Action[] = [];
@@ -270,7 +272,16 @@ export default function MergeRequestPage({ project, mergeRequest: mr, can }: Pro
                 {actions.length > 0 && (
                     <div className="flex flex-wrap items-center gap-2">
                         {actions.map((action) => (
-                            <Button key={action.to} size="sm" variant={action.variant} onClick={() => run(action)} disabled={quick.processing}>
+                            <Button
+                                key={action.to}
+                                size="sm"
+                                variant={action.variant}
+                                onClick={() => run(action)}
+                                disabled={quick.processing}
+                                // Approve and merge wear GitHub's green and purple, as on github.com.
+                                className={GH_ACTION[action.to] ? 'text-white hover:opacity-90' : undefined}
+                                style={GH_ACTION[action.to] ? { background: GH_ACTION[action.to] } : undefined}
+                            >
                                 <action.icon className="size-4" /> {action.label}
                             </Button>
                         ))}

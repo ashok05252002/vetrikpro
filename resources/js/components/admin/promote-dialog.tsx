@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useFormat } from '@/hooks/use-format';
 import type { Department, Designation } from '@/types';
 import { useForm } from '@inertiajs/react';
-import { TrendingUp } from 'lucide-react';
+import { Mail, TrendingUp } from 'lucide-react';
 import { FormEventHandler, useState } from 'react';
 
 interface Props {
@@ -240,7 +240,8 @@ export default function PromoteDialog({ employee, departments, designations }: P
                                 onCheckedChange={(checked) => setData('send_email', checked === true)}
                                 className="mt-0.5"
                             />
-                            <span>
+                            <span className="inline-flex items-center gap-1.5">
+                                <Mail className="size-4" style={{ color: 'var(--tone-blue)' }} aria-hidden />
                                 Email the letter to <span className="font-medium">{employee.email}</span>
                             </span>
                         </label>

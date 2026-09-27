@@ -3,6 +3,7 @@ import TabNav, { type TabLink } from '@/components/tab-nav';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
+import { SECTIONS } from '@/lib/sections';
 import type { BreadcrumbItem, ProjectWorkspaceHeader, TestingCounts } from '@/types';
 import { Head, Link } from '@inertiajs/react';
 import { FolderKanban } from 'lucide-react';
@@ -46,6 +47,8 @@ export default function TestingLayout({ project, counts, tab, actions, crumbs = 
 
             <div className="flex h-full min-w-0 flex-col gap-4 p-4 md:p-6">
                 <PageHeader
+                    icon={SECTIONS.testing.icon}
+                    tone={SECTIONS.testing.tone}
                     back={route('testing.index')}
                     title={project.name}
                     description={`Testing · Owner: ${project.owner?.name ?? 'Unassigned'}`}

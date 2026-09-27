@@ -89,7 +89,7 @@ export default function EmployeeProfileLayout({
                                             router.post(route('admin.employees.password-reset', employee.id), {}, { preserveScroll: true })
                                         }
                                     >
-                                        <KeyRound className="size-4" /> Send password reset
+                                        <KeyRound className="size-4" style={{ color: 'var(--tone-blue)' }} /> Send password reset
                                     </Button>
                                     <AccessToggle employeeId={employee.id} name={employee.name} active={employee.is_active} />
                                     <ArchiveButton employeeId={employee.id} name={employee.name} archived={false} />

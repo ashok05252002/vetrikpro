@@ -29,6 +29,8 @@ interface Props<S extends string, T extends Card> {
     renderCard: (item: T, state: { overlay: boolean }) => ReactNode;
     /** The column's identity mark: a dot, an icon. */
     columnMark: (status: S) => ReactNode;
+    /** Each column's colour — the same one its badges use. */
+    columnColor?: (status: S) => string;
     onAdd?: (status: S) => void;
     /** Props to reload if the server rejects a move, restoring its truth. */
     reloadOnError: string[];
@@ -39,6 +41,7 @@ function Column<S extends string>({
     label,
     count,
     mark,
+    color,
     onAdd,
     children,
 }: {
@@ -46,17 +49,30 @@ function Column<S extends string>({
     label: string;
     count: number;
     mark: ReactNode;
+    color?: string;
     onAdd?: () => void;
     children: ReactNode;
 }) {
     const { setNodeRef, isOver } = useDroppable({ id: `column:${value}` });
 
     return (
-        <section className="bg-muted/40 flex min-w-72 flex-1 flex-col rounded-xl">
-            <header className="flex items-center gap-2 px-3 pt-3 pb-2">
+        <section
+            className="bg-muted/40 flex min-w-72 flex-1 flex-col overflow-hidden rounded-xl border-t-[3px]"
+            style={color ? { borderTopColor: color } : undefined}
+        >
+            {/* The column's colour runs across its top and tints its heading, so a board reads left to right at a glance. */}
+            <header
+                className="flex items-center gap-2 px-3 pt-3 pb-2"
+                style={color ? { background: `linear-gradient(to bottom, color-mix(in oklab, ${color} 12%, transparent), transparent)` } : undefined}
+            >
                 {mark}
-                <h2 className="text-sm font-medium">{label}</h2>
-                <span className="text-muted-foreground text-xs tabular-nums">{count}</span>
+                <h2 className="text-sm font-semibold">{label}</h2>
+                <span
+                    className="rounded-full px-1.5 text-xs font-medium tabular-nums"
+                    style={{ background: color ? `color-mix(in oklab, ${color} 18%, transparent)` : undefined }}
+                >
+                    {count}
+                </span>
 
                 {onAdd && (
                     <Button variant="ghost" size="sm" className="ml-auto size-7 p-0" onClick={onAdd} aria-label={`Add to ${label}`}>
@@ -84,6 +100,7 @@ export default function KanbanBoard<S extends string, T extends Card>({
     moveUrl,
     renderCard,
     columnMark,
+    columnColor,
     onAdd,
     reloadOnError,
 }: Props<S, T>) {
@@ -187,6 +204,7 @@ export default function KanbanBoard<S extends string, T extends Card>({
                         label={column.label}
                         count={column.items.length}
                         mark={columnMark(column.value)}
+                        color={columnColor?.(column.value)}
                         onAdd={onAdd ? () => onAdd(column.value) : undefined}
                     >
                         <SortableContext items={column.items.map((t) => t.id)} strategy={verticalListSortingStrategy}>

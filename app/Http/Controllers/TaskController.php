@@ -33,7 +33,7 @@ class TaskController extends Controller
         $showAll = $scope === 'all' && $user->can('projects.view');
 
         $tasks = Task::query()
-            ->with(['project:id,name,code', 'assignee:id,name', 'creator:id,name', 'assigner:id,name'])
+            ->with(['project:id,name,code,owner_id', 'assignee:id,name', 'creator:id,name', 'assigner:id,name'])
             ->withCount('comments')
             ->unless($showAll, fn ($query) => $query->where('assigned_to', $user->id))
             ->when($request->string('search')->trim()->value(), fn ($query, string $search) => $query
@@ -56,6 +56,7 @@ class TaskController extends Controller
                 'assigner' => $task->assigner?->only('id', 'name'),
                 'comments_count' => $task->comments_count,
                 'is_overdue' => $task->isOverdue(),
+                'can_move' => $user->can('move', $task),
             ]);
 
         return Inertia::render('tasks/index', [

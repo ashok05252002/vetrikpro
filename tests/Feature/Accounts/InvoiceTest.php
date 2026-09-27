@@ -8,6 +8,7 @@ use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Product;
 use App\Models\User;
+use App\Services\Accounts\InvoicePdf;
 use App\Support\Settings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
@@ -200,5 +201,22 @@ class InvoiceTest extends TestCase
         foreach ($pages as $url => $component) {
             $this->actingAs($this->admin)->get($url)->assertOk()->assertInertia(fn ($page) => $page->component($component));
         }
+    }
+
+    public function test_an_invoice_without_tax_has_no_tax_lines_but_keeps_gstins()
+    {
+        $customer = $this->customer(['gstin' => '33ABCDE1234F1Z5']);
+
+        $this->actingAs($this->admin)->post(route('accounts.invoices.store'), [...$this->payload($customer), 'charge_tax' => false])->assertSessionHasNoErrors();
+
+        $invoice = Invoice::sole();
+        $this->assertFalse($invoice->charge_tax);
+        $this->assertEquals(0, $invoice->cgst_total + $invoice->sgst_total + $invoice->igst_total);
+        $this->assertEquals(2300, $invoice->total);
+
+        $html = app(InvoicePdf::class)->html($invoice);
+        $this->assertStringNotContainsString('TAX INVOICE', $html);
+        $this->assertStringNotContainsString('CGST', $html);
+        $this->assertStringContainsString('33ABCDE1234F1Z5', $html);
     }
 }

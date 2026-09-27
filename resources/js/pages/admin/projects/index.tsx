@@ -9,6 +9,7 @@ import Meter from '@/components/viz/meter';
 import { useFormat } from '@/hooks/use-format';
 import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
+import { SECTIONS } from '@/lib/sections';
 import type { BreadcrumbItem, Option, Paginated, ProjectSummary } from '@/types';
 import { Head, Link } from '@inertiajs/react';
 import { LayoutGrid, Pencil, Plus } from 'lucide-react';
@@ -35,6 +36,8 @@ export default function AdminProjectsIndex({ projects, statuses, filters }: Prop
 
             <div className="flex flex-col gap-4 p-4 md:p-6">
                 <PageHeader
+                    icon={SECTIONS.projects.icon}
+                    tone={SECTIONS.projects.tone}
                     title="Manage projects"
                     description="Create projects, set an owner, and choose who is on them."
                     action={

@@ -1,6 +1,7 @@
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card';
+import CardHeading from '@/components/ui/card-heading';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -11,7 +12,7 @@ import { formatDate, formatMoney } from '@/lib/dates';
 import { cn } from '@/lib/utils';
 import type { DateFormat, Option } from '@/types';
 import { useForm } from '@inertiajs/react';
-import { Building2, Upload, X } from 'lucide-react';
+import { Building2, Globe2, Palette, Phone, ReceiptIndianRupee, Upload, X } from 'lucide-react';
 import { FormEventHandler, useMemo, useRef } from 'react';
 
 interface SettingsValues {
@@ -216,7 +217,9 @@ export default function SettingsPage({ settings, images, timezones, dateFormats,
                 <div className="grid max-w-5xl gap-6 lg:grid-cols-2">
                     <Card>
                         <CardHeader>
-                            <CardTitle className="text-base">Company</CardTitle>
+                            <CardHeading icon={Building2} tone="indigo">
+                                Company
+                            </CardHeading>
                             <CardDescription>The name here appears in the sidebar, the sign-in screen and the browser tab.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
@@ -276,7 +279,9 @@ export default function SettingsPage({ settings, images, timezones, dateFormats,
 
                     <Card>
                         <CardHeader>
-                            <CardTitle className="text-base">Branding</CardTitle>
+                            <CardHeading icon={Palette} tone="pink">
+                                Branding
+                            </CardHeading>
                             <CardDescription>
                                 PNG, JPG, SVG or WebP up to 2 MB. The dark version is used on the navy sidebar, the sign-in panel and in dark mode;
                                 without one, the light logo is shown on a white tile.
@@ -300,7 +305,9 @@ export default function SettingsPage({ settings, images, timezones, dateFormats,
 
                     <Card>
                         <CardHeader>
-                            <CardTitle className="text-base">Contact</CardTitle>
+                            <CardHeading icon={Phone} tone="blue">
+                                Contact
+                            </CardHeading>
                             <CardDescription>Printed on offer letters, promotion letters and invoices.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
@@ -353,9 +360,11 @@ export default function SettingsPage({ settings, images, timezones, dateFormats,
                         </CardContent>
                     </Card>
 
-                    <Card>
+                    <Card id="invoices" className="scroll-mt-20">
                         <CardHeader>
-                            <CardTitle className="text-base">Invoices</CardTitle>
+                            <CardHeading icon={ReceiptIndianRupee} tone="green">
+                                Invoices
+                            </CardHeading>
                             <CardDescription>Defaults for each new invoice; every one can still be changed on the invoice.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
@@ -400,7 +409,9 @@ export default function SettingsPage({ settings, images, timezones, dateFormats,
 
                     <Card>
                         <CardHeader>
-                            <CardTitle className="text-base">Regional</CardTitle>
+                            <CardHeading icon={Globe2} tone="slate">
+                                Regional
+                            </CardHeading>
                             <CardDescription>How dates and money are shown. Stored values are never changed.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">

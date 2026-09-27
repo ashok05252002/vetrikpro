@@ -3,7 +3,8 @@ import InviteLinkNotice from '@/components/onboarding/invite-link-notice';
 import OnboardingBadge from '@/components/onboarding/onboarding-status';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import CardHeading from '@/components/ui/card-heading';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,7 +15,7 @@ import EmployeeProfileLayout from '@/layouts/employee/profile-layout';
 import { formatBytes } from '@/lib/files';
 import type { EmployeeProfileHeader, OnboardingState } from '@/types';
 import { router, useForm } from '@inertiajs/react';
-import { CheckCircle2, Circle, Download, FileSignature, FileUp, Mail, Undo2 } from 'lucide-react';
+import { CheckCircle2, Circle, Download, FileSignature, FileUp, Landmark, ListChecks, Mail, Undo2 } from 'lucide-react';
 import { FormEventHandler, useState } from 'react';
 
 interface Props {
@@ -126,7 +127,8 @@ export default function EmployeeOnboarding({ employee, onboarding, mailIsLocal, 
                         <div className="flex flex-wrap gap-2">
                             {beforeSubmit && (
                                 <Button variant="outline" size="sm" onClick={() => post('admin.employees.onboarding.invite')}>
-                                    <Mail className="size-4" /> {onboarding.invited_at ? 'Resend invite' : 'Send invite'}
+                                    <Mail className="size-4" style={{ color: 'var(--tone-blue)' }} />{' '}
+                                    {onboarding.invited_at ? 'Resend invite' : 'Send invite'}
                                 </Button>
                             )}
                             {onboarding.status === 'submitted' && (
@@ -162,7 +164,9 @@ export default function EmployeeOnboarding({ employee, onboarding, mailIsLocal, 
             <div className="grid gap-4 lg:grid-cols-2">
                 <Card>
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-base">Checklist</CardTitle>
+                        <CardHeading icon={ListChecks} tone="teal">
+                            Checklist
+                        </CardHeading>
                     </CardHeader>
                     <CardContent>
                         <ul className="space-y-2">
@@ -184,7 +188,9 @@ export default function EmployeeOnboarding({ employee, onboarding, mailIsLocal, 
                 <div className="space-y-4">
                     <Card>
                         <CardHeader className="pb-2">
-                            <CardTitle className="text-base">Bank details</CardTitle>
+                            <CardHeading icon={Landmark} tone="green">
+                                Bank details
+                            </CardHeading>
                         </CardHeader>
                         <CardContent>
                             <dl className="grid grid-cols-2 gap-4">
@@ -198,7 +204,9 @@ export default function EmployeeOnboarding({ employee, onboarding, mailIsLocal, 
 
                     <Card>
                         <CardHeader className="pb-2">
-                            <CardTitle className="text-base">Offer letter</CardTitle>
+                            <CardHeading icon={FileSignature} tone="violet">
+                                Offer letter
+                            </CardHeading>
                         </CardHeader>
                         <CardContent className="space-y-3">
                             {onboarding.offer_letter ? (

@@ -1,4 +1,4 @@
-import { cn } from '@/lib/utils';
+import Pill from '@/components/ui/pill';
 import type { TaskPriority } from '@/types';
 import type { LucideIcon } from 'lucide-react';
 import { AlertTriangle, ArrowDown, ArrowUp, Minus } from 'lucide-react';
@@ -18,10 +18,9 @@ export default function PriorityBadge({ priority, className }: { priority: TaskP
     const { label, color, icon: Icon } = spec[priority];
 
     return (
-        <span className={cn('text-foreground inline-flex items-center gap-1.5 text-xs font-medium', className)}>
-            <Icon className="size-3.5 shrink-0" style={{ color }} />
+        <Pill color={color} icon={Icon} className={className}>
             {label}
-        </span>
+        </Pill>
     );
 }
 

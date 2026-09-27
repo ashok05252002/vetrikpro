@@ -1,48 +1,84 @@
 import PageHeader from '@/components/admin/page-header';
-import TabNav, { type TabLink } from '@/components/tab-nav';
-import { usePermission } from '@/hooks/use-permission';
+import { type Tone } from '@/components/viz/icon-chip';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
+import { BellRing, Building2, FileCheck2, FileSignature, Settings2, type LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 
-export type ConfigTab = 'hub' | 'organisation' | 'document-types' | 'offer-letter';
+export type ConfigTab = 'hub' | 'organisation' | 'notifications' | 'document-types' | 'offer-letter';
+
+/** Every section of the hub: its title, what it is for, its icon and colour. The hub's cards use the same. */
+export const CONFIG_SECTIONS: Record<
+    Exclude<ConfigTab, 'hub'>,
+    { title: string; description: string; icon: LucideIcon; tone: Tone; href: () => string }
+> = {
+    organisation: {
+        title: 'Organisation',
+        description: 'Company details, branding, invoice defaults and regional formats.',
+        icon: Building2,
+        tone: 'indigo',
+        href: () => route('admin.settings.edit'),
+    },
+    notifications: {
+        title: 'Email notifications',
+        description: 'Which task and bug events send email, and when the daily overdue email goes out.',
+        icon: BellRing,
+        tone: 'sky',
+        href: () => route('admin.config.notifications.edit'),
+    },
+    'document-types': {
+        title: 'Document types',
+        description: 'What every new employee is asked to upload during onboarding.',
+        icon: FileCheck2,
+        tone: 'teal',
+        href: () => route('admin.config.document-types.index'),
+    },
+    'offer-letter': {
+        title: 'Offer letter',
+        description: 'The letter generated for each new employee.',
+        icon: FileSignature,
+        tone: 'violet',
+        href: () => route('admin.config.offer-letter.edit'),
+    },
+};
 
 /**
- * The Configuration hub: an overview of every area, and one tab per area.
- * Each tab is its own route with its own permission.
+ * The Configuration hub is a page of cards, one per section; each section is
+ * its own page with a way back. No tabs: the hub is the menu.
  */
-export default function ConfigLayout({ tab, children }: { tab: ConfigTab; children: ReactNode }) {
-    const { can } = usePermission();
-
-    const tabs = (
-        [
-            { key: 'hub', label: 'Overview', href: route('admin.config.hub'), show: true },
-            { key: 'organisation', label: 'Organisation', href: route('admin.settings.edit'), show: can('settings.view') },
-            { key: 'document-types', label: 'Document types', href: route('admin.config.document-types.index'), show: can('document_types.view') },
-            { key: 'offer-letter', label: 'Offer letter', href: route('admin.config.offer-letter.edit'), show: can('settings.view') },
-        ] as (TabLink<ConfigTab> & { show: boolean })[]
-    ).filter((t) => t.show);
-
-    const current = tabs.find((t) => t.key === tab);
+export default function ConfigLayout({ tab, actions, children }: { tab: ConfigTab; actions?: ReactNode; children: ReactNode }) {
+    const section = tab === 'hub' ? null : CONFIG_SECTIONS[tab];
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Dashboard', href: '/dashboard' },
         { title: 'Configuration hub', href: route('admin.config.hub') },
-        ...(current && tab !== 'hub' ? [{ title: current.label, href: current.href }] : []),
+        ...(section ? [{ title: section.title, href: section.href() }] : []),
     ];
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title={current && tab !== 'hub' ? `${current.label} · Configuration hub` : 'Configuration hub'} />
+            <Head title={section ? `${section.title} · Configuration hub` : 'Configuration hub'} />
 
-            <div className="flex flex-col gap-4 p-4 md:p-6">
-                <PageHeader
-                    back={tab === 'hub' ? undefined : route('admin.config.hub')}
-                    title="Configuration hub"
-                    description="Everything that shapes how the portal works for your organisation, in one place."
-                />
-                <TabNav tabs={tabs} active={tab} label="Configuration sections" />
+            <div className="flex flex-col gap-5 p-4 md:p-6">
+                {section ? (
+                    <PageHeader
+                        back={route('admin.config.hub')}
+                        icon={section.icon}
+                        tone={section.tone}
+                        title={section.title}
+                        description={section.description}
+                        action={actions}
+                    />
+                ) : (
+                    <PageHeader
+                        icon={Settings2}
+                        tone="slate"
+                        title="Configuration hub"
+                        description="Everything that shapes how the portal works for your organisation. Choose a section."
+                        action={actions}
+                    />
+                )}
                 {children}
             </div>
         </AppLayout>

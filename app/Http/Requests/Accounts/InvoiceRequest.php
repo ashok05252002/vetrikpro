@@ -25,6 +25,7 @@ class InvoiceRequest extends FormRequest
             'customer_id' => ['required', 'integer', 'exists:customers,id', Customer::selectableRule($invoice?->customer_id)],
             'bill_email' => ['nullable', 'email', 'max:255'],
             'bill_address' => ['nullable', 'string', 'max:1000'],
+            'charge_tax' => ['boolean'],
             'place_of_supply' => ['nullable', Rule::in(array_map('strval', array_keys(IndianStates::ALL)))],
             'issue_date' => ['required', 'date'],
             'due_date' => ['nullable', 'date', 'after_or_equal:issue_date'],

@@ -1,5 +1,6 @@
 import PageHeader from '@/components/admin/page-header';
 import AppLayout from '@/layouts/app-layout';
+import { SECTIONS } from '@/lib/sections';
 import type { BreadcrumbItem, Department, Designation, Employee } from '@/types';
 import { Head } from '@inertiajs/react';
 import EmployeeForm, { NONE } from './employee-form';
@@ -23,7 +24,13 @@ export default function EditEmployee({ employee, departments, designations }: Pr
             <Head title={`Edit ${employee.name}`} />
 
             <div className="flex flex-col gap-6 p-4">
-                <PageHeader back={route('admin.employees.show', employee.id)} title={`Edit ${employee.name}`} description={employee.employee_code} />
+                <PageHeader
+                    icon={SECTIONS.employees.icon}
+                    tone={SECTIONS.employees.tone}
+                    back={route('admin.employees.show', employee.id)}
+                    title={`Edit ${employee.name}`}
+                    description={employee.employee_code}
+                />
 
                 <EmployeeForm
                     departments={departments}

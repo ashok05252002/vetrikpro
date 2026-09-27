@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { usePermission } from '@/hooks/use-permission';
 import AppLayout from '@/layouts/app-layout';
+import { SECTIONS } from '@/lib/sections';
 import type { BreadcrumbItem, Role } from '@/types';
 import { Head, Link } from '@inertiajs/react';
 import { Pencil, Plus } from 'lucide-react';
@@ -22,6 +23,8 @@ export default function RolesIndex({ roles, totalPermissions }: { roles: Role[];
 
             <div className="flex flex-col gap-4 p-4">
                 <PageHeader
+                    icon={SECTIONS.roles.icon}
+                    tone={SECTIONS.roles.tone}
                     title="Roles & access"
                     description="Each role is a set of permissions. Pick one for each user, then fine-tune individuals on their user form."
                     action={

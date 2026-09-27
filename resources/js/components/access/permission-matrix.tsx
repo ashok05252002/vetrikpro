@@ -29,7 +29,7 @@ export default function PermissionMatrix({ groups, cell, rowAction }: Props) {
         <TooltipProvider delayDuration={200}>
             <div className="space-y-4">
                 {groups.map((group) => (
-                    <div key={group.group} className="overflow-x-auto rounded-lg border">
+                    <div key={group.group} className="relative overflow-x-auto rounded-lg border">
                         <table className="w-full min-w-[760px] text-sm">
                             <thead>
                                 <tr className="bg-muted/50 text-muted-foreground text-xs">

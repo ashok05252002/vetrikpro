@@ -1,3 +1,4 @@
+import Pill from '@/components/ui/pill';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import type { TestPointStatus } from '@/types';
@@ -28,10 +29,9 @@ export function TestStatusMark({ status, className }: { status: TestPointStatus;
 
 export default function TestStatusBadge({ status, className }: { status: TestPointStatus; className?: string }) {
     return (
-        <span className={cn('text-foreground inline-flex items-center gap-1.5 text-xs font-medium', className)}>
-            <TestStatusMark status={status} className="size-3.5" />
+        <Pill color={testStatusSpec[status].color} icon={testStatusSpec[status].icon} className={className}>
             {testStatusSpec[status].label}
-        </span>
+        </Pill>
     );
 }
 

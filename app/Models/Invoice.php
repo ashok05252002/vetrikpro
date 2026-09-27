@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\InvoiceStatus;
+use App\Support\Clock;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -13,7 +14,7 @@ class Invoice extends Model
     public const REFERENCE_PREFIX = 'INV';
 
     protected $fillable = [
-        'customer_id', 'bill_name', 'bill_email', 'bill_address', 'bill_gstin', 'place_of_supply', 'is_interstate',
+        'customer_id', 'bill_name', 'bill_email', 'bill_address', 'bill_gstin', 'place_of_supply', 'is_interstate', 'charge_tax',
         'issue_date', 'due_date', 'notes', 'terms', 'created_by',
     ];
 
@@ -22,6 +23,7 @@ class Invoice extends Model
         return [
             'status' => InvoiceStatus::class,
             'is_interstate' => 'boolean',
+            'charge_tax' => 'boolean',
             'issue_date' => 'date:Y-m-d',
             'due_date' => 'date:Y-m-d',
             'subtotal' => 'decimal:2',
@@ -31,6 +33,7 @@ class Invoice extends Model
             'sgst_total' => 'decimal:2',
             'igst_total' => 'decimal:2',
             'total' => 'decimal:2',
+            'issued_at' => 'datetime',
             'sent_at' => 'datetime',
             'paid_at' => 'datetime',
             'cancelled_at' => 'datetime',
@@ -65,7 +68,7 @@ class Invoice extends Model
 
     public function isOverdue(): bool
     {
-        return $this->status === InvoiceStatus::Sent && $this->due_date !== null && $this->due_date->isBefore(today());
+        return $this->status === InvoiceStatus::Sent && $this->due_date !== null && $this->due_date->lt(Clock::today());
     }
 
     /**
@@ -73,9 +76,9 @@ class Invoice extends Model
      * taken under a lock on the invoices table's highest number, with the
      * unique index as backstop, so two people issuing at once cannot collide.
      */
-    public function issue(?string $sentTo = null): void
+    public function issue(): void
     {
-        DB::transaction(function () use ($sentTo) {
+        DB::transaction(function () {
             $fresh = static::query()->lockForUpdate()->findOrFail($this->id);
 
             if ($fresh->number === null) {
@@ -83,11 +86,8 @@ class Invoice extends Model
                 $this->forceFill(['number' => $next]);
             }
 
-            $this->forceFill([
-                'status' => InvoiceStatus::Sent,
-                'sent_at' => $sentTo !== null ? now() : ($this->sent_at ?? now()),
-                'sent_to' => $sentTo ?? $this->sent_to,
-            ])->save();
+            // Issued, not emailed: sent_at / sent_to are set only when an email goes out.
+            $this->forceFill(['status' => InvoiceStatus::Sent, 'issued_at' => $this->issued_at ?? now()])->save();
         });
     }
 }

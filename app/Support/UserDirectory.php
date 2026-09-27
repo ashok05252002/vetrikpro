@@ -46,7 +46,7 @@ final class UserDirectory
      */
     public static function with(): array
     {
-        return ['employee:id,user_id,employee_code,department_id,designation_id', 'employee.department:id,name', 'employee.designation:id,name'];
+        return ['employee:id,user_id,employee_code,department_id,designation_id,archived_at', 'employee.department:id,name', 'employee.designation:id,name'];
     }
 
     /**
@@ -60,6 +60,7 @@ final class UserDirectory
             'employee_code' => $user->employee?->employee_code,
             'department' => $user->employee?->department?->name,
             'designation' => $user->employee?->designation?->name,
+            'is_archived' => $user->employee?->archived_at !== null,
         ];
     }
 

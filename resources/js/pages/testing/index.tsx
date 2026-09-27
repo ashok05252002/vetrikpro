@@ -5,6 +5,7 @@ import { RunProgress } from '@/components/work/test-result';
 import { TestStatusMark } from '@/components/work/test-status';
 import { useFormat } from '@/hooks/use-format';
 import AppLayout from '@/layouts/app-layout';
+import { SECTIONS } from '@/lib/sections';
 import type { BreadcrumbItem, TestResult, TestRunStatus } from '@/types';
 import { Head, Link } from '@inertiajs/react';
 import { FlaskConical } from 'lucide-react';
@@ -45,7 +46,12 @@ export default function TestingIndex({ projects, filters }: Props) {
             <Head title="Testing" />
 
             <div className="flex flex-col gap-4 p-4 md:p-6">
-                <PageHeader title="Testing" description="Pick a project to see its testing points and test runs." />
+                <PageHeader
+                    icon={SECTIONS.testing.icon}
+                    tone={SECTIONS.testing.tone}
+                    title="Testing"
+                    description="Pick a project to see its testing points and test runs."
+                />
 
                 <SearchFilter url={route('testing.index')} initial={filters.search ?? ''} placeholder="Search projects…" />
 

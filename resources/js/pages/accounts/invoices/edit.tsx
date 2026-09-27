@@ -1,9 +1,11 @@
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import CardHeading from '@/components/ui/card-heading';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { useFormat } from '@/hooks/use-format';
 import { usePermission } from '@/hooks/use-permission';
@@ -11,7 +13,7 @@ import AccountsLayout from '@/layouts/accounts/accounts-layout';
 import { cn } from '@/lib/utils';
 import type { Customer, InvoiceLine, Option, Product } from '@/types';
 import { Link, useForm } from '@inertiajs/react';
-import { AlertTriangle, Plus, Trash2 } from 'lucide-react';
+import { AlertTriangle, CalendarDays, Contact, ListOrdered, Plus, Trash2 } from 'lucide-react';
 import { FormEventHandler, useMemo } from 'react';
 
 type CustomerOption = Pick<Customer, 'id' | 'name' | 'email' | 'address' | 'state_code' | 'gstin'>;
@@ -27,6 +29,7 @@ interface Props {
         bill_email?: string | null;
         bill_address?: string | null;
         place_of_supply?: string | null;
+        charge_tax?: boolean;
         notes?: string | null;
         items?: InvoiceLine[];
     };
@@ -42,6 +45,7 @@ type Form = {
     bill_email: string;
     bill_address: string;
     place_of_supply: string;
+    charge_tax: boolean;
     issue_date: string;
     due_date: string;
     notes: string;
@@ -50,6 +54,12 @@ type Form = {
 };
 
 const CUSTOM = '__custom__';
+
+/** Line-grid columns on wide screens, with and without the GST column. */
+const COLS_TAX = 'grid-cols-[minmax(0,2.4fr)_70px_70px_minmax(0,1fr)_minmax(0,1fr)_80px_minmax(0,1fr)_36px]';
+const COLS_NO_TAX = 'grid-cols-[minmax(0,2.4fr)_70px_70px_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_36px]';
+const COLS_TAX_LG = 'lg:grid-cols-[minmax(0,2.4fr)_70px_70px_minmax(0,1fr)_minmax(0,1fr)_80px_minmax(0,1fr)_36px]';
+const COLS_NO_TAX_LG = 'lg:grid-cols-[minmax(0,2.4fr)_70px_70px_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_36px]';
 const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 const num = (v: string | number) => (v === '' ? 0 : Number(v)) || 0;
 
@@ -65,7 +75,7 @@ const blankLine = (): InvoiceLine => ({
 });
 
 /** The same arithmetic as App\Services\Accounts\InvoiceCalculator, so totals don't jump on save. */
-function compute(items: InvoiceLine[], interstate: boolean) {
+function compute(items: InvoiceLine[], interstate: boolean, chargeTax: boolean) {
     let subtotal = 0,
         discount = 0,
         taxable = 0,
@@ -76,7 +86,7 @@ function compute(items: InvoiceLine[], interstate: boolean) {
     const lines = items.map((line) => {
         const gross = round2(num(line.quantity) * num(line.unit_price));
         const lineTaxable = round2(num(line.quantity) * num(line.discounted_price));
-        const tax = round2((lineTaxable * num(line.gst_rate)) / 100);
+        const tax = chargeTax ? round2((lineTaxable * num(line.gst_rate)) / 100) : 0;
 
         if (interstate) {
             igst += tax;
@@ -113,6 +123,7 @@ export default function InvoiceEditor({ invoice, initial, customers, products, s
         bill_email: initial.bill_email ?? '',
         bill_address: initial.bill_address ?? '',
         place_of_supply: initial.place_of_supply ?? '',
+        charge_tax: initial.charge_tax ?? true,
         issue_date: initial.issue_date,
         due_date: initial.due_date ?? '',
         notes: initial.notes ?? '',
@@ -124,7 +135,8 @@ export default function InvoiceEditor({ invoice, initial, customers, products, s
     const customer = customers.find((c) => String(c.id) === data.customer_id);
     const placeOfSupply = data.place_of_supply || customer?.state_code || '';
     const interstate = Boolean(companyState && placeOfSupply && companyState !== placeOfSupply);
-    const totals = useMemo(() => compute(data.items, interstate), [data.items, interstate]);
+    const tax = data.charge_tax;
+    const totals = useMemo(() => compute(data.items, interstate, tax), [data.items, interstate, tax]);
 
     const pickCustomer = (value: string) => {
         const next = customers.find((c) => String(c.id) === value);
@@ -190,7 +202,7 @@ export default function InvoiceEditor({ invoice, initial, customers, products, s
             trail={[{ title: invoice ? 'Edit draft' : 'New invoice', href: '#' }]}
         >
             <form onSubmit={submit} className="flex max-w-6xl flex-col gap-4">
-                {!companyState && (
+                {!companyState && tax && (
                     <div className="flex items-start gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm">
                         <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600" />
                         <p>
@@ -207,7 +219,9 @@ export default function InvoiceEditor({ invoice, initial, customers, products, s
                 <div className="grid gap-4 lg:grid-cols-3">
                     <Card className="lg:col-span-2">
                         <CardHeader>
-                            <CardTitle className="text-base">Bill to</CardTitle>
+                            <CardHeading icon={Contact} tone="green">
+                                Bill to
+                            </CardHeading>
                         </CardHeader>
                         <CardContent className="grid gap-4 sm:grid-cols-2">
                             <div className="grid gap-2 sm:col-span-2">
@@ -265,7 +279,7 @@ export default function InvoiceEditor({ invoice, initial, customers, products, s
                                     </SelectContent>
                                 </Select>
                                 <p className="text-muted-foreground text-xs">
-                                    {interstate ? 'Another state: IGST.' : 'Within the state: CGST + SGST.'}
+                                    {!tax ? 'No GST on this invoice.' : interstate ? 'Another state: IGST.' : 'Within the state: CGST + SGST.'}
                                 </p>
                                 <InputError message={errors.place_of_supply} />
                             </div>
@@ -285,7 +299,9 @@ export default function InvoiceEditor({ invoice, initial, customers, products, s
 
                     <Card>
                         <CardHeader>
-                            <CardTitle className="text-base">Dates</CardTitle>
+                            <CardHeading icon={CalendarDays} tone="sky">
+                                Dates
+                            </CardHeading>
                         </CardHeader>
                         <CardContent className="grid gap-4">
                             <div className="grid gap-2">
@@ -304,13 +320,24 @@ export default function InvoiceEditor({ invoice, initial, customers, products, s
                                 <Input id="due_date" type="date" value={data.due_date} onChange={(e) => setData('due_date', e.target.value)} />
                                 <InputError message={errors.due_date} />
                             </div>
+                            <div className="flex items-start justify-between gap-3 border-t pt-4">
+                                <div className="space-y-1">
+                                    <Label htmlFor="charge_tax">Charge GST</Label>
+                                    <p className="text-muted-foreground text-xs">
+                                        {tax ? 'Tax is added to each line.' : 'No tax on this bill — no GST columns or tax lines are printed.'}
+                                    </p>
+                                </div>
+                                <Switch id="charge_tax" checked={tax} onCheckedChange={(on) => setData('charge_tax', on)} />
+                            </div>
                         </CardContent>
                     </Card>
                 </div>
 
                 <Card>
                     <CardHeader className="flex-row items-center justify-between space-y-0">
-                        <CardTitle className="text-base">Items</CardTitle>
+                        <CardHeading icon={ListOrdered} tone="green">
+                            Items
+                        </CardHeading>
                         <Button type="button" variant="outline" size="sm" onClick={() => setData('items', [...data.items, blankLine()])}>
                             <Plus className="size-4" /> Add line
                         </Button>
@@ -319,13 +346,13 @@ export default function InvoiceEditor({ invoice, initial, customers, products, s
                         <InputError message={errors.items} />
 
                         {/* Column labels, wide screens only; narrow screens label each field. */}
-                        <div className="text-muted-foreground hidden grid-cols-[minmax(0,2.4fr)_70px_70px_minmax(0,1fr)_minmax(0,1fr)_80px_minmax(0,1fr)_36px] gap-2 px-1 text-xs font-medium lg:grid">
+                        <div className={cn('text-muted-foreground hidden gap-2 px-1 text-xs font-medium lg:grid', tax ? COLS_TAX : COLS_NO_TAX)}>
                             <span>Item</span>
                             <span>Qty</span>
                             <span>Unit</span>
                             <span>Cost</span>
                             <span>Discounted price</span>
-                            <span>GST</span>
+                            {tax && <span>GST</span>}
                             <span className="text-right">Amount</span>
                             <span />
                         </div>
@@ -338,7 +365,10 @@ export default function InvoiceEditor({ invoice, initial, customers, products, s
                             return (
                                 <div
                                     key={index}
-                                    className="grid grid-cols-2 gap-2 rounded-lg border p-3 sm:grid-cols-4 lg:grid-cols-[minmax(0,2.4fr)_70px_70px_minmax(0,1fr)_minmax(0,1fr)_80px_minmax(0,1fr)_36px] lg:items-start lg:border-0 lg:p-1"
+                                    className={cn(
+                                        'grid grid-cols-2 gap-2 rounded-lg border p-3 sm:grid-cols-4 lg:items-start lg:border-0 lg:p-1',
+                                        tax ? COLS_TAX_LG : COLS_NO_TAX_LG,
+                                    )}
                                 >
                                     <div className="col-span-2 space-y-2 sm:col-span-4 lg:col-span-1">
                                         <Label className="lg:sr-only">Item</Label>
@@ -428,28 +458,34 @@ export default function InvoiceEditor({ invoice, initial, customers, products, s
                                         )}
                                         <InputError message={e('discounted_price')} />
                                     </div>
-                                    <div className="space-y-1">
-                                        <Label className="text-xs lg:sr-only">GST</Label>
-                                        <Select
-                                            value={String(Number(line.gst_rate))}
-                                            onValueChange={(value) => setLine(index, { gst_rate: Number(value) })}
-                                        >
-                                            <SelectTrigger className="h-9">
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {gstRates.map((r) => (
-                                                    <SelectItem key={r} value={String(r)}>
-                                                        {r}%
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
+                                    {tax && (
+                                        <div className="space-y-1">
+                                            <Label className="text-xs lg:sr-only">GST</Label>
+                                            <Select
+                                                value={String(Number(line.gst_rate))}
+                                                onValueChange={(value) => setLine(index, { gst_rate: Number(value) })}
+                                            >
+                                                <SelectTrigger className="h-9">
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {gstRates.map((r) => (
+                                                        <SelectItem key={r} value={String(r)}>
+                                                            {r}%
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    )}
                                     <div className="col-span-1 space-y-1 text-right sm:col-span-1">
                                         <Label className="text-xs lg:sr-only">Amount</Label>
                                         <p className="pt-2 text-sm font-medium tabular-nums">{format.money(computed?.amount ?? 0)}</p>
-                                        <p className="text-muted-foreground text-[11px] tabular-nums">incl. {format.money(computed?.tax ?? 0)} GST</p>
+                                        {tax && (
+                                            <p className="text-muted-foreground text-[11px] tabular-nums">
+                                                incl. {format.money(computed?.tax ?? 0)} GST
+                                            </p>
+                                        )}
                                     </div>
                                     <div className="flex items-start justify-end">
                                         <Button
@@ -503,8 +539,8 @@ export default function InvoiceEditor({ invoice, initial, customers, products, s
                         <CardContent className="space-y-2 pt-6 text-sm">
                             <Row label="Subtotal" value={format.money(totals.subtotal)} />
                             {totals.discount > 0 && <Row label="Discount" value={`− ${format.money(totals.discount)}`} tone="good" />}
-                            <Row label="Taxable value" value={format.money(totals.taxable)} />
-                            {interstate ? (
+                            {tax && <Row label="Taxable value" value={format.money(totals.taxable)} />}
+                            {!tax ? null : interstate ? (
                                 <Row label="IGST" value={format.money(totals.igst)} />
                             ) : (
                                 <>

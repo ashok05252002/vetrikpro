@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>{{ $draft ? 'Draft invoice' : 'Tax invoice '.$reference }} — {{ $invoice->bill_name }}</title>
+<title>{{ $draft ? 'Draft invoice' : ($tax ? 'Tax invoice ' : 'Invoice ').$reference }} — {{ $invoice->bill_name }}</title>
 <style>
     @page { margin: 34px 0 60px; }
     body { margin: 0; font-family: 'Helvetica', 'Arial', sans-serif; font-size: 9pt; color: #1f2430; line-height: 1.45; }
@@ -75,7 +75,7 @@
     <table class="title">
         <tr>
             <td>
-                <h1>TAX INVOICE
+                <h1>{{ $tax ? 'TAX INVOICE' : 'INVOICE' }}
                     @if ($draft)<span class="stamp draft">DRAFT</span>@endif
                     @if ($cancelled)<span class="stamp">CANCELLED</span>@endif
                 </h1>
@@ -100,7 +100,7 @@
                     <tr><td class="k">Invoice date</td><td><strong>{{ $issueDate }}</strong></td></tr>
                     @if ($dueDate)<tr><td class="k">Due date</td><td><strong>{{ $dueDate }}</strong></td></tr>@endif
                     @if ($placeOfSupply)<tr><td class="k">Place of supply</td><td>{{ $placeOfSupply }}</td></tr>@endif
-                    <tr><td class="k">Tax</td><td>{{ $invoice->is_interstate ? 'IGST (inter-state)' : 'CGST + SGST (intra-state)' }}</td></tr>
+                    @if ($tax)<tr><td class="k">Tax</td><td>{{ $invoice->is_interstate ? 'IGST (inter-state)' : 'CGST + SGST (intra-state)' }}</td></tr>@endif
                 </table>
             </td>
         </tr>
@@ -112,8 +112,10 @@
             <th class="l">Item</th>
             <th>Qty</th>
             <th>Rate</th>
-            <th>Taxable</th>
-            <th>GST</th>
+            @if ($tax)
+                <th>Taxable</th>
+                <th>GST</th>
+            @endif
             <th>Amount</th>
         </tr>
         @foreach ($items as $i => $item)
@@ -132,8 +134,10 @@
                         {{ $item['unit_price'] }}
                     @endif
                 </td>
-                <td>{{ $item['taxable'] }}</td>
-                <td>{{ $item['rate'] }}<div class="sub">{{ $item['tax'] }}</div></td>
+                @if ($tax)
+                    <td>{{ $item['taxable'] }}</td>
+                    <td>{{ $item['rate'] }}<div class="sub">{{ $item['tax'] }}</div></td>
+                @endif
                 <td><strong>{{ $item['amount'] }}</strong></td>
             </tr>
         @endforeach

@@ -67,6 +67,18 @@ class Settings
             'invoice.terms' => ['type' => 'string', 'default' => 'Payment is due within the period stated above. Please quote the invoice number with your payment.', 'group' => 'invoice'],
             'invoice.bank_details' => ['type' => 'string', 'default' => '', 'group' => 'invoice'],
 
+            // Email notifications (Configuration hub → Email notifications). Status
+            // lists hold the statuses that send mail when a card moves into them.
+            'notify.task.assigned' => ['type' => 'bool', 'default' => true, 'group' => 'notify'],
+            'notify.task.urgent' => ['type' => 'bool', 'default' => true, 'group' => 'notify'],
+            'notify.task.status' => ['type' => 'array', 'default' => ['in_review', 'done'], 'group' => 'notify'],
+            'notify.bug.assigned' => ['type' => 'bool', 'default' => true, 'group' => 'notify'],
+            'notify.bug.status' => ['type' => 'array', 'default' => ['ready_for_test', 'repeated', 'closed'], 'group' => 'notify'],
+            'notify.overdue.enabled' => ['type' => 'bool', 'default' => true, 'group' => 'notify'],
+            'notify.overdue.owners' => ['type' => 'bool', 'default' => true, 'group' => 'notify'],
+            // "HH:MM" in the display timezone.
+            'notify.overdue.time' => ['type' => 'string', 'default' => '17:00', 'group' => 'notify'],
+
             // Offer letter template (Configuration hub → Offer letter). The body
             // is plain text with {placeholders}; see App\Services\OfferLetter.
             'offer.title' => ['type' => 'string', 'default' => 'Offer of Employment', 'group' => 'offer'],

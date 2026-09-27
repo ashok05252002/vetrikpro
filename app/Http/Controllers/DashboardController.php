@@ -8,6 +8,7 @@ use App\Models\Employee;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
+use App\Support\Clock;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -41,14 +42,14 @@ class DashboardController extends Controller
             'overdueTasks' => (clone $scoped)->overdue()->count(),
             'dueThisWeek' => (clone $scoped)
                 ->where('status', '!=', TaskStatus::Done)
-                ->whereBetween('due_date', [today(), today()->addWeek()])
+                ->whereBetween('due_date', [Clock::today(), Clock::today()->addWeek()])
                 ->count(),
             'activeProjects' => $this->visibleProjects($user)->where('status', 'active')->count(),
         ];
 
         if ($user->can('employees.view')) {
             $stats += [
-                'employees' => Employee::count(),
+                'employees' => Employee::current()->count(),
                 'departments' => Department::count(),
                 'admins' => User::whereHas('role', fn ($query) => $query->where('is_super', true))->count(),
             ];

@@ -1,5 +1,6 @@
 import PageHeader from '@/components/admin/page-header';
 import AppLayout from '@/layouts/app-layout';
+import { SECTIONS } from '@/lib/sections';
 import type { BreadcrumbItem, Department } from '@/types';
 import { Head } from '@inertiajs/react';
 import DesignationForm, { NONE } from './designation-form';
@@ -16,7 +17,12 @@ export default function CreateDesignation({ departments }: { departments: Depart
             <Head title="New designation" />
 
             <div className="flex flex-col gap-6 p-4">
-                <PageHeader back={route('admin.designations.index')} title="New designation" />
+                <PageHeader
+                    icon={SECTIONS.designations.icon}
+                    tone={SECTIONS.designations.tone}
+                    back={route('admin.designations.index')}
+                    title="New designation"
+                />
 
                 <DesignationForm
                     departments={departments}

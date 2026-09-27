@@ -79,9 +79,10 @@ class User extends Authenticatable
     }
 
     /**
-     * Whether this person has left a mark on the work: anything they created,
-     * were given, reviewed, tested or commented on. Someone with history is
-     * archived rather than deleted, so none of it loses its name.
+     * Whether this person has left a mark anywhere: work they created, were
+     * given, reviewed, tested or commented on, and records they made for others
+     * — promotions, invoices, uploaded files, onboarding reviews. Someone with
+     * any of it is archived rather than deleted, so none of it loses its name.
      */
     public function hasWorkHistory(): bool
     {
@@ -99,6 +100,14 @@ class User extends Authenticatable
             'requirement_documents' => ['created_by'],
             'test_runs' => ['created_by', 'completed_by'],
             'test_run_results' => ['tested_by'],
+            'test_point_attachments' => ['uploaded_by'],
+            'requirement_versions' => ['uploaded_by'],
+            // Records made about other people. (Documents people upload about
+            // themselves are theirs, and go with them — see below.)
+            'promotions' => ['created_by'],
+            'invoices' => ['created_by'],
+            'employees' => ['onboarding_reviewed_by', 'archived_by'],
+            'users' => ['deactivated_by'],
         ];
 
         foreach ($touches as $table => $columns) {
@@ -113,7 +122,12 @@ class User extends Authenticatable
             }
         }
 
-        return false;
+        $ownEmployeeId = $this->employee()->value('id');
+
+        return DB::table('employee_documents')
+            ->where('uploaded_by', $id)
+            ->when($ownEmployeeId, fn ($q) => $q->where('employee_id', '!=', $ownEmployeeId))
+            ->exists();
     }
 
     public function assignedTasks(): HasMany

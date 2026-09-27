@@ -79,7 +79,8 @@ class UrgentTaskMailTest extends TestCase
         // Urgent but nobody assigned.
         $this->actingAs($this->lead)->post(route('tasks.store'), $this->payload(['priority' => 'urgent', 'assigned_to' => null]));
 
-        Notification::assertNothingSent();
+        // The high-priority task still tells its assignee it was assigned (WorkAssigned); none is urgent mail.
+        Notification::assertSentTimes(TaskMarkedUrgent::class, 0);
     }
 
     public function test_the_email_is_branded_and_says_what_and_why()

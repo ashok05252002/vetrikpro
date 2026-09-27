@@ -1,11 +1,12 @@
 import PromoteDialog from '@/components/admin/promote-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import CardHeading from '@/components/ui/card-heading';
 import { useFormat } from '@/hooks/use-format';
 import EmployeeProfileLayout from '@/layouts/employee/profile-layout';
 import type { Department, Designation, Employee, EmployeeProfileHeader, User } from '@/types';
-import { Download, Mail, TrendingUp } from 'lucide-react';
+import { Briefcase, Download, Mail, TrendingUp, UserRound } from 'lucide-react';
 import { employmentTypeLabels, genderLabels, statusLabels } from './labels';
 
 function Field({ label, value }: { label: string; value: string | null | undefined }) {
@@ -40,7 +41,9 @@ function CareerHistory({ promotions }: { promotions: PromotionRow[] }) {
     return (
         <Card className="lg:col-span-2">
             <CardHeader>
-                <CardTitle className="text-base">Promotions & salary revisions</CardTitle>
+                <CardHeading icon={TrendingUp} tone="green">
+                    Promotions & salary revisions
+                </CardHeading>
             </CardHeader>
             <CardContent>
                 {promotions.length === 0 ? (
@@ -80,7 +83,7 @@ function CareerHistory({ promotions }: { promotions: PromotionRow[] }) {
                                             </Button>
                                         )}
                                         <span className="text-muted-foreground inline-flex items-center gap-1 text-xs">
-                                            <Mail className="size-3.5" />
+                                            <Mail className="size-3.5" style={{ color: p.emailed_at ? 'var(--tone-blue)' : undefined }} />
                                             {p.emailed_at ? `Emailed ${format.date(p.emailed_at)}` : 'Not emailed'}
                                         </span>
                                     </div>
@@ -128,7 +131,9 @@ export default function ShowEmployee({ employee, profile, promotions, promoteOpt
             <div className="grid gap-4 lg:grid-cols-2">
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-base">Employment</CardTitle>
+                        <CardHeading icon={Briefcase} tone="teal">
+                            Employment
+                        </CardHeading>
                     </CardHeader>
                     <CardContent>
                         <dl className="grid grid-cols-2 gap-4">
@@ -151,7 +156,9 @@ export default function ShowEmployee({ employee, profile, promotions, promoteOpt
 
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-base">Personal</CardTitle>
+                        <CardHeading icon={UserRound} tone="teal">
+                            Personal
+                        </CardHeading>
                     </CardHeader>
                     <CardContent>
                         <dl className="grid grid-cols-2 gap-4">

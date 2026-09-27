@@ -11,6 +11,7 @@ use App\Models\Invoice;
 use App\Models\Product;
 use App\Services\Accounts\InvoiceDrafts;
 use App\Services\Accounts\InvoicePdf;
+use App\Support\Clock;
 use App\Support\IndianStates;
 use App\Support\Settings;
 use Illuminate\Http\RedirectResponse;
@@ -39,7 +40,7 @@ class InvoiceController extends Controller
             })
             ->when($request->string('status')->value(), function ($query, string $status) {
                 $status === 'overdue'
-                    ? $query->where('status', InvoiceStatus::Sent)->whereNotNull('due_date')->whereDate('due_date', '<', today())
+                    ? $query->where('status', InvoiceStatus::Sent)->whereNotNull('due_date')->whereDate('due_date', '<', Clock::today())
                     : $query->where('status', $status);
             })
             ->when($request->integer('customer'), fn ($query, int $id) => $query->where('customer_id', $id))
@@ -50,7 +51,7 @@ class InvoiceController extends Controller
             ->paginate(20)
             ->withQueryString()
             ->through(fn (Invoice $invoice) => [
-                ...$invoice->only('id', 'number', 'status', 'bill_name', 'issue_date', 'due_date', 'total', 'sent_at', 'sent_to', 'paid_at'),
+                ...$invoice->only('id', 'number', 'status', 'bill_name', 'issue_date', 'due_date', 'total', 'issued_at', 'sent_at', 'sent_to', 'paid_at'),
                 'reference' => $invoice->reference(),
                 'is_overdue' => $invoice->isOverdue(),
             ]);
@@ -61,8 +62,8 @@ class InvoiceController extends Controller
             'invoices' => $invoices,
             'summary' => [
                 'outstanding' => (float) (clone $issued)->where('status', InvoiceStatus::Sent)->sum('total'),
-                'overdue' => (float) (clone $issued)->where('status', InvoiceStatus::Sent)->whereNotNull('due_date')->whereDate('due_date', '<', today())->sum('total'),
-                'overdue_count' => (clone $issued)->where('status', InvoiceStatus::Sent)->whereNotNull('due_date')->whereDate('due_date', '<', today())->count(),
+                'overdue' => (float) (clone $issued)->where('status', InvoiceStatus::Sent)->whereNotNull('due_date')->whereDate('due_date', '<', Clock::today())->sum('total'),
+                'overdue_count' => (clone $issued)->where('status', InvoiceStatus::Sent)->whereNotNull('due_date')->whereDate('due_date', '<', Clock::today())->count(),
                 'paid_this_month' => (float) Invoice::query()->where('status', InvoiceStatus::Paid)->where('paid_at', '>=', now()->startOfMonth())->sum('total'),
                 'drafts' => Invoice::query()->where('status', InvoiceStatus::Draft)->count(),
             ],
@@ -78,9 +79,10 @@ class InvoiceController extends Controller
             'invoice' => null,
             'initial' => [
                 'customer_id' => $request->integer('customer') ?: null,
-                'issue_date' => today()->toDateString(),
-                'due_date' => today()->addDays((int) $this->settings->get('invoice.due_days', 15))->toDateString(),
+                'issue_date' => Clock::today()->toDateString(),
+                'due_date' => Clock::today()->addDays((int) $this->settings->get('invoice.due_days', 15))->toDateString(),
                 'terms' => (string) $this->settings->get('invoice.terms'),
+                'charge_tax' => true,
             ],
             ...$this->editorOptions(),
         ]);
@@ -122,7 +124,7 @@ class InvoiceController extends Controller
         return Inertia::render('accounts/invoices/edit', [
             'invoice' => ['id' => $invoice->id, 'reference' => $invoice->reference()],
             'initial' => [
-                ...$invoice->only('customer_id', 'bill_email', 'bill_address', 'place_of_supply', 'notes', 'terms'),
+                ...$invoice->only('customer_id', 'bill_email', 'bill_address', 'place_of_supply', 'charge_tax', 'notes', 'terms'),
                 'issue_date' => $invoice->issue_date->toDateString(),
                 'due_date' => $invoice->due_date?->toDateString(),
                 'items' => $invoice->items->map->only('product_id', 'description', 'hsn_sac', 'quantity', 'unit', 'unit_price', 'discounted_price', 'gst_rate'),

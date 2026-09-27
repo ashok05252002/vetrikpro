@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Enums\TaskPriority;
 use App\Enums\TestPointStatus;
+use App\Support\ProjectPeople;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -24,7 +25,7 @@ class TestPointRequest extends FormRequest
             'actual_result' => ['nullable', 'string', 'max:5000'],
             'status' => ['required', Rule::enum(TestPointStatus::class)],
             'priority' => ['required', Rule::enum(TaskPriority::class)],
-            'assigned_to' => ['nullable', 'exists:users,id'],
+            'assigned_to' => ['nullable', 'exists:users,id', ProjectPeople::notArchivedRule($this->route('testPoint')?->assigned_to)],
             // A point can only verify a task on its own project.
             'task_id' => ['nullable', Rule::exists('tasks', 'id')->where('project_id', $project->id)],
         ];

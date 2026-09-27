@@ -148,7 +148,51 @@
     --tone-pink: #be185d;
     --tone-amber: #b45309;
     --tone-red: #c53030;
+    /* Added for the section colours (resources/js/lib/sections.ts): money is
+     * green, mail blue, configuration slate, Git in GitHub's own ink and purple. */
+    --tone-green: #15803d;
+    --tone-blue: #1d4ed8;
+    --tone-slate: #475569;
+    --tone-github: #24292f;
+    --tone-git: #8250df;
     --tone-tint: 12%;
+
+    /* GitHub's state colours (Primer), used for branches and merge requests
+     * so they read exactly as they do on github.com. Always with a word. */
+    --gh-open: #1a7f37;
+    --gh-merged: #8250df;
+    --gh-closed: #cf222e;
+    --gh-draft: #6e7781;
+    --gh-attention: #9a6700;
+    /* Solid state pills (white text), as github.com draws them; the same in
+     * both themes — each clears 4.5:1 with white. */
+    --gh-open-bg: #1f883d;
+    --gh-merged-bg: #8250df;
+    --gh-closed-bg: #cf222e;
+    --gh-draft-bg: #6e7781;
+    --gh-attention-bg: #9a6700;
+    /* Branch names: GitHub's blue ref chip. */
+    --gh-branch-bg: #ddf4ff;
+    --gh-branch-fg: #0969da;
+
+    /* Anything that sends email: a blue button (white text 5.2:1) and a blue
+     * icon, the same everywhere, so "this sends mail" is recognisable at a glance. */
+    --mail-bg: #2563eb;
+
+    /* Section icons on the navy sidebar, the same in both themes: the light
+     * steps of each tone, all over 7:1 on #111836. */
+    --nav-indigo: #a5b4fc;
+    --nav-violet: #c4b5fd;
+    --nav-sky: #7dd3fc;
+    --nav-teal: #5eead4;
+    --nav-pink: #f9a8d4;
+    --nav-amber: #fcd34d;
+    --nav-red: #fca5a5;
+    --nav-green: #86efac;
+    --nav-blue: #93c5fd;
+    --nav-slate: #cbd5e1;
+    --nav-github: #e6edf3;
+    --nav-git: #d2a8ff;
 
     --hero-from: #4f46e5;
     --hero-to: #7c3aed;
@@ -198,7 +242,21 @@
     --tone-pink: #f9a8d4;
     --tone-amber: #fcd34d;
     --tone-red: #fca5a5;
+    --tone-green: #86efac;
+    --tone-blue: #93c5fd;
+    --tone-slate: #cbd5e1;
+    --tone-github: #e6edf3;
+    --tone-git: #d2a8ff;
     --tone-tint: 16%;
+
+    /* GitHub's dark-theme state colours. */
+    --gh-open: #3fb950;
+    --gh-merged: #a371f7;
+    --gh-closed: #f85149;
+    --gh-draft: #8b949e;
+    --gh-attention: #d29922;
+    --gh-branch-bg: #121d2f;
+    --gh-branch-fg: #58a6ff;
 
     --hero-from: #4338ca;
     --hero-to: #6d28d9;
