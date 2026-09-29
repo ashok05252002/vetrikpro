@@ -34,7 +34,10 @@ class MergeRequestInboxController extends Controller
                 ->where('reviewer_id', $user->id)
                 ->orWhere(fn ($any) => $any
                     ->whereNull('reviewer_id')
-                    ->when(! $reviewsAnything, fn ($d) => $d->whereHas('project.members', fn ($m) => $m->whereKey($user->id)->where('project_user.role', 'dev_admin')))));
+                    // Unassigned requests wait on everyone who may merge: merge access, leads, the owner.
+                    ->when(! $reviewsAnything, fn ($d) => $d->where(fn ($who) => $who
+                        ->whereHas('project.members', fn ($m) => $m->whereKey($user->id)->whereIn('project_user.role', ['dev_admin', 'lead']))
+                        ->orWhereHas('project', fn ($p) => $p->where('owner_id', $user->id))))));
 
         $mergeRequests = MergeRequest::query()
             ->with(['project:id,name,code', 'branch:id,name', 'requester:id,name', 'reviewer:id,name'])

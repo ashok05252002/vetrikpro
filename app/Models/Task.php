@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Task extends Model
@@ -62,6 +63,12 @@ class Task extends Model
         // Urgent work emails its assignee — from the model, so it happens
         // however the priority or assignee was changed.
         static::saved(fn (Task $task) => $task->notifyIfUrgent());
+    }
+
+    /** The branches that claim to deliver this. */
+    public function branches(): BelongsToMany
+    {
+        return $this->belongsToMany(Branch::class)->withTimestamps();
     }
 
     public function project(): BelongsTo
@@ -126,6 +133,13 @@ class Task extends Model
         return $this->due_date !== null
             && $this->status !== TaskStatus::Done
             && $this->due_date->lt(Clock::today());
+    }
+
+    /** Open and due between today and a week from today, in the organisation's timezone. */
+    public function scopeDueThisWeek(Builder $query): Builder
+    {
+        return $query->where('status', '!=', TaskStatus::Done)
+            ->whereBetween('due_date', [Clock::today()->toDateString(), Clock::today()->addWeek()->toDateString()]);
     }
 
     public function scopeOverdue(Builder $query): Builder

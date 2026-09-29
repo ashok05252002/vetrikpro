@@ -1,12 +1,16 @@
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
+import DatePicker from '@/components/ui/date-picker';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import UserAvatar from '@/components/work/user-avatar';
 import UserCombobox from '@/components/work/user-combobox';
+import { cn } from '@/lib/utils';
 import type { Option, User } from '@/types';
 import { Link, useForm } from '@inertiajs/react';
+import { Check } from 'lucide-react';
 import { FormEventHandler, useState } from 'react';
 
 const NO_OWNER = 'none';
@@ -21,7 +25,9 @@ export interface ProjectFormData {
     due_date: string;
     repository_url: string;
     default_branch: string;
-    [key: string]: string;
+    /** User ids of the project's leads, as strings. */
+    lead_ids: string[];
+    [key: string]: string | string[];
 }
 
 interface Props {
@@ -31,9 +37,11 @@ interface Props {
     initial: ProjectFormData;
     action: { url: string; method: 'post' | 'put' };
     submitLabel: string;
+    /** People whose role lets them lead a project (Roles & access → Project roles). */
+    eligibleLeads: Pick<User, 'id' | 'name' | 'email'>[];
 }
 
-export default function ProjectForm({ statuses, owner: initialOwner = null, initial, action, submitLabel }: Props) {
+export default function ProjectForm({ statuses, owner: initialOwner = null, initial, action, submitLabel, eligibleLeads }: Props) {
     const { data, setData, post, put, processing, errors, transform } = useForm<ProjectFormData>(initial);
 
     transform((payload) => ({
@@ -86,6 +94,48 @@ export default function ProjectForm({ statuses, owner: initialOwner = null, init
                     <InputError message={errors.owner_id} />
                 </div>
 
+                <div className="grid gap-2 sm:col-span-2">
+                    <Label>
+                        Project leads <span className="text-muted-foreground">(one or more, optional)</span>
+                    </Label>
+                    <p className="text-muted-foreground text-xs">
+                        A lead can do everything the owner can on this project: its team, who may merge, and every task and bug. Only people whose
+                        role allows it are listed — set that in Roles &amp; access → Project roles.
+                    </p>
+                    {eligibleLeads.length === 0 ? (
+                        <p className="text-muted-foreground rounded-md border border-dashed px-3 py-2 text-sm">Nobody is eligible yet.</p>
+                    ) : (
+                        <div className="flex flex-wrap gap-2">
+                            {eligibleLeads.map((person) => {
+                                const on = data.lead_ids.includes(String(person.id));
+                                return (
+                                    <button
+                                        key={person.id}
+                                        type="button"
+                                        aria-pressed={on}
+                                        onClick={() =>
+                                            setData(
+                                                'lead_ids',
+                                                on ? data.lead_ids.filter((id) => id !== String(person.id)) : [...data.lead_ids, String(person.id)],
+                                            )
+                                        }
+                                        className={cn(
+                                            'inline-flex items-center gap-2 rounded-full border py-1 pr-3 pl-1 text-sm transition-colors',
+                                            on ? 'border-primary bg-primary/10 text-foreground' : 'text-muted-foreground hover:bg-muted',
+                                        )}
+                                        title={person.email}
+                                    >
+                                        <UserAvatar name={person.name} className="size-6" />
+                                        {person.name}
+                                        {on && <Check className="text-primary size-3.5" aria-hidden />}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    )}
+                    <InputError message={errors.lead_ids ?? Object.entries(errors).find(([k]) => k.startsWith('lead_ids.'))?.[1]} />
+                </div>
+
                 <div className="grid gap-2">
                     <Label htmlFor="status">Status</Label>
                     <Select value={data.status} onValueChange={(value) => setData('status', value)}>
@@ -105,13 +155,13 @@ export default function ProjectForm({ statuses, owner: initialOwner = null, init
 
                 <div className="grid gap-2">
                     <Label htmlFor="start_date">Start date</Label>
-                    <Input id="start_date" type="date" value={data.start_date} onChange={(e) => setData('start_date', e.target.value)} />
+                    <DatePicker id="start_date" value={data.start_date ?? ''} onChange={(v) => setData('start_date', v)} />
                     <InputError message={errors.start_date} />
                 </div>
 
                 <div className="grid gap-2">
                     <Label htmlFor="due_date">Due date</Label>
-                    <Input id="due_date" type="date" value={data.due_date} onChange={(e) => setData('due_date', e.target.value)} />
+                    <DatePicker id="due_date" value={data.due_date ?? ''} onChange={(v) => setData('due_date', v)} />
                     <InputError message={errors.due_date} />
                 </div>
             </div>

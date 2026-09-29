@@ -149,7 +149,11 @@ export default function ShowEmployee({ employee, profile, promotions, promoteOpt
                                 </dd>
                             </div>
                             <Field label="Date of joining" value={format.date(employee.date_of_joining)} />
-                            <Field label="Monthly salary" value={format.money(employee.salary)} />
+                            {employee.employment_type === 'intern' ? (
+                                <Field label="Monthly stipend" value={employee.has_stipend ? format.money(employee.stipend) : 'Unpaid internship'} />
+                            ) : (
+                                <Field label="Monthly salary" value={format.money(employee.salary)} />
+                            )}
                         </dl>
                     </CardContent>
                 </Card>

@@ -4,6 +4,7 @@ import InputError from '@/components/input-error';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import DatePicker from '@/components/ui/date-picker';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -92,11 +93,11 @@ function DetailsForm({ state }: { state: OnboardingState }) {
             </div>
             <div className="grid gap-2">
                 <Label htmlFor="dob">Date of birth</Label>
-                <Input
+                <DatePicker
                     id="dob"
-                    type="date"
-                    value={data.date_of_birth}
-                    onChange={(e) => setData('date_of_birth', e.target.value)}
+                    value={data.date_of_birth ?? ''}
+                    onChange={(v) => setData('date_of_birth', v)}
+                    notAfterToday
                     required
                     disabled={!state.editable}
                 />

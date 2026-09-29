@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Projects;
 
+use App\Enums\BranchStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Project;
 use App\Models\Task;
@@ -30,9 +31,17 @@ class ReferenceLookupController extends Controller
         $search = $request->string('search')->trim()->value();
         $number = $search === '' ? null : $model::parseReference($search);
 
+        // Other active branches already claiming this work, so linking it again
+        // can warn — never block: two branches may legitimately share it.
+        $exceptBranch = $request->integer('except_branch') ?: null;
+        $otherBranches = fn ($q) => $q->where('status', BranchStatus::Active)
+            ->when($exceptBranch, fn ($b) => $b->whereKeyNot($exceptBranch))
+            ->with('creator:id,name')
+            ->select('branches.id', 'branches.name', 'branches.created_by');
+
         $rows = $model::query()
             ->where('project_id', $project->id)
-            ->with('assignee:id,name')
+            ->with(['assignee:id,name', 'branches' => $otherBranches])
             ->when($model === TestPoint::class, fn ($q) => $q->with(['task:id,number,title', 'creator:id,name']))
             ->when($search !== '', fn ($q) => $q->where(fn ($w) => $w
                 ->where('title', 'like', "%{$search}%")
@@ -42,7 +51,10 @@ class ReferenceLookupController extends Controller
             ->orderByDesc('number')
             ->limit(20)
             ->get()
-            ->map(fn ($row) => $row instanceof Task ? Cards::task($row) : Cards::testPoint($row));
+            ->map(fn ($row) => [
+                ...($row instanceof Task ? Cards::task($row) : Cards::testPoint($row)),
+                'on_branches' => $row->branches->map(fn ($b) => ['id' => $b->id, 'name' => $b->name, 'by' => $b->creator?->name])->values(),
+            ]);
 
         return response()->json(['data' => $rows]);
     }

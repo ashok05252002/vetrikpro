@@ -1,7 +1,7 @@
 import PageHeader from '@/components/admin/page-header';
 import AppLayout from '@/layouts/app-layout';
 import { SECTIONS } from '@/lib/sections';
-import type { BreadcrumbItem, Option } from '@/types';
+import type { BreadcrumbItem, Option, User } from '@/types';
 import { Head } from '@inertiajs/react';
 import ProjectForm, { NO_OWNER } from './project-form';
 
@@ -11,7 +11,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'New project', href: '/admin/projects/create' },
 ];
 
-export default function CreateProject({ statuses }: { statuses: Option[] }) {
+export default function CreateProject({ statuses, eligibleLeads }: { statuses: Option[]; eligibleLeads: Pick<User, 'id' | 'name' | 'email'>[] }) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="New project" />
@@ -27,6 +27,7 @@ export default function CreateProject({ statuses }: { statuses: Option[] }) {
 
                 <ProjectForm
                     statuses={statuses}
+                    eligibleLeads={eligibleLeads}
                     initial={{
                         name: '',
                         code: '',
@@ -37,6 +38,7 @@ export default function CreateProject({ statuses }: { statuses: Option[] }) {
                         due_date: '',
                         repository_url: '',
                         default_branch: 'main',
+                        lead_ids: [],
                     }}
                     action={{ url: route('admin.projects.store'), method: 'post' }}
                     submitLabel="Create project"

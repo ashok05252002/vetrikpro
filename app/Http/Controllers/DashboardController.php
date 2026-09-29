@@ -8,7 +8,6 @@ use App\Models\Employee;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
-use App\Support\Clock;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -30,21 +29,25 @@ class DashboardController extends Controller
     }
 
     /**
-     * Headline counts. People figures only go to those who manage accounts;
-     * everyone else gets the work-focused set.
+     * Headline counts. Someone who sees every project (admin, HR) gets the
+     * organisation's figures, each linking to the organisation-wide list, plus
+     * their own; everyone else gets only their own work. People figures only
+     * go to those who manage accounts.
      */
     private function stats(User $user): array
     {
         $scoped = $this->visibleTasks($user);
+        $mine = Task::query()->where('assigned_to', $user->id);
 
         $stats = [
             'openTasks' => (clone $scoped)->where('status', '!=', TaskStatus::Done)->count(),
             'overdueTasks' => (clone $scoped)->overdue()->count(),
-            'dueThisWeek' => (clone $scoped)
-                ->where('status', '!=', TaskStatus::Done)
-                ->whereBetween('due_date', [Clock::today(), Clock::today()->addWeek()])
-                ->count(),
+            'dueThisWeek' => (clone $scoped)->dueThisWeek()->count(),
             'activeProjects' => $this->visibleProjects($user)->where('status', 'active')->count(),
+            'mine' => [
+                'open' => (clone $mine)->where('status', '!=', TaskStatus::Done)->count(),
+                'overdue' => (clone $mine)->overdue()->count(),
+            ],
         ];
 
         if ($user->can('employees.view')) {
@@ -102,6 +105,7 @@ class DashboardController extends Controller
             ->withCount([
                 'tasks',
                 'tasks as done_tasks_count' => fn ($query) => $query->where('status', TaskStatus::Done),
+                'tasks as my_open_tasks_count' => fn ($query) => $query->where('assigned_to', $user->id)->where('status', '!=', TaskStatus::Done),
             ])
             ->orderBy('name')
             ->take(5)
@@ -110,6 +114,7 @@ class DashboardController extends Controller
                 ...$project->only('id', 'name', 'code', 'due_date'),
                 'tasks_count' => $project->tasks_count,
                 'done_tasks_count' => $project->done_tasks_count,
+                'my_open_tasks_count' => $project->my_open_tasks_count,
                 'progress' => $project->progress(),
             ]);
     }
@@ -126,13 +131,13 @@ class DashboardController extends Controller
                 ->orWhereHas('members', fn ($m) => $m->whereKey($user->id))));
     }
 
+    /**
+     * The tasks the headline figures count: every task for someone who sees
+     * every project, otherwise only the tasks assigned to this person — the
+     * same set their My tasks list shows, so a tile and its list agree.
+     */
     private function visibleTasks(User $user)
     {
-        return Task::query()->unless($user->can('projects.view'), fn ($query) => $query
-            ->where(fn ($q) => $q
-                ->where('assigned_to', $user->id)
-                ->orWhereHas('project', fn ($p) => $p
-                    ->where('owner_id', $user->id)
-                    ->orWhereHas('members', fn ($m) => $m->whereKey($user->id)))));
+        return Task::query()->unless($user->can('projects.view'), fn ($query) => $query->where('assigned_to', $user->id));
     }
 }

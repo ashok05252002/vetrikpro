@@ -1,6 +1,7 @@
 import FilterBar from '@/components/admin/filter-bar';
 import Pagination from '@/components/admin/pagination';
 import { BranchName, BranchStatusBadge, MergeStatusBadge } from '@/components/dev/dev-status';
+import MergeAccessCard, { type MergeAccess } from '@/components/dev/merge-access-card';
 import MergeRequestTable from '@/components/dev/merge-request-table';
 import RegisterBranchDialog from '@/components/dev/register-branch-dialog';
 import { Button } from '@/components/ui/button';
@@ -23,7 +24,8 @@ interface Props {
     branchStatuses: Option[];
     mergeStatuses: Option[];
     filters: { search?: string; status?: string };
-    can: { create: boolean };
+    can: { create: boolean; manageMergeAccess: boolean };
+    mergeAccess: MergeAccess;
 }
 
 function Branches({ project, branches }: { project: ProjectWorkspaceHeader; branches: Paginated<BranchRow> }) {
@@ -117,7 +119,7 @@ function RepoBar({ url, defaultBranch }: { url: string | null; defaultBranch: st
     );
 }
 
-export default function Git({ project, show, branches, mergeRequests, branchStatuses, mergeStatuses, filters, can }: Props) {
+export default function Git({ project, show, branches, mergeRequests, branchStatuses, mergeStatuses, filters, can, mergeAccess }: Props) {
     const [registering, setRegistering] = useState(false);
     const url = route('projects.git', project.id);
 
@@ -138,6 +140,8 @@ export default function Git({ project, show, branches, mergeRequests, branchStat
                 )
             }
         >
+            <MergeAccessCard projectId={project.id} access={mergeAccess} canManage={can.manageMergeAccess} />
+
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <ToggleGroup
                     type="single"

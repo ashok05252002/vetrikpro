@@ -2,6 +2,7 @@ import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import CardHeading from '@/components/ui/card-heading';
+import DatePicker from '@/components/ui/date-picker';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -306,18 +307,12 @@ export default function InvoiceEditor({ invoice, initial, customers, products, s
                         <CardContent className="grid gap-4">
                             <div className="grid gap-2">
                                 <Label htmlFor="issue_date">Invoice date</Label>
-                                <Input
-                                    id="issue_date"
-                                    type="date"
-                                    required
-                                    value={data.issue_date}
-                                    onChange={(e) => setData('issue_date', e.target.value)}
-                                />
+                                <DatePicker id="issue_date" value={data.issue_date ?? ''} onChange={(v) => setData('issue_date', v)} required />
                                 <InputError message={errors.issue_date} />
                             </div>
                             <div className="grid gap-2">
                                 <Label htmlFor="due_date">Due date</Label>
-                                <Input id="due_date" type="date" value={data.due_date} onChange={(e) => setData('due_date', e.target.value)} />
+                                <DatePicker id="due_date" value={data.due_date ?? ''} onChange={(v) => setData('due_date', v)} />
                                 <InputError message={errors.due_date} />
                             </div>
                             <div className="flex items-start justify-between gap-3 border-t pt-4">

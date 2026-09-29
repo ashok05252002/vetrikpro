@@ -10,19 +10,21 @@ interface Props {
     archived: boolean;
     /** Icon-only, for table rows. */
     compact?: boolean;
+    /** Route family: employees, or interns (same actions, interns' permissions). */
+    routes?: 'admin.employees' | 'admin.interns';
 }
 
 /**
  * Archive someone who has left, or bring them back. Archiving asks first,
  * because it signs them out; restoring does not need confirming.
  */
-export default function ArchiveButton({ employeeId, name, archived, compact = false }: Props) {
+export default function ArchiveButton({ employeeId, name, archived, compact = false, routes = 'admin.employees' }: Props) {
     const [confirming, setConfirming] = useState(false);
     const [processing, setProcessing] = useState(false);
 
     const submit = (action: 'archive' | 'restore') =>
         router.post(
-            route(`admin.employees.${action}`, employeeId),
+            route(`${routes}.${action}`, employeeId),
             {},
             {
                 preserveScroll: true,

@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\EmployeeController;
 use App\Http\Controllers\Admin\EmployeeDocumentController;
 use App\Http\Controllers\Admin\EmployeeOnboardingController;
 use App\Http\Controllers\Admin\EmployeeProfileController;
+use App\Http\Controllers\Admin\InternController;
 use App\Http\Controllers\Admin\ProjectController;
 use App\Http\Controllers\Admin\PromotionController;
 use App\Http\Controllers\Admin\RoleController;
@@ -80,6 +81,19 @@ Route::middleware(['auth'])
         });
 
         $crud(Route::resource('employees', EmployeeController::class), 'employees');
+
+        // Interns: employee records managed under their own permissions. Archive,
+        // restore and delete reuse the employee actions, gated by interns.* here.
+        Route::prefix('interns')->name('interns.')->group(function () {
+            Route::get('/', [InternController::class, 'index'])->middleware('can:interns.view')->name('index');
+            Route::get('create', [InternController::class, 'create'])->middleware('can:interns.create')->name('create');
+            Route::post('/', [InternController::class, 'store'])->middleware('can:interns.create')->name('store');
+            Route::get('{employee}/edit', [InternController::class, 'edit'])->middleware('can:interns.edit')->name('edit');
+            Route::put('{employee}', [InternController::class, 'update'])->middleware('can:interns.edit')->name('update');
+            Route::post('{employee}/archive', [EmployeeController::class, 'archive'])->middleware('can:interns.edit')->name('archive');
+            Route::post('{employee}/restore', [EmployeeController::class, 'restore'])->middleware('can:interns.edit')->name('restore');
+            Route::delete('{employee}', [EmployeeController::class, 'destroy'])->middleware('can:interns.delete')->name('destroy');
+        });
         Route::post('employees/{employee}/archive', [EmployeeController::class, 'archive'])->middleware('can:employees.edit')->name('employees.archive');
         Route::post('employees/{employee}/restore', [EmployeeController::class, 'restore'])->middleware('can:employees.edit')->name('employees.restore');
         Route::patch('employees/{employee}/status', [EmployeeController::class, 'status'])->middleware('can:employees.edit')->name('employees.status');

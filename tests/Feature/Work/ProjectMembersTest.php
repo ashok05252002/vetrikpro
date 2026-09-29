@@ -94,6 +94,8 @@ class ProjectMembersTest extends TestCase
     {
         $project = $this->project();
         [$a, $b] = User::factory()->count(2)->create();
+        // Merge access needs eligibility (Roles & access → Project roles).
+        $a->syncPermissionOverrides(['project_roles.merge' => true]);
         $admin = User::factory()->admin()->create();
 
         // Two people adding from two open dialogs: the second must not drop the first.
@@ -109,6 +111,7 @@ class ProjectMembersTest extends TestCase
     {
         $project = $this->project();
         $member = User::factory()->create();
+        $member->syncPermissionOverrides(['project_roles.merge' => true]);
         $project->members()->attach($member);
 
         $this->actingAs(User::factory()->admin()->create())
@@ -190,5 +193,56 @@ class ProjectMembersTest extends TestCase
             ->getJson(route('admin.lookups.users', ['search' => 'Findable']))
             ->assertOk()
             ->assertJsonPath('data.0.name', 'Findable Person');
+    }
+
+    public function test_merge_access_and_lead_need_eligibility()
+    {
+        $project = $this->project();
+        $member = User::factory()->create();
+        $project->members()->attach($member, ['role' => 'member']);
+        $admin = User::factory()->admin()->create();
+
+        $this->actingAs($admin)->patch(route('projects.members.update', [$project, $member]), ['role' => 'dev_admin'])->assertSessionHas('error');
+        $this->actingAs($admin)->patch(route('projects.members.update', [$project, $member]), ['role' => 'lead'])->assertSessionHas('error');
+        $this->assertFalse($project->fresh()->isDevAdmin($member));
+
+        $member->syncPermissionOverrides(['project_roles.lead' => true]);
+        $this->actingAs($admin)->patch(route('projects.members.update', [$project, $member->fresh()]), ['role' => 'lead'])->assertSessionHas('success');
+        $this->assertTrue($project->fresh()->isLedBy($member));
+    }
+
+    public function test_a_lead_runs_the_project_like_its_owner()
+    {
+        $project = $this->project();
+        $lead = User::factory()->create();
+        $lead->syncPermissionOverrides(['project_roles.lead' => true]);
+        $project->members()->attach($lead, ['role' => 'lead']);
+        $newcomer = User::factory()->create();
+
+        $this->assertTrue($lead->can('update', $project));
+        $this->assertTrue($lead->can('manageMembers', $project));
+        $this->assertTrue($project->canMerge($lead));
+
+        $this->actingAs($lead)->post(route('projects.members.store', $project), ['user_ids' => [$newcomer->id], 'role' => 'member'])->assertSessionHas('success');
+    }
+
+    public function test_leads_are_set_from_the_project_form_and_only_eligible_people_count()
+    {
+        $admin = User::factory()->admin()->create();
+        $eligible = User::factory()->create();
+        $eligible->syncPermissionOverrides(['project_roles.lead' => true]);
+        $plain = User::factory()->create();
+        $base = ['name' => 'Chef2Comply', 'code' => 'C2C', 'status' => 'active', 'default_branch' => 'main'];
+
+        $this->actingAs($admin)->post(route('admin.projects.store'), [...$base, 'lead_ids' => [$plain->id]])->assertSessionHasErrors('lead_ids.0');
+
+        $this->actingAs($admin)->post(route('admin.projects.store'), [...$base, 'lead_ids' => [$eligible->id]])->assertSessionHasNoErrors();
+        $project = Project::where('code', 'C2C')->first();
+        $this->assertTrue($project->isLedBy($eligible));
+
+        // Dropping a lead keeps them on the project as a member.
+        $this->actingAs($admin)->put(route('admin.projects.update', $project), [...$base, 'lead_ids' => []])->assertSessionHasNoErrors();
+        $this->assertFalse($project->fresh()->isLedBy($eligible));
+        $this->assertTrue($project->fresh()->hasMember($eligible));
     }
 }

@@ -78,7 +78,7 @@ class TestPointAttachmentController extends Controller
         $user = $request->user();
 
         abort_unless(
-            $attachment->uploaded_by === $user->id || $user->can('projects.edit') || $project->owner_id === $user->id,
+            $attachment->uploaded_by === $user->id || $user->can('projects.edit') || $project->isLedBy($user),
             403,
             'Only whoever attached it, the project owner or a project editor can remove this image.',
         );

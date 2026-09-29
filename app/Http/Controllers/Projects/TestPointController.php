@@ -32,6 +32,23 @@ class TestPointController extends Controller
 {
     public function index(Request $request, Project $project): Response
     {
+        return Inertia::render('testing/points', $this->board($request, $project));
+    }
+
+    /**
+     * The same bugs as the Testing module, shown in the project's own Testing
+     * tab so working on a project never leaves it.
+     */
+    public function project(Request $request, Project $project): Response
+    {
+        return Inertia::render('projects/testing', $this->board($request, $project));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function board(Request $request, Project $project): array
+    {
         $this->authorize('view', $project);
 
         $view = $request->string('view')->value() === 'list' ? 'list' : 'board';
@@ -54,7 +71,7 @@ class TestPointController extends Controller
                     ->through(fn (TestPoint $p) => Cards::testPoint($p, $viewer)),
             ];
 
-        return Inertia::render('testing/points', [
+        return [
             'project' => ProjectWorkspace::header($project, $request->user()),
             'counts' => ProjectWorkspace::testingCounts($project),
             'view' => $view,
@@ -69,7 +86,7 @@ class TestPointController extends Controller
                 'create' => $request->user()->can('create', new TestPoint(['project_id' => $project->id])),
                 'assign' => (new TestPoint)->setRelation('project', $project)->assignableBy($request->user()),
             ],
-        ]);
+        ];
     }
 
     public function show(Request $request, Project $project, TestPoint $testPoint): Response
@@ -88,7 +105,7 @@ class TestPointController extends Controller
                     ...$a->only('id', 'original_name', 'size', 'created_at'),
                     'uploaded_by' => $a->uploader?->only('id', 'name'),
                     'url' => route('testing.points.attachments.show', [$project, $testPoint, $a]),
-                    'can_delete' => $a->uploaded_by === $request->user()->id || $request->user()->can('projects.edit') || $project->owner_id === $request->user()->id,
+                    'can_delete' => $a->uploaded_by === $request->user()->id || $request->user()->can('projects.edit') || $project->isLedBy($request->user()),
                 ]),
                 ...$testPoint->only('steps', 'expected_result', 'actual_result', 'assigned_to', 'task_id', 'created_at'),
                 'creator' => $testPoint->creator?->only('id', 'name'),

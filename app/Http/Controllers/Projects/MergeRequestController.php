@@ -33,7 +33,7 @@ class MergeRequestController extends Controller
             'description' => ['nullable', 'string', 'max:5000'],
             'target_branch' => ['required', 'string', 'max:200', 'regex:'.Branch::NAME_PATTERN],
             // Only someone who can actually review may be asked to.
-            'reviewer_id' => ['nullable', 'integer', Rule::exists('project_user', 'user_id')->where('project_id', $project->id)->where('role', 'dev_admin')],
+            'reviewer_id' => ['nullable', 'integer', Rule::exists('project_user', 'user_id')->where('project_id', $project->id)->whereIn('role', ['dev_admin', 'lead'])],
         ], ['reviewer_id.exists' => 'Pick one of this project’s dev admins.']);
 
         try {

@@ -27,6 +27,8 @@ class Employee extends Model
         'date_of_joining',
         'employment_type',
         'salary',
+        'has_stipend',
+        'stipend',
         'address',
         'status',
         'bank_account_name',
@@ -45,6 +47,8 @@ class Employee extends Model
             'date_of_birth' => 'date:Y-m-d',
             'date_of_joining' => 'date:Y-m-d',
             'salary' => 'decimal:2',
+            'has_stipend' => 'boolean',
+            'stipend' => 'decimal:2',
             'bank_account_number' => 'encrypted',
             'onboarding_status' => OnboardingStatus::class,
             'invited_at' => 'datetime',
@@ -69,6 +73,25 @@ class Employee extends Model
     public function isArchived(): bool
     {
         return $this->archived_at !== null;
+    }
+
+    public const INTERN = 'intern';
+
+    public function isIntern(): bool
+    {
+        return $this->employment_type === self::INTERN;
+    }
+
+    /** @param  Builder<Employee>  $query */
+    public function scopeInterns(Builder $query): Builder
+    {
+        return $query->where('employment_type', self::INTERN);
+    }
+
+    /** @param  Builder<Employee>  $query */
+    public function scopeStaff(Builder $query): Builder
+    {
+        return $query->where('employment_type', '!=', self::INTERN);
     }
 
     /** @param  Builder<Employee>  $query */

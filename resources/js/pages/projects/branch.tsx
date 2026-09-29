@@ -264,6 +264,8 @@ export default function BranchPage({ project, branch, devAdmins, can }: Props) {
                     action={
                         can.update && (
                             <ReferencePicker
+                                warnBranches
+                                exceptBranch={branch.id}
                                 projectId={project.id}
                                 kind="tasks"
                                 value={adding}
@@ -285,6 +287,8 @@ export default function BranchPage({ project, branch, devAdmins, can }: Props) {
                     action={
                         can.update && (
                             <ReferencePicker
+                                warnBranches
+                                exceptBranch={branch.id}
                                 projectId={project.id}
                                 kind="test-points"
                                 value={addingPoints}

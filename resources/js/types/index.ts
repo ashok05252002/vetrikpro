@@ -135,6 +135,8 @@ export interface Employee {
     user?: Pick<User, 'id' | 'name' | 'email'> | null;
     department?: Pick<Department, 'id' | 'name'> | null;
     designation?: Pick<Designation, 'id' | 'name'> | null;
+    has_stipend?: boolean;
+    stipend?: string | null;
 }
 
 /** Shape of Laravel's length-aware paginator as serialised to Inertia. */
@@ -167,6 +169,8 @@ export interface ProjectSummary {
     done_tasks_count?: number;
     members_count?: number;
     progress?: number;
+    /** Dashboard only: open tasks assigned to the viewer. */
+    my_open_tasks_count?: number;
 }
 
 export interface TaskSummary {
@@ -385,35 +389,6 @@ export interface TestRunResultRow {
 export interface TestingCounts {
     points: number;
     runs: number;
-}
-
-export interface RequirementVersion {
-    id: number;
-    version: number;
-    original_name: string;
-    mime_type: string;
-    size: number;
-    change_note: string | null;
-    uploaded_by: string | null;
-    uploaded_at: string;
-}
-
-export interface RequirementSummary {
-    id: number;
-    project_id: number;
-    number: number;
-    reference: string;
-    title: string;
-    versions_count: number;
-    current: RequirementVersion | null;
-    updated_at: string;
-}
-
-export interface RequirementDetail extends RequirementSummary {
-    description: string | null;
-    creator: Pick<User, 'id' | 'name'> | null;
-    created_at: string;
-    versions: RequirementVersion[];
 }
 
 export type BranchStatus = 'active' | 'merged' | 'closed';

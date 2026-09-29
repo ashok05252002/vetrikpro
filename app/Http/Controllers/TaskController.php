@@ -41,6 +41,7 @@ class TaskController extends Controller
             ->when($request->string('status')->value(), fn ($query, string $status) => $query->where('status', $status))
             ->when($request->string('priority')->value(), fn ($query, string $p) => $query->where('priority', $p))
             ->when($request->boolean('overdue'), fn ($query) => $query->overdue())
+            ->when($request->string('due')->value() === 'week', fn ($query) => $query->dueThisWeek())
             // Workflow order, then soonest due first with undated tasks last.
             // Written as CASE rather than MySQL's FIELD() so SQLite works too.
             ->orderByRaw("CASE status WHEN 'todo' THEN 0 WHEN 'in_progress' THEN 1 WHEN 'in_review' THEN 2 ELSE 3 END")
@@ -67,6 +68,7 @@ class TaskController extends Controller
                 ...$request->only('search', 'status', 'priority'),
                 'scope' => $showAll ? 'all' : 'mine',
                 'overdue' => $request->boolean('overdue'),
+                'due' => $request->string('due')->value() === 'week' ? 'week' : null,
             ],
             'canSeeAll' => $user->can('projects.view'),
         ]);

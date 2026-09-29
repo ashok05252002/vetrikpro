@@ -1,13 +1,15 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useLookup } from '@/hooks/use-lookup';
-import { Check, Loader2, Plus, Search, X } from 'lucide-react';
+import { AlertTriangle, Check, Loader2, Plus, Search, X } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 export interface Reference {
     id: number;
     reference: string;
     title: string;
+    /** Other active branches already linked to this (from the lookup). */
+    on_branches?: { id: number; name: string; by: string | null }[];
 }
 
 interface Props<T extends Reference> {
@@ -21,6 +23,17 @@ interface Props<T extends Reference> {
     placeholder?: string;
     /** Extra detail on a result row, e.g. its status. */
     renderMeta?: (item: T) => ReactNode;
+    /**
+     * Linking work to a branch: warn when another branch already claims it.
+     * `exceptBranch` leaves out the branch being edited.
+     */
+    warnBranches?: boolean;
+    exceptBranch?: number;
+}
+
+/** "Also on feature/x (Arun), fix/y" — who else is already delivering this. */
+function branchList(item: Reference): string {
+    return (item.on_branches ?? []).map((b) => (b.by ? `${b.name} (${b.by.split(' ')[0]})` : b.name)).join(', ');
 }
 
 /**
@@ -34,11 +47,18 @@ export default function ReferencePicker<T extends Reference>({
     single = false,
     placeholder,
     renderMeta,
+    warnBranches = false,
+    exceptBranch,
 }: Props<T>) {
     const [open, setOpen] = useState(false);
     const [search, setSearch] = useState('');
     const root = useRef<HTMLDivElement>(null);
-    const { results, loading } = useLookup<T>(route('projects.lookups', [projectId, kind]), { search }, open);
+    const { results, loading } = useLookup<T>(
+        route('projects.lookups', [projectId, kind]),
+        exceptBranch ? { search, except_branch: String(exceptBranch) } : { search },
+        open,
+    );
+    const clashing = warnBranches ? value.filter((v) => (v.on_branches?.length ?? 0) > 0) : [];
     const picked = new Set(value.map((v) => v.id));
 
     useEffect(() => {
@@ -82,6 +102,20 @@ export default function ReferencePicker<T extends Reference>({
                 </ul>
             )}
 
+            {clashing.length > 0 && (
+                <div role="status" className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs">
+                    <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-amber-600" aria-hidden />
+                    <div className="space-y-0.5">
+                        <p className="font-medium">Already on another branch — you can still link it.</p>
+                        {clashing.map((item) => (
+                            <p key={item.id}>
+                                <span className="font-mono">{item.reference}</span> is also on {branchList(item)}.
+                            </p>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             {(!single || value.length === 0) && (
                 <Button type="button" variant="outline" size="sm" onClick={() => setOpen((o) => !o)}>
                     <Plus className="size-4" /> {placeholder ?? (kind === 'tasks' ? 'Add task' : 'Add testing point')}
@@ -115,6 +149,15 @@ export default function ReferencePicker<T extends Reference>({
                                 >
                                     <span className="text-muted-foreground w-14 shrink-0 font-mono text-xs">{item.reference}</span>
                                     <span className="min-w-0 flex-1 truncate">{item.title}</span>
+                                    {warnBranches && (item.on_branches?.length ?? 0) > 0 && (
+                                        <span
+                                            className="inline-flex shrink-0 items-center gap-1 text-[11px] text-amber-700 dark:text-amber-400"
+                                            title={`Also on ${branchList(item)}`}
+                                        >
+                                            <AlertTriangle className="size-3" aria-hidden /> On {item.on_branches!.length} branch
+                                            {item.on_branches!.length === 1 ? '' : 'es'}
+                                        </span>
+                                    )}
                                     {renderMeta?.(item)}
                                     {picked.has(item.id) && <Check className="size-4 shrink-0" />}
                                 </button>

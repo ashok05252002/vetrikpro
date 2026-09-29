@@ -107,6 +107,7 @@ export default function RegisterBranchDialog({ projectId, defaultBranch, open, o
                         <div className="grid gap-2">
                             <Label>Task points</Label>
                             <ReferencePicker
+                                warnBranches
                                 projectId={projectId}
                                 kind="tasks"
                                 value={tasks}
@@ -124,6 +125,7 @@ export default function RegisterBranchDialog({ projectId, defaultBranch, open, o
                         <div className="grid gap-2">
                             <Label>Testing points</Label>
                             <ReferencePicker
+                                warnBranches
                                 projectId={projectId}
                                 kind="test-points"
                                 value={points}

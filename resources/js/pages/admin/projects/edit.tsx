@@ -15,11 +15,13 @@ interface Props {
         repository_url: string | null;
         default_branch: string;
         members_count: number;
+        lead_ids: string[];
     };
     statuses: Option[];
+    eligibleLeads: Pick<User, 'id' | 'name' | 'email'>[];
 }
 
-export default function EditProject({ project, statuses }: Props) {
+export default function EditProject({ project, statuses, eligibleLeads }: Props) {
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Dashboard', href: '/dashboard' },
         { title: 'Manage projects', href: '/admin/projects' },
@@ -49,6 +51,7 @@ export default function EditProject({ project, statuses }: Props) {
                 <ProjectForm
                     owner={project.owner}
                     statuses={statuses}
+                    eligibleLeads={eligibleLeads}
                     initial={{
                         name: project.name,
                         code: project.code,
@@ -59,6 +62,7 @@ export default function EditProject({ project, statuses }: Props) {
                         due_date: project.due_date ?? '',
                         repository_url: project.repository_url ?? '',
                         default_branch: project.default_branch,
+                        lead_ids: project.lead_ids,
                     }}
                     action={{ url: route('admin.projects.update', project.id), method: 'put' }}
                     submitLabel="Save changes"

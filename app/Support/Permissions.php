@@ -46,6 +46,14 @@ final class Permissions
                     'onboard' => 'Send invites and review onboarding',
                     'promote' => 'Promote people and revise salaries, with a letter by email',
                 ]],
+                // Interns are managed apart from staff, so a coordinator can run
+                // the internship programme without seeing everyone's records.
+                'interns' => ['label' => 'Interns', 'actions' => [
+                    'view' => 'See interns',
+                    'create' => 'Add interns (creates their login)',
+                    'edit' => 'Edit interns, their stipend, and archive them',
+                    'delete' => 'Delete interns added by mistake',
+                ]],
                 'documents' => ['label' => 'Employee documents', 'actions' => [
                     'view' => 'Open and download employee documents',
                     'create' => 'Upload documents for an employee',
@@ -70,6 +78,12 @@ final class Permissions
                     'create' => 'Create projects',
                     'edit' => 'Edit any project, its members and its content',
                     'delete' => 'Delete projects',
+                ]],
+                // Eligibility, not access: who may be *chosen* for a role inside
+                // a project. No "view" here, so it grants nothing by itself.
+                'project_roles' => ['label' => 'Project roles', 'actions' => [
+                    'lead' => 'Can be made a project lead (full control of that project)',
+                    'merge' => 'Can be given merge access on a project',
                 ]],
                 'merge_requests' => ['label' => 'Merge requests', 'actions' => [
                     'review' => 'Review and merge on any project',

@@ -45,7 +45,7 @@ class TaskPolicy
 
     public function delete(User $user, Task $task): bool
     {
-        return $user->can('projects.edit') || $task->project->owner_id === $user->id;
+        return $user->can('projects.edit') || $task->project->isLedBy($user);
     }
 
     private function onProject(User $user, Task $task): bool

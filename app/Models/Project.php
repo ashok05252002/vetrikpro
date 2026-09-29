@@ -90,6 +90,28 @@ class Project extends Model
         return $this->devAdmins()->whereKey($user->id)->exists();
     }
 
+    public function leads(): BelongsToMany
+    {
+        return $this->members()->wherePivot('role', ProjectMemberRole::Lead->value);
+    }
+
+    /**
+     * Whether someone runs this project: its owner or one of its leads. They
+     * can do everything on it — edit it, manage its team and who may merge,
+     * assign and move any task or bug. Every "owner may…" check asks this.
+     */
+    public function isLedBy(User $user): bool
+    {
+        return $this->owner_id === $user->id
+            || $this->leads()->whereKey($user->id)->exists();
+    }
+
+    /** Whether someone may review and merge this project's merge requests. */
+    public function canMerge(User $user): bool
+    {
+        return $this->isLedBy($user) || $this->isDevAdmin($user);
+    }
+
     public function tasks(): HasMany
     {
         return $this->hasMany(Task::class);
@@ -110,9 +132,10 @@ class Project extends Model
         return $this->hasOne(TestRun::class)->latestOfMany('number');
     }
 
-    public function requirements(): HasMany
+    /** Requirement versions, newest first. */
+    public function requirementVersions(): HasMany
     {
-        return $this->hasMany(RequirementDocument::class);
+        return $this->hasMany(RequirementVersion::class)->orderByDesc('major')->orderByDesc('minor');
     }
 
     public function branches(): HasMany

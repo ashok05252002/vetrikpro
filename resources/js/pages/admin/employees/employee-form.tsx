@@ -1,6 +1,7 @@
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import DatePicker from '@/components/ui/date-picker';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -33,6 +34,9 @@ export type FormData = {
     date_of_joining: string;
     employment_type: string;
     salary: string;
+    /** Interns only: whether a stipend is paid, and how much a month. */
+    has_stipend?: boolean;
+    stipend?: string;
     address: string;
     status: string;
 };
@@ -46,9 +50,22 @@ interface Props {
     action: { url: string; method: 'post' | 'put' };
     submitLabel: string;
     creating?: boolean;
+    /** Intern mode: no role, employment type, salary or offer letter; a stipend instead. */
+    intern?: boolean;
+    cancelHref?: string;
 }
 
-export default function EmployeeForm({ departments, designations, roles = [], initial, action, submitLabel, creating = false }: Props) {
+export default function EmployeeForm({
+    departments,
+    designations,
+    roles = [],
+    initial,
+    action,
+    submitLabel,
+    creating = false,
+    intern = false,
+    cancelHref,
+}: Props) {
     const { data, setData, post, put, processing, errors, transform } = useForm<FormData>(initial);
 
     // Radix Select has no empty-string value, so optional relations ride as a
@@ -132,7 +149,7 @@ export default function EmployeeForm({ departments, designations, roles = [], in
                     </p>
                 </div>
 
-                {creating && (
+                {creating && !intern && (
                     <div className="grid gap-2">
                         <Label htmlFor="role_id">Role</Label>
                         <Select value={data.role_id} onValueChange={(value) => setData('role_id', value)}>
@@ -153,7 +170,7 @@ export default function EmployeeForm({ departments, designations, roles = [], in
                 )}
 
                 <div className="grid gap-2">
-                    <Label htmlFor="employee_code">Employee code</Label>
+                    <Label htmlFor="employee_code">{intern ? 'Intern code' : 'Employee code'}</Label>
                     <Input id="employee_code" value={data.employee_code} onChange={(e) => setData('employee_code', e.target.value)} required />
                     <InputError message={errors.employee_code} />
                 </div>
@@ -218,39 +235,40 @@ export default function EmployeeForm({ departments, designations, roles = [], in
 
                 <div className="grid gap-2">
                     <Label htmlFor="date_of_birth">Date of birth</Label>
-                    <Input id="date_of_birth" type="date" value={data.date_of_birth} onChange={(e) => setData('date_of_birth', e.target.value)} />
+                    <DatePicker id="date_of_birth" value={data.date_of_birth ?? ''} onChange={(v) => setData('date_of_birth', v)} notAfterToday />
                     <InputError message={errors.date_of_birth} />
                 </div>
 
                 <div className="grid gap-2">
                     <Label htmlFor="date_of_joining">
-                        Date of joining {creating && data.offer_letter_mode === 'generate' && <span className="text-destructive">*</span>}
+                        {intern ? 'Internship starts' : 'Date of joining'}{' '}
+                        {creating && !intern && data.offer_letter_mode === 'generate' && <span className="text-destructive">*</span>}
                     </Label>
-                    <Input
-                        id="date_of_joining"
-                        type="date"
-                        value={data.date_of_joining}
-                        onChange={(e) => setData('date_of_joining', e.target.value)}
-                    />
+                    <DatePicker id="date_of_joining" value={data.date_of_joining ?? ''} onChange={(v) => setData('date_of_joining', v)} />
                     <InputError message={errors.date_of_joining} />
                 </div>
 
-                <div className="grid gap-2">
-                    <Label htmlFor="employment_type">Employment type</Label>
-                    <Select value={data.employment_type} onValueChange={(value) => setData('employment_type', value)}>
-                        <SelectTrigger id="employment_type">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {Object.entries(employmentTypeLabels).map(([value, label]) => (
-                                <SelectItem key={value} value={value}>
-                                    {label}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    <InputError message={errors.employment_type} />
-                </div>
+                {!intern && (
+                    <div className="grid gap-2">
+                        <Label htmlFor="employment_type">Employment type</Label>
+                        <Select value={data.employment_type} onValueChange={(value) => setData('employment_type', value)}>
+                            <SelectTrigger id="employment_type">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {Object.entries(employmentTypeLabels)
+                                    // Interns are added from the Interns page.
+                                    .filter(([value]) => value !== 'intern' || initial.employment_type === 'intern')
+                                    .map(([value, label]) => (
+                                        <SelectItem key={value} value={value}>
+                                            {label}
+                                        </SelectItem>
+                                    ))}
+                            </SelectContent>
+                        </Select>
+                        <InputError message={errors.employment_type} />
+                    </div>
+                )}
 
                 <div className="grid gap-2">
                     <Label htmlFor="status">Status</Label>
@@ -269,14 +287,65 @@ export default function EmployeeForm({ departments, designations, roles = [], in
                     <InputError message={errors.status} />
                 </div>
 
-                <div className="grid gap-2">
-                    <Label htmlFor="salary">
-                        Monthly salary {creating && data.offer_letter_mode === 'generate' && <span className="text-destructive">*</span>}
-                    </Label>
-                    <Input id="salary" type="number" step="0.01" min="0" value={data.salary} onChange={(e) => setData('salary', e.target.value)} />
-                    <InputError message={errors.salary} />
-                </div>
+                {!intern && (
+                    <div className="grid gap-2">
+                        <Label htmlFor="salary">
+                            Monthly salary {creating && data.offer_letter_mode === 'generate' && <span className="text-destructive">*</span>}
+                        </Label>
+                        <Input
+                            id="salary"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={data.salary}
+                            onChange={(e) => setData('salary', e.target.value)}
+                        />
+                        <InputError message={errors.salary} />
+                    </div>
+                )}
             </div>
+
+            {intern && (
+                <section className="space-y-3 rounded-xl border p-4">
+                    <div>
+                        <h2 className="text-sm font-semibold">Stipend</h2>
+                        <p className="text-muted-foreground text-xs">Is this internship paid?</p>
+                    </div>
+                    <ToggleGroup
+                        type="single"
+                        variant="outline"
+                        value={data.has_stipend ? 'yes' : 'no'}
+                        onValueChange={(value) =>
+                            value && setData((d) => ({ ...d, has_stipend: value === 'yes', stipend: value === 'yes' ? d.stipend : '' }))
+                        }
+                        className="justify-start"
+                    >
+                        <ToggleGroupItem value="yes" className="px-4 text-xs">
+                            Yes, a stipend
+                        </ToggleGroupItem>
+                        <ToggleGroupItem value="no" className="px-4 text-xs">
+                            No stipend
+                        </ToggleGroupItem>
+                    </ToggleGroup>
+                    {data.has_stipend && (
+                        <div className="grid max-w-xs gap-2">
+                            <Label htmlFor="stipend">Monthly stipend</Label>
+                            <Input
+                                id="stipend"
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                required
+                                autoFocus
+                                value={data.stipend ?? ''}
+                                onChange={(e) => setData('stipend', e.target.value)}
+                                placeholder="10000"
+                            />
+                        </div>
+                    )}
+                    <InputError message={errors.stipend} />
+                </section>
+            )}
 
             <div className="grid gap-2">
                 <Label htmlFor="address">Address</Label>
@@ -284,7 +353,19 @@ export default function EmployeeForm({ departments, designations, roles = [], in
                 <InputError message={errors.address} />
             </div>
 
-            {creating && (
+            {creating && intern && (
+                <label className="flex items-start gap-3 rounded-xl border p-4">
+                    <Checkbox className="mt-0.5" checked={data.send_invite} onCheckedChange={(checked) => setData('send_invite', checked === true)} />
+                    <span className="text-sm">
+                        Send the invite email now
+                        <span className="text-muted-foreground block text-xs">
+                            They set a password, then complete onboarding: details, bank account and documents.
+                        </span>
+                    </span>
+                </label>
+            )}
+
+            {creating && !intern && (
                 <section className="space-y-4 rounded-xl border p-4">
                     <div>
                         <h2 className="text-sm font-semibold">Invite and offer letter</h2>
@@ -357,7 +438,7 @@ export default function EmployeeForm({ departments, designations, roles = [], in
             <div className="flex items-center gap-3">
                 <Button disabled={processing}>{submitLabel}</Button>
                 <Button asChild variant="ghost" type="button">
-                    <Link href={route('admin.employees.index')}>Cancel</Link>
+                    <Link href={cancelHref ?? route('admin.employees.index')}>Cancel</Link>
                 </Button>
             </div>
         </form>

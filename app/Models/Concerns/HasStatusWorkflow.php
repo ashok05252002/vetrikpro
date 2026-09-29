@@ -43,7 +43,7 @@ trait HasStatusWorkflow
         return $user->isSuper()
             || ($this->created_by !== null && $this->created_by === $user->id)
             || ($this->assigned_to !== null && $this->assigned_to === $user->id)
-            || ($this->project !== null && $this->project->owner_id === $user->id);
+            || ($this->project !== null && $this->project->isLedBy($user));
     }
 
     private function logStatus(?string $from): void

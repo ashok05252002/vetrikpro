@@ -36,6 +36,8 @@ interface Stats {
     employees?: number;
     departments?: number;
     admins?: number;
+    /** The signed-in person's own work, whatever the scope above. */
+    mine: { open: number; overdue: number };
 }
 
 interface Props {
@@ -108,11 +110,15 @@ function Hero({ name, stats, orgWide }: { name: string; stats: Stats; orgWide: b
                         {greeting()}, {name}
                     </h1>
                     <p className="max-w-xl text-sm text-white/85">
-                        {stats.openTasks === 0
-                            ? 'Nothing open right now.'
-                            : `${stats.openTasks} open ${stats.openTasks === 1 ? 'task' : 'tasks'} ${orgWide ? 'across the organisation' : 'on your projects'}${
-                                  stats.overdueTasks > 0 ? `, ${stats.overdueTasks} of them overdue.` : ', none overdue.'
-                              }`}
+                        {orgWide
+                            ? `${stats.openTasks} open ${stats.openTasks === 1 ? 'task' : 'tasks'} across the organisation${
+                                  stats.overdueTasks > 0 ? `, ${stats.overdueTasks} overdue` : ', none overdue'
+                              }. ${stats.mine.open === 0 ? 'None are assigned to you.' : `${stats.mine.open} ${stats.mine.open === 1 ? 'is' : 'are'} yours.`}`
+                            : stats.mine.open === 0
+                              ? 'Nothing assigned to you right now.'
+                              : `${stats.mine.open} open ${stats.mine.open === 1 ? 'task' : 'tasks'} assigned to you${
+                                    stats.mine.overdue > 0 ? `, ${stats.mine.overdue} of them overdue.` : ', none overdue.'
+                                }`}
                     </p>
                 </div>
 
@@ -145,15 +151,30 @@ export default function Dashboard({ stats, taskPipeline, myTasks, projects, orgW
             <div className="flex flex-col gap-6 p-4 md:p-6">
                 <Hero name={auth.user.name.split(' ')[0]} stats={stats} orgWide={orgWide} />
 
+                {/* Each tile counts exactly what its link lists: the organisation for
+                    someone who sees every project, otherwise their own tasks. */}
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    <StatTile label="Open tasks" value={stats.openTasks} icon={ListChecks} tone="violet" href="/tasks" />
+                    <StatTile
+                        label="Open tasks"
+                        value={stats.openTasks}
+                        icon={ListChecks}
+                        tone="violet"
+                        href={orgWide ? '/tasks?scope=all' : '/tasks'}
+                        note={orgWide ? `Across the organisation · ${stats.mine.open} yours` : 'Assigned to you'}
+                    />
                     <StatTile
                         label="Overdue"
                         value={stats.overdueTasks}
                         icon={AlertTriangle}
                         tone="red"
-                        href="/tasks?overdue=1"
-                        note={stats.overdueTasks > 0 ? 'Past their due date' : 'Nothing is late'}
+                        href={orgWide ? '/tasks?scope=all&overdue=1' : '/tasks?overdue=1'}
+                        note={
+                            stats.overdueTasks === 0
+                                ? 'Nothing is late'
+                                : orgWide
+                                  ? `Past their due date · ${stats.mine.overdue} yours`
+                                  : 'Past their due date'
+                        }
                         alert
                     />
                     <StatTile
@@ -161,7 +182,7 @@ export default function Dashboard({ stats, taskPipeline, myTasks, projects, orgW
                         value={stats.dueThisWeek}
                         icon={CalendarClock}
                         tone="amber"
-                        href="/tasks"
+                        href={orgWide ? '/tasks?scope=all&due=week' : '/tasks?due=week'}
                         note="In the next 7 days"
                     />
                     <StatTile label="Active projects" value={stats.activeProjects} icon={FolderKanban} tone="sky" href="/projects" />
@@ -173,12 +194,24 @@ export default function Dashboard({ stats, taskPipeline, myTasks, projects, orgW
                         icon={BarChart3}
                         tone="violet"
                         title="Task pipeline"
-                        description={totalTasks === 0 ? 'No tasks yet.' : `Where all ${totalTasks} tasks currently sit.`}
+                        description={
+                            totalTasks === 0
+                                ? 'No tasks yet.'
+                                : orgWide
+                                  ? `Where all ${totalTasks} tasks currently sit.`
+                                  : `Where your ${totalTasks} tasks currently sit.`
+                        }
                     >
                         <PipelineBar stages={taskPipeline} />
                     </SectionCard>
 
-                    <SectionCard className="lg:col-span-2" icon={Target} tone="sky" title="Active projects" description="Share of tasks completed.">
+                    <SectionCard
+                        className="lg:col-span-2"
+                        icon={Target}
+                        tone="sky"
+                        title={orgWide ? 'Active projects' : 'Your projects'}
+                        description="Share of tasks completed."
+                    >
                         <div className="space-y-5">
                             {projects.length === 0 && <p className="text-muted-foreground text-sm">No active projects.</p>}
 
@@ -193,6 +226,13 @@ export default function Dashboard({ stats, taskPipeline, myTasks, projects, orgW
                                         </span>
                                     </div>
                                     <Meter value={project.progress ?? 0} label={`${project.name}: ${project.progress}% complete`} />
+                                    {!orgWide && (
+                                        <p className="text-muted-foreground text-xs">
+                                            {project.my_open_tasks_count
+                                                ? `${project.my_open_tasks_count} open ${project.my_open_tasks_count === 1 ? 'task' : 'tasks'} for you`
+                                                : 'Nothing open for you'}
+                                        </p>
+                                    )}
                                 </div>
                             ))}
                         </div>

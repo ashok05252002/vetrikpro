@@ -366,4 +366,19 @@ class DeveloperModuleTest extends TestCase
             ->get(route('merge-requests.index', ['scope' => 'all']))
             ->assertInertia(fn (Assert $page) => $page->has('mergeRequests.data', 0));
     }
+
+    public function test_the_work_lookup_warns_when_another_branch_already_has_it()
+    {
+        $branch = $this->branch();
+        $task = Task::factory()->create(['project_id' => $branch->project_id]);
+        $branch->tasks()->attach($task);
+        $admin = User::factory()->admin()->create();
+
+        $this->actingAs($admin)->getJson(route('projects.lookups', [$branch->project_id, 'tasks']))
+            ->assertJsonPath('data.0.on_branches.0.name', $branch->name);
+
+        // On that branch's own page it is not "another" branch.
+        $this->actingAs($admin)->getJson(route('projects.lookups', [$branch->project_id, 'tasks', 'except_branch' => $branch->id]))
+            ->assertJsonCount(0, 'data.0.on_branches');
+    }
 }

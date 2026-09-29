@@ -1,6 +1,7 @@
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import DatePicker from '@/components/ui/date-picker';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -210,12 +211,11 @@ export default function PromoteDialog({ employee, departments, designations }: P
 
                         <div className="grid gap-2">
                             <Label htmlFor="effective_date">Effective from</Label>
-                            <Input
+                            <DatePicker
                                 id="effective_date"
-                                type="date"
+                                value={data.effective_date ?? ''}
+                                onChange={(v) => setData('effective_date', v)}
                                 required
-                                value={data.effective_date}
-                                onChange={(e) => setData('effective_date', e.target.value)}
                             />
                             <InputError message={errors.effective_date} />
                         </div>

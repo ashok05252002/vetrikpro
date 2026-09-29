@@ -37,12 +37,12 @@ class TestRunPolicy
     public function complete(User $user, TestRun $run): bool
     {
         return $user->can('projects.edit')
-            || $run->project->owner_id === $user->id
+            || $run->project->isLedBy($user)
             || ($run->created_by !== null && $run->created_by === $user->id);
     }
 
     public function delete(User $user, TestRun $run): bool
     {
-        return $user->can('projects.edit') || $run->project->owner_id === $user->id;
+        return $user->can('projects.edit') || $run->project->isLedBy($user);
     }
 }

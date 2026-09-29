@@ -37,7 +37,7 @@ class BranchPolicy
         }
 
         return $branch->created_by === $user->id
-            || $branch->project->isDevAdmin($user)
+            || $branch->project->canMerge($user)
             || $user->can('projects.edit');
     }
 

@@ -4,6 +4,7 @@ import Pagination from '@/components/admin/pagination';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import DatePicker from '@/components/ui/date-picker';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -120,7 +121,7 @@ function UploadDialog({
                         <Label htmlFor="doc-expiry">
                             Expires on <span className="text-muted-foreground">(optional)</span>
                         </Label>
-                        <Input id="doc-expiry" type="date" value={data.expires_at} onChange={(e) => setData('expires_at', e.target.value)} />
+                        <DatePicker id="doc-expiry" value={data.expires_at ?? ''} onChange={(v) => setData('expires_at', v)} />
                         <InputError message={errors.expires_at} />
                     </div>
 

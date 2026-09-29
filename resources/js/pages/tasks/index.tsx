@@ -26,6 +26,7 @@ interface Filters {
     priority?: string;
     scope: string;
     overdue: boolean;
+    due: 'week' | null;
 }
 
 interface Props {
@@ -51,6 +52,7 @@ export default function TasksIndex({ tasks, statuses, priorities, filters, canSe
         if (merged.priority && merged.priority !== ALL) next.priority = String(merged.priority);
         if (merged.scope === 'all') next.scope = 'all';
         if (merged.overdue) next.overdue = '1';
+        if (merged.due === 'week') next.due = 'week';
 
         router.get(route('tasks.index'), next, { preserveState: true, replace: true });
     };
@@ -115,6 +117,14 @@ export default function TasksIndex({ tasks, statuses, priorities, filters, canSe
 
                     <Button variant={filters.overdue ? 'default' : 'outline'} size="sm" onClick={() => apply({ overdue: !filters.overdue })}>
                         Overdue only
+                    </Button>
+
+                    <Button
+                        variant={filters.due === 'week' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => apply({ due: filters.due === 'week' ? undefined : 'week' })}
+                    >
+                        Due this week
                     </Button>
 
                     {canSeeAll && (

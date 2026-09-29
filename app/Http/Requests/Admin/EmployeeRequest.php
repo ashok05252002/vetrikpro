@@ -55,6 +55,9 @@ class EmployeeRequest extends FormRequest
             'date_of_joining' => [Rule::requiredIf($creating && $this->input('offer_letter_mode') === 'generate'), 'nullable', 'date'],
             'employment_type' => ['required', Rule::in(['full_time', 'part_time', 'contract', 'intern'])],
             'salary' => [Rule::requiredIf($creating && $this->input('offer_letter_mode') === 'generate'), 'nullable', 'numeric', 'min:0', 'max:99999999.99'],
+            // Interns: a stipend, or none.
+            'has_stipend' => ['boolean'],
+            'stipend' => ['nullable', 'required_if_accepted:has_stipend', 'numeric', 'gt:0', 'max:99999999.99'],
             'address' => ['nullable', 'string', 'max:2000'],
             'status' => ['required', Rule::in(['active', 'probation', 'on_leave', 'resigned', 'terminated'])],
         ];
@@ -66,6 +69,7 @@ class EmployeeRequest extends FormRequest
             'date_of_joining.required' => 'The offer letter states a joining date — add one, or choose not to generate a letter.',
             'salary.required' => 'The offer letter states the salary — add it, or choose not to generate a letter.',
             'offer_letter.required_if' => 'Choose the offer letter file to upload.',
+            'stipend.required_if_accepted' => 'Enter the monthly stipend, or choose "No stipend".',
         ];
     }
 

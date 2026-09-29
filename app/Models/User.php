@@ -97,11 +97,10 @@ class User extends Authenticatable
             'branches' => ['created_by'],
             'merge_requests' => ['requested_by', 'reviewed_by', 'merged_by'],
             'merge_request_events' => ['user_id'],
-            'requirement_documents' => ['created_by'],
+            'requirement_versions' => ['created_by'],
             'test_runs' => ['created_by', 'completed_by'],
             'test_run_results' => ['tested_by'],
             'test_point_attachments' => ['uploaded_by'],
-            'requirement_versions' => ['uploaded_by'],
             // Records made about other people. (Documents people upload about
             // themselves are theirs, and go with them — see below.)
             'promotions' => ['created_by'],

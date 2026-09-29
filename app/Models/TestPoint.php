@@ -12,6 +12,7 @@ use Database\Factories\TestPointFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Storage;
 
@@ -80,7 +81,13 @@ class TestPoint extends Model
      */
     public function assignableBy(User $user): bool
     {
-        return $user->can('testing.assign') || ($this->project !== null && $this->project->owner_id === $user->id);
+        return $user->can('testing.assign') || ($this->project !== null && $this->project->isLedBy($user));
+    }
+
+    /** The branches that claim to deliver this. */
+    public function branches(): BelongsToMany
+    {
+        return $this->belongsToMany(Branch::class)->withTimestamps();
     }
 
     public function project(): BelongsTo

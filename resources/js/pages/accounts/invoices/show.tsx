@@ -2,6 +2,7 @@ import InvoiceStatusBadge from '@/components/accounts/invoice-status';
 import DeleteButton from '@/components/admin/delete-button';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
+import DatePicker from '@/components/ui/date-picker';
 import {
     Dialog,
     DialogClose,
@@ -165,7 +166,7 @@ function MarkPaidDialog({ invoice }: { invoice: Props['invoice'] }) {
                     </DialogHeader>
                     <div className="grid gap-2">
                         <Label htmlFor="paid_on">Paid on</Label>
-                        <Input id="paid_on" type="date" required value={data.paid_on} onChange={(e) => setData('paid_on', e.target.value)} />
+                        <DatePicker id="paid_on" value={data.paid_on ?? ''} onChange={(v) => setData('paid_on', v)} notAfterToday required />
                         <InputError message={errors.paid_on} />
                     </div>
                     <DialogFooter>

@@ -24,6 +24,7 @@ type AdminItem = Omit<NavItem, 'children'> & { permission: string | string[]; ch
 
 const adminNavItems: AdminItem[] = [
     { title: 'Employees', url: '/admin/employees', ...s('employees'), permission: 'employees.view' },
+    { title: 'Interns', url: '/admin/interns', ...s('interns'), permission: 'interns.view' },
     // Who can do what, and how the organisation is structured, under one entry.
     {
         title: 'People setup',

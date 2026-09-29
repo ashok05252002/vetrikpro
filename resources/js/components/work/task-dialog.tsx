@@ -1,5 +1,6 @@
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
+import DatePicker from '@/components/ui/date-picker';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -188,7 +189,7 @@ export default function TaskDialog({
 
                             <div className="grid gap-2">
                                 <Label htmlFor="due_date">Due date</Label>
-                                <Input id="due_date" type="date" value={data.due_date} onChange={(e) => setData('due_date', e.target.value)} />
+                                <DatePicker id="due_date" value={data.due_date ?? ''} onChange={(v) => setData('due_date', v)} />
                                 <InputError message={errors.due_date} />
                             </div>
                         </div>

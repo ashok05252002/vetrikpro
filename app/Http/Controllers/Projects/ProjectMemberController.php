@@ -7,6 +7,7 @@ use App\Enums\TaskStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Project;
 use App\Models\User;
+use App\Support\ProjectRoles;
 use App\Support\ProjectWorkspace;
 use App\Support\UserDirectory;
 use Illuminate\Http\JsonResponse;
@@ -80,7 +81,7 @@ class ProjectMemberController extends Controller
 
         $data = $request->validate([
             'user_ids' => ['required', 'array', 'min:1', 'max:100'],
-            'user_ids.*' => ['integer', 'distinct', Rule::exists('users', 'id')],
+            'user_ids.*' => ['integer', 'distinct', Rule::exists('users', 'id'), ProjectRoles::eligibleRule($request->input('role'))],
             'role' => ['required', Rule::enum(ProjectMemberRole::class)],
         ]);
 
@@ -105,6 +106,10 @@ class ProjectMemberController extends Controller
         abort_unless($project->hasMember($user), 404);
 
         $data = $request->validate(['role' => ['required', Rule::enum(ProjectMemberRole::class)]]);
+
+        if (! ProjectRoles::isEligible($user, ProjectMemberRole::from($data['role']))) {
+            return back()->with('error', "{$user->name} can't be given “".ProjectMemberRole::from($data['role'])->label().'”: their role doesn\'t allow it. Change that in Roles & access.');
+        }
 
         $project->members()->updateExistingPivot($user->id, ['role' => $data['role']]);
 

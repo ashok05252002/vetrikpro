@@ -4,12 +4,14 @@ namespace App\Http\Controllers\Projects;
 
 use App\Enums\BranchStatus;
 use App\Enums\MergeRequestStatus;
+use App\Enums\ProjectMemberRole;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\MergeRequest;
 use App\Models\Project;
 use App\Support\Cards;
 use App\Support\DevPresenter;
+use App\Support\ProjectRoles;
 use App\Support\ProjectWorkspace;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -66,7 +68,12 @@ class BranchController extends Controller
             'branchStatuses' => BranchStatus::options(),
             'mergeStatuses' => MergeRequestStatus::options(),
             'filters' => $request->only('search', 'status', 'mine'),
-            'can' => ['create' => $request->user()->can('create', new Branch(['project_id' => $project->id]))],
+            'mergeAccess' => fn () => $this->mergeAccess($project),
+            'can' => [
+                'create' => $request->user()->can('create', new Branch(['project_id' => $project->id])),
+                // The owner and leads decide who may merge.
+                'manageMergeAccess' => $request->user()->can('manageMembers', $project),
+            ],
         ]);
     }
 
@@ -209,6 +216,41 @@ class BranchController extends Controller
             'base_branch.regex' => 'That is not a valid git branch name.',
             'task_ids.*.exists' => 'Every task must be on this project.',
             'test_point_ids.*.exists' => 'Every testing point must be on this project.',
+        ];
+    }
+
+    /**
+     * Who may review and merge on this project: the owner and leads always,
+     * plus members given merge access — and which other members are eligible
+     * to be given it (Roles & access → Project roles).
+     *
+     * @return array<string, mixed>
+     */
+    private function mergeAccess(Project $project): array
+    {
+        $members = $project->members()->get(['users.id', 'users.name', 'users.email']);
+        $role = fn ($user) => $user->pivot->role;
+
+        $people = collect();
+
+        if ($project->owner) {
+            $people->push([...$project->owner->only('id', 'name', 'email'), 'via' => 'owner']);
+        }
+
+        foreach ($members as $member) {
+            if ($member->id === $project->owner_id) {
+                continue;
+            }
+            if (in_array($role($member), [ProjectMemberRole::Lead->value, ProjectMemberRole::DevAdmin->value], true)) {
+                $people->push([...$member->only('id', 'name', 'email'), 'via' => $role($member) === ProjectMemberRole::Lead->value ? 'lead' : 'granted']);
+            }
+        }
+
+        $plainMembers = $members->filter(fn ($m) => $role($m) === ProjectMemberRole::Member->value && $m->id !== $project->owner_id)->pluck('id')->all();
+
+        return [
+            'people' => $people->values(),
+            'eligible' => ProjectRoles::eligible(ProjectMemberRole::DevAdmin, $plainMembers),
         ];
     }
 }

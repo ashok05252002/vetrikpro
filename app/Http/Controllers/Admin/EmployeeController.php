@@ -41,6 +41,8 @@ class EmployeeController extends Controller
         $archived = $request->boolean('archived');
 
         $employees = Employee::query()
+            // Interns have their own page.
+            ->staff()
             ->with(['user:id,name,email,role_id,is_active', 'user.role:id,name,slug,is_super', 'department:id,name', 'designation:id,name'])
             // Archived people have their own view; the default list is the current staff.
             ->when($archived, fn ($query) => $query->archived(), fn ($query) => $query->current())
@@ -74,7 +76,7 @@ class EmployeeController extends Controller
             'roles' => Role::orderBy('name')->get()->map(fn (Role $role) => ['value' => $role->slug, 'label' => $role->name]),
             'onboardingStatuses' => OnboardingStatus::options(),
             'filters' => [...$request->only('search', 'department', 'role', 'account', 'onboarding'), 'archived' => $archived],
-            'archivedCount' => Employee::archived()->count(),
+            'archivedCount' => Employee::staff()->archived()->count(),
         ]);
     }
 
@@ -223,7 +225,7 @@ class EmployeeController extends Controller
         // The employee row goes by cascade; User's deleting hook clears the files.
         $user->delete();
 
-        return to_route('admin.employees.index')->with('success', "{$name} was deleted.");
+        return to_route($employee->isIntern() ? 'admin.interns.index' : 'admin.employees.index')->with('success', "{$name} was deleted.");
     }
 
     /**
@@ -263,7 +265,9 @@ class EmployeeController extends Controller
             $user->forceFill(['is_active' => true, 'deactivated_at' => null, 'deactivated_by' => null])->save();
         });
 
-        return to_route('admin.employees.show', $employee)->with('success', "{$user->name} is back and can sign in again.");
+        // Interns go back to their list: their manager may not see staff profiles.
+        return ($employee->isIntern() ? to_route('admin.interns.index', ['archived' => 1]) : to_route('admin.employees.show', $employee))
+            ->with('success', "{$user->name} is back and can sign in again.");
     }
 
     /**

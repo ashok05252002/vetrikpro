@@ -17,7 +17,7 @@ export type WorkspaceTab = 'tasks' | 'testing' | 'requirements' | 'git' | 'membe
 function tabs(projectId: number): TabLink<WorkspaceTab>[] {
     return [
         { key: 'tasks', label: 'Tasks', href: route('projects.show', projectId) },
-        { key: 'testing', label: 'Testing', href: route('testing.points.index', projectId) },
+        { key: 'testing', label: 'Testing', href: route('projects.testing', projectId) },
         { key: 'requirements', label: 'Requirements', href: route('projects.requirements.index', projectId) },
         { key: 'git', label: 'Git', href: route('projects.git', projectId) },
         { key: 'members', label: 'Members', href: route('projects.members.index', projectId) },

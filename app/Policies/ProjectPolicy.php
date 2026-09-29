@@ -27,7 +27,7 @@ class ProjectPolicy
 
     public function update(User $user, Project $project): bool
     {
-        return $user->can('projects.edit') || $project->owner_id === $user->id;
+        return $user->can('projects.edit') || $project->isLedBy($user);
     }
 
     /**
@@ -35,7 +35,7 @@ class ProjectPolicy
      */
     public function manageMembers(User $user, Project $project): bool
     {
-        return $user->can('projects.edit') || $project->owner_id === $user->id;
+        return $user->can('projects.edit') || $project->isLedBy($user);
     }
 
     public function delete(User $user, Project $project): bool
