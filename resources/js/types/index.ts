@@ -493,7 +493,8 @@ export interface OnboardingState {
     progress: { done: number; total: number; percent: number; complete: boolean };
     details: { phone: string | null; date_of_birth: string | null; gender: string | null; address: string | null };
     bank: { account_name: string | null; account_number: string | null; ifsc: string | null; bank_name: string | null; branch: string | null };
-    offer_letter: { name: string } | null;
+    // kind: which generated letter it is; null when HR uploaded their own.
+    offer_letter: { name: string; kind: 'offer' | 'welcome' | null } | null;
     slots: OnboardingSlot[];
 }
 

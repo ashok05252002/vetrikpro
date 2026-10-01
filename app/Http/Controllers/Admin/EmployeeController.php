@@ -115,7 +115,9 @@ class EmployeeController extends Controller
             if ($mode === 'upload' && $request->hasFile('offer_letter')) {
                 self::storeOfferLetter($employee, $request->file('offer_letter'));
             } elseif ($mode === 'generate') {
-                $offerLetter->generateFor($employee);
+                $offerLetter->generateFor($employee, OfferLetter::OFFER);
+            } elseif ($mode === 'welcome') {
+                $offerLetter->generateFor($employee, OfferLetter::WELCOME);
             }
 
             return $employee;
@@ -144,6 +146,7 @@ class EmployeeController extends Controller
         $employee->forceFill([
             'offer_letter_path' => $file->store(EmployeeDocument::directoryFor($employee->id).'/offer-letter', EmployeeDocument::DISK),
             'offer_letter_name' => $file->getClientOriginalName(),
+            'offer_letter_kind' => null,
         ])->save();
 
         if ($old) {

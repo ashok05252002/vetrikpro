@@ -118,6 +118,73 @@ class OfferLetterTest extends TestCase
         $this->assertStringContainsString('Rs. 70,000', app(OfferLetter::class)->html(app(OfferLetter::class)->valuesFor($employee)));
     }
 
+    // The welcome letter: no salary, for contract staff
+
+    public function test_a_welcome_letter_needs_no_salary_and_states_none()
+    {
+        $this->hire(['offer_letter_mode' => 'welcome', 'employment_type' => 'contract', 'salary' => ''])->assertSessionHasNoErrors();
+
+        $user = User::where('email', 'priya@company.com')->first();
+        $employee = $user->employee;
+
+        $this->assertNull($employee->salary);
+        $this->assertSame('welcome', $employee->offer_letter_kind);
+        $this->assertSame('Welcome letter - Priya Raman.pdf', $employee->offer_letter_name);
+        $this->assertStringStartsWith('%PDF', Storage::disk(EmployeeDocument::DISK)->get($employee->offer_letter_path));
+        Notification::assertSentTo($user, EmployeeInvitation::class, fn (EmployeeInvitation $n) => $n->offerLetterPath === $employee->offer_letter_path
+            && $n->offerLetterKind === 'welcome'
+            && str_contains($n->toMail($user)->render(), 'Your welcome letter is attached'));
+    }
+
+    public function test_a_welcome_letter_leaves_out_the_package_even_when_a_salary_is_known()
+    {
+        // Even a template that asks for the salary does not get it.
+        app(Settings::class)->set(['welcome.body' => 'Hello {first_name}, you earn {monthly_salary}.']);
+        $this->hire(['offer_letter_mode' => 'welcome']);
+        $employee = User::where('email', 'priya@company.com')->first()->employee;
+        $letter = app(OfferLetter::class);
+
+        $html = $letter->html($letter->valuesFor($employee), null, OfferLetter::WELCOME);
+
+        $this->assertStringContainsString('Welcome Letter', $html);
+        $this->assertStringContainsString('you earn as discussed', $html);
+        $this->assertStringNotContainsString('65,000', $html);
+        $this->assertStringNotContainsString('Annual CTC', $html);
+        $this->assertStringNotContainsString('Monthly salary', $html);
+        $this->assertStringContainsString('WL/EMP-0042/', $html);
+    }
+
+    public function test_a_welcome_letter_still_needs_a_joining_date()
+    {
+        $this->hire(['offer_letter_mode' => 'welcome', 'salary' => '', 'date_of_joining' => ''])
+            ->assertSessionHasErrors('date_of_joining')
+            ->assertSessionDoesntHaveErrors('salary');
+    }
+
+    public function test_hr_can_switch_between_the_offer_and_welcome_letters()
+    {
+        $this->hire(['offer_letter_mode' => 'welcome', 'salary' => '']);
+        $employee = User::where('email', 'priya@company.com')->first()->employee;
+        $admin = User::factory()->admin()->create();
+
+        // No salary on record: an offer letter would have nothing to state.
+        $this->actingAs($admin)
+            ->post(route('admin.employees.onboarding.offer-letter.generate', $employee), ['kind' => 'offer'])
+            ->assertSessionHas('error');
+        $this->assertSame('welcome', $employee->fresh()->offer_letter_kind);
+
+        $employee->update(['salary' => 50000]);
+        $this->actingAs($admin)
+            ->post(route('admin.employees.onboarding.offer-letter.generate', $employee), ['kind' => 'offer'])
+            ->assertSessionHas('success');
+        $this->assertSame('offer', $employee->fresh()->offer_letter_kind);
+        $this->assertSame('Offer letter - Priya Raman.pdf', $employee->fresh()->offer_letter_name);
+
+        $this->actingAs($admin)
+            ->post(route('admin.employees.onboarding.offer-letter.generate', $employee), ['kind' => 'nonsense'])
+            ->assertSessionHasErrors('kind');
+    }
+
     // The template in the Configuration hub
 
     public function test_the_template_is_saved_and_used()
@@ -129,6 +196,8 @@ class OfferLetterTest extends TestCase
                 'signatory_name' => 'Ashok Kumar',
                 'signatory_title' => 'Director',
                 'valid_days' => 10,
+                'welcome_title' => 'Welcome Aboard',
+                'welcome_body' => 'Greetings {first_name}.',
             ])
             ->assertSessionHas('success');
 
@@ -138,6 +207,11 @@ class OfferLetterTest extends TestCase
         $this->assertStringContainsString('Hi Priya,', $html);
         $this->assertStringContainsString('Ashok Kumar', $html);
         $this->assertStringContainsString(today()->addDays(10)->format('j F Y'), $html);
+
+        $welcome = app(OfferLetter::class)->html(app(OfferLetter::class)->sampleValues(), null, OfferLetter::WELCOME);
+        $this->assertStringContainsString('Welcome Aboard', $welcome);
+        $this->assertStringContainsString('Greetings Priya.', $welcome);
+        $this->assertStringContainsString('Ashok Kumar', $welcome);
     }
 
     public function test_an_unknown_placeholder_is_refused()
@@ -145,8 +219,12 @@ class OfferLetterTest extends TestCase
         $this->actingAs(User::factory()->admin()->create())
             ->put(route('admin.config.offer-letter.update'), [
                 'title' => 'Offer', 'body' => 'Joining on {joinig_date}', 'valid_days' => 7,
+                'welcome_title' => 'Welcome', 'welcome_body' => 'Hi {frist_name}',
             ])
-            ->assertSessionHasErrors(['body' => 'Unknown placeholder: {joinig_date}. Pick one from the list.']);
+            ->assertSessionHasErrors([
+                'body' => 'Unknown placeholder: {joinig_date}. Pick one from the list.',
+                'welcome_body' => 'Unknown placeholder: {frist_name}. Pick one from the list.',
+            ]);
     }
 
     public function test_the_preview_is_a_pdf_and_needs_settings_access()
@@ -155,6 +233,9 @@ class OfferLetterTest extends TestCase
             ->get(route('admin.config.offer-letter.preview'))
             ->assertOk()
             ->assertHeader('Content-Type', 'application/pdf');
+        $this->get(route('admin.config.offer-letter.preview', ['kind' => 'welcome']))
+            ->assertOk()
+            ->assertHeader('Content-Disposition', 'inline; filename="welcome-letter-preview.pdf"');
 
         $this->actingAs(User::factory()->hr()->create())->get(route('admin.config.offer-letter.preview'))->assertForbidden();
 

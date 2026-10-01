@@ -235,21 +235,26 @@ export default function EmployeeOnboarding({ employee, onboarding, mailIsLocal, 
                             })()}
 
                             {can.manage && beforeSubmit && (
-                                <Button
-                                    type="button"
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() =>
-                                        router.post(
-                                            route('admin.employees.onboarding.offer-letter.generate', employee.id),
-                                            {},
-                                            { preserveScroll: true },
-                                        )
-                                    }
-                                >
-                                    <FileSignature className="size-4" />{' '}
-                                    {onboarding.offer_letter ? 'Regenerate from template' : 'Generate from template'}
-                                </Button>
+                                <div className="flex flex-wrap gap-2">
+                                    {(['offer', 'welcome'] as const).map((kind) => (
+                                        <Button
+                                            key={kind}
+                                            type="button"
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() =>
+                                                router.post(
+                                                    route('admin.employees.onboarding.offer-letter.generate', employee.id),
+                                                    { kind },
+                                                    { preserveScroll: true },
+                                                )
+                                            }
+                                        >
+                                            <FileSignature className="size-4" /> {onboarding.offer_letter?.kind === kind ? 'Regenerate' : 'Generate'}{' '}
+                                            {kind === 'offer' ? 'offer letter' : 'welcome letter (no salary)'}
+                                        </Button>
+                                    ))}
+                                </div>
                             )}
 
                             {can.manage && beforeSubmit && (

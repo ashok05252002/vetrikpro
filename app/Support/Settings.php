@@ -86,6 +86,10 @@ class Settings
             'offer.signatory_name' => ['type' => 'string', 'default' => '', 'group' => 'offer'],
             'offer.signatory_title' => ['type' => 'string', 'default' => 'Human Resources', 'group' => 'offer'],
             'offer.valid_days' => ['type' => 'int', 'default' => 7, 'group' => 'offer'],
+            // The welcome letter: the same letter without the salary, for staff
+            // whose pay is not put in writing. Shares the signatory and validity.
+            'welcome.title' => ['type' => 'string', 'default' => 'Welcome Letter', 'group' => 'offer'],
+            'welcome.body' => ['type' => 'string', 'default' => OfferLetter::DEFAULT_WELCOME_BODY, 'group' => 'offer'],
         ];
     }
 

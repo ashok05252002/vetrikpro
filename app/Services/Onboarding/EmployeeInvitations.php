@@ -28,6 +28,7 @@ final class EmployeeInvitations
             expiresInHours: intdiv((int) config('auth.passwords.invites.expire'), 60),
             offerLetterPath: $employee->offer_letter_path,
             offerLetterName: $employee->offer_letter_name,
+            offerLetterKind: $employee->offer_letter_kind,
         ));
 
         $employee->forceFill(['invited_at' => now()])->save();

@@ -18,12 +18,23 @@ use Illuminate\Support\Str;
  * address), the template's wording with {placeholders} filled in, an offer
  * summary table and signature blocks.
  *
+ * There are two kinds. The offer letter states the salary; the welcome
+ * letter is the same letter without the package — for contract staff and
+ * anyone whose pay is not put in writing — with its own wording in
+ * Configuration hub → Offer letter, and no salary rows in the summary.
+ *
  * The generated file is stored exactly where an uploaded offer letter would
- * be, so the invite email, the onboarding page and HR's review treat both
- * the same way.
+ * be, so the invite email, the onboarding page and HR's review treat all of
+ * them the same way.
  */
 final class OfferLetter
 {
+    public const OFFER = 'offer';
+
+    public const WELCOME = 'welcome';
+
+    public const KINDS = [self::OFFER, self::WELCOME];
+
     public const DEFAULT_BODY = <<<'TEXT'
 Dear {employee_name},
 
@@ -36,6 +47,20 @@ This offer is subject to satisfactory verification of the documents you submit d
 To accept, please sign this letter and upload the signed copy on the employee portal by **{offer_valid_until}**.
 
 We look forward to welcoming you.
+TEXT;
+
+    public const DEFAULT_WELCOME_BODY = <<<'TEXT'
+Dear {employee_name},
+
+Greetings from {company_name}! We are delighted to welcome you to the team as **{designation}** ({employment_type}), and look forward to working with you.
+
+Your engagement will begin on **{joining_date}**. The terms we have discussed with you continue to apply, and the details of your engagement are summarised below.
+
+This letter is subject to satisfactory verification of the documents you submit during onboarding, and to the company's policies as they apply from time to time.
+
+Please sign this letter and upload the signed copy on the employee portal by **{offer_valid_until}** to confirm.
+
+Welcome aboard.
 TEXT;
 
     /**
@@ -53,8 +78,8 @@ TEXT;
             'department' => 'Department',
             'employment_type' => 'Full time, part time, contract or intern',
             'joining_date' => 'Date of joining',
-            'monthly_salary' => 'Monthly salary, formatted in the company currency',
-            'annual_ctc' => 'Monthly salary × 12',
+            'monthly_salary' => 'Monthly salary, formatted in the company currency (offer letter only)',
+            'annual_ctc' => 'Monthly salary × 12 (offer letter only)',
             'offer_valid_until' => 'Today plus the validity period',
             'company_name' => 'Company name',
             'today' => 'Date the letter is generated',
@@ -110,18 +135,19 @@ TEXT;
     /**
      * Generate the PDF and keep it as the employee's offer letter.
      */
-    public function generateFor(Employee $employee): void
+    public function generateFor(Employee $employee, string $kind = self::OFFER): void
     {
         $values = $this->valuesFor($employee);
         $path = EmployeeDocument::directoryFor($employee->id).'/offer-letter/'.Str::random(40).'.pdf';
 
-        Storage::disk(EmployeeDocument::DISK)->put($path, $this->pdf($values, $employee->user->email));
+        Storage::disk(EmployeeDocument::DISK)->put($path, $this->pdf($values, $employee->user->email, $kind));
 
         $old = $employee->offer_letter_path;
 
         $employee->forceFill([
             'offer_letter_path' => $path,
-            'offer_letter_name' => 'Offer letter - '.$employee->user->name.'.pdf',
+            'offer_letter_name' => ($kind === self::WELCOME ? 'Welcome letter - ' : 'Offer letter - ').$employee->user->name.'.pdf',
+            'offer_letter_kind' => $kind,
         ])->save();
 
         if ($old && $old !== $path) {
@@ -132,25 +158,32 @@ TEXT;
     /**
      * @param  array<string, string>  $values
      */
-    public function pdf(array $values, ?string $email = null): string
+    public function pdf(array $values, ?string $email = null, string $kind = self::OFFER): string
     {
-        return Pdf::loadHTML($this->html($values, $email))->setPaper('a4')->output();
+        return Pdf::loadHTML($this->html($values, $email, $kind))->setPaper('a4')->output();
     }
 
     /**
      * @param  array<string, string>  $values
      */
-    public function html(array $values, ?string $email = null): string
+    public function html(array $values, ?string $email = null, string $kind = self::OFFER): string
     {
         $s = $this->settings;
+        $welcome = $kind === self::WELCOME;
+
+        // The welcome letter never states pay, whatever its wording asks for.
+        if ($welcome) {
+            $values = [...$values, 'monthly_salary' => 'as discussed', 'annual_ctc' => 'as discussed'];
+        }
 
         return view('pdf.offer-letter', [
             'company' => $this->letterhead->company(),
-            'title' => $this->fill((string) $s->get('offer.title'), $values),
-            'paragraphs' => $this->paragraphs((string) $s->get('offer.body'), $values),
+            'title' => $this->fill((string) $s->get($welcome ? 'welcome.title' : 'offer.title'), $values),
+            'paragraphs' => $this->paragraphs((string) $s->get($welcome ? 'welcome.body' : 'offer.body'), $values),
+            'withPackage' => ! $welcome,
             'values' => $values,
             'email' => $email,
-            'reference' => 'OL/'.$values['employee_code'].'/'.Clock::today()->format('Y'),
+            'reference' => ($welcome ? 'WL/' : 'OL/').$values['employee_code'].'/'.Clock::today()->format('Y'),
             'signatory' => ['name' => (string) $s->get('offer.signatory_name'), 'title' => (string) $s->get('offer.signatory_title')],
         ])->render();
     }

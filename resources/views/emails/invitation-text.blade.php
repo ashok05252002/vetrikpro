@@ -10,7 +10,7 @@ What happens next:
 @endforeach
 @if ($hasOfferLetter)
 
-Your offer letter is attached. Please sign it and upload the signed copy when you complete your profile.
+Your {{ $letter }} is attached. Please sign it and upload the signed copy when you complete your profile.
 @endif
 
 The link works once, for {{ $expiresInHours }} hours. If it has expired, ask HR to send you a new invite.

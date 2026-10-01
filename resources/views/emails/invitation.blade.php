@@ -32,7 +32,7 @@
 
     @if ($hasOfferLetter)
         <p style="margin:18px 0 0; padding:14px 16px; background:#fff8eb; border-left:4px solid #f59e0b; border-radius:6px; font-size:14px; color:#5b4a1f;">
-            📎 <strong>Your offer letter is attached.</strong> Please sign it and upload the signed copy when you complete your profile.
+            📎 <strong>Your {{ $letter }} is attached.</strong> Please sign it and upload the signed copy when you complete your profile.
         </p>
     @endif
 

@@ -38,7 +38,7 @@ final class OnboardingPresenter
                 'bank_name' => $employee->bank_name,
                 'branch' => $employee->bank_branch,
             ],
-            'offer_letter' => $employee->offer_letter_path ? ['name' => $employee->offer_letter_name] : null,
+            'offer_letter' => $employee->offer_letter_path ? ['name' => $employee->offer_letter_name, 'kind' => $employee->offer_letter_kind] : null,
             'slots' => self::slots($employee),
         ];
     }

@@ -75,7 +75,7 @@
     @endforeach
 
     <table class="summary">
-        <tr><th colspan="4">Offer summary</th></tr>
+        <tr><th colspan="4">{{ $withPackage ? 'Offer summary' : 'Summary' }}</th></tr>
         <tr>
             <td class="label">Position</td><td class="value">{{ $values['designation'] }}</td>
             <td class="label">Department</td><td class="value">{{ $values['department'] }}</td>
@@ -84,13 +84,15 @@
             <td class="label">Date of joining</td><td class="value">{{ $values['joining_date'] }}</td>
             <td class="label">Employment type</td><td class="value">{{ $values['employment_type'] }}</td>
         </tr>
-        <tr>
-            <td class="label">Monthly salary</td><td class="value">{{ $values['monthly_salary'] }}</td>
-            <td class="label">Annual CTC</td><td class="value">{{ $values['annual_ctc'] }}</td>
-        </tr>
+        @if ($withPackage)
+            <tr>
+                <td class="label">Monthly salary</td><td class="value">{{ $values['monthly_salary'] }}</td>
+                <td class="label">Annual CTC</td><td class="value">{{ $values['annual_ctc'] }}</td>
+            </tr>
+        @endif
         <tr>
             <td class="label">Employee code</td><td class="value">{{ $values['employee_code'] }}</td>
-            <td class="label">Offer valid until</td><td class="value">{{ $values['offer_valid_until'] }}</td>
+            <td class="label">{{ $withPackage ? 'Offer valid until' : 'Please confirm by' }}</td><td class="value">{{ $values['offer_valid_until'] }}</td>
         </tr>
     </table>
 
@@ -105,7 +107,7 @@
             </td>
             <td>
                 <div><strong>Acceptance</strong></div>
-                <div class="muted">I accept this offer on the terms set out above.</div>
+                <div class="muted">{{ $withPackage ? 'I accept this offer on the terms set out above.' : 'I accept this engagement on the terms discussed.' }}</div>
                 <div class="line"></div>
                 <div><strong>{{ $values['employee_name'] }}</strong></div>
                 <div class="muted">Signature and date</div>

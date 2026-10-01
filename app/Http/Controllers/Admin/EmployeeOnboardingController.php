@@ -13,6 +13,7 @@ use App\Support\OnboardingPresenter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -61,17 +62,26 @@ class EmployeeOnboardingController extends Controller
 
     /**
      * Rebuild the letter from the current template and this person's details,
-     * e.g. after correcting their salary. Resend the invite to email it.
+     * e.g. after correcting their salary — or switch between the offer letter
+     * and the welcome letter (no salary). Resend the invite to email it.
      */
-    public function generateOfferLetter(Employee $employee, OfferLetter $offerLetter): RedirectResponse
+    public function generateOfferLetter(Request $request, Employee $employee, OfferLetter $offerLetter): RedirectResponse
     {
+        $kind = $request->validate(['kind' => ['nullable', Rule::in(OfferLetter::KINDS)]])['kind'] ?? OfferLetter::OFFER;
+
         if (! $employee->onboarding_status?->isEditable()) {
             return back()->with('error', 'The offer letter can only change before the profile is submitted.');
         }
 
-        $offerLetter->generateFor($employee);
+        if ($kind === OfferLetter::OFFER && $employee->salary === null) {
+            return back()->with('error', 'No salary is recorded, so the offer letter would have none to state. Add it on the profile, or generate the welcome letter.');
+        }
 
-        return back()->with('success', 'Offer letter generated from the template. Resend the invite to email it.');
+        $offerLetter->generateFor($employee, $kind);
+
+        $what = $kind === OfferLetter::WELCOME ? 'Welcome letter' : 'Offer letter';
+
+        return back()->with('success', "{$what} generated from the template. Resend the invite to email it.");
     }
 
     public function downloadOfferLetter(Employee $employee): StreamedResponse

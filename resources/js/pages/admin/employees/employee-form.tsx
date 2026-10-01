@@ -23,7 +23,7 @@ export type FormData = {
     role_id: string;
     send_invite: boolean;
     /** Generate from the template in Configuration hub, upload a file, or none. */
-    offer_letter_mode: 'generate' | 'upload' | 'none';
+    offer_letter_mode: 'generate' | 'welcome' | 'upload' | 'none';
     offer_letter: File | null;
     employee_code: string;
     department_id: string;
@@ -242,7 +242,9 @@ export default function EmployeeForm({
                 <div className="grid gap-2">
                     <Label htmlFor="date_of_joining">
                         {intern ? 'Internship starts' : 'Date of joining'}{' '}
-                        {creating && !intern && data.offer_letter_mode === 'generate' && <span className="text-destructive">*</span>}
+                        {creating && !intern && (data.offer_letter_mode === 'generate' || data.offer_letter_mode === 'welcome') && (
+                            <span className="text-destructive">*</span>
+                        )}
                     </Label>
                     <DatePicker id="date_of_joining" value={data.date_of_joining ?? ''} onChange={(v) => setData('date_of_joining', v)} />
                     <InputError message={errors.date_of_joining} />
@@ -384,7 +386,10 @@ export default function EmployeeForm({
                             className="flex-wrap justify-start"
                         >
                             <ToggleGroupItem value="generate" className="px-3 text-xs">
-                                Generate from template
+                                Offer letter with salary
+                            </ToggleGroupItem>
+                            <ToggleGroupItem value="welcome" className="px-3 text-xs">
+                                Welcome letter, no salary
                             </ToggleGroupItem>
                             <ToggleGroupItem value="upload" className="px-3 text-xs">
                                 Upload my own
@@ -400,7 +405,18 @@ export default function EmployeeForm({
                                 <Link href={route('admin.config.offer-letter.edit')} className="underline" target="_blank">
                                     offer letter template
                                 </Link>
-                                , using the designation, date of joining and monthly salary above — so those two dates and amounts are required.
+                                , using the designation, date of joining and monthly salary above — so the date and salary are required.
+                            </p>
+                        )}
+
+                        {data.offer_letter_mode === 'welcome' && (
+                            <p className="text-muted-foreground text-xs">
+                                A greeting letter with your logo, like the offer letter but with no package details — for contract staff and anyone
+                                whose pay you don&rsquo;t send. Salary is optional. Wording is under{' '}
+                                <Link href={route('admin.config.offer-letter.edit')} className="underline" target="_blank">
+                                    offer letter template
+                                </Link>
+                                .
                             </p>
                         )}
 

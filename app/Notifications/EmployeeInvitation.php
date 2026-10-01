@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Models\EmployeeDocument;
 use App\Models\User;
+use App\Services\OfferLetter;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -24,6 +25,7 @@ class EmployeeInvitation extends Notification
         public readonly int $expiresInHours,
         public readonly ?string $offerLetterPath = null,
         public readonly ?string $offerLetterName = null,
+        public readonly ?string $offerLetterKind = null,
     ) {}
 
     /**
@@ -45,8 +47,10 @@ class EmployeeInvitation extends Notification
             'Upload the documents on your checklist.',
         ];
 
+        $letter = $this->offerLetterKind === OfferLetter::WELCOME ? 'welcome letter' : 'offer letter';
+
         if ($this->offerLetterPath !== null) {
-            $steps[] = 'Sign the attached offer letter and upload the signed copy.';
+            $steps[] = "Sign the attached {$letter} and upload the signed copy.";
         }
 
         $mail = (new MailMessage)
@@ -58,6 +62,7 @@ class EmployeeInvitation extends Notification
                 'expiresInHours' => $this->expiresInHours,
                 'steps' => $steps,
                 'hasOfferLetter' => $this->offerLetterPath !== null,
+                'letter' => $letter,
             ]);
 
         if ($this->offerLetterPath !== null) {
