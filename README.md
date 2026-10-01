@@ -34,19 +34,12 @@ npm run dev
 Then open http://127.0.0.1:8000 — `/` is the login page; there is no marketing
 page. A signed-in visitor hitting `/` goes straight to their dashboard.
 
-## Seeded accounts
+## Seeded account
 
-| Email | Password | Role |
-| --- | --- | --- |
-| `admin@hrms.test` | `password` | Administrator |
-| `hr@hrms.test` | `password` | HR Manager |
-| `arun@hrms.test` | `password` | Employee |
-| `meera@hrms.test` | `password` | Employee |
-| `rahul@hrms.test` | `password` | Employee |
-| `sneha@hrms.test` | `password` | Employee |
-
-Sign in as an employee to see the narrowed view: no admin sidebar, only the
-projects they belong to.
+The seeder creates one administrator, `admin@vetrik.in` (password in
+`database/seeders/DatabaseSeeder.php`), and no demo data. Departments, staff
+and projects are entered through the app. Change the password after first
+sign-in.
 
 These are development credentials only — change them before this goes anywhere real.
 
