@@ -4,9 +4,13 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\SettingsRequest;
+use App\Mail\TestMail;
 use App\Support\IndianStates;
 use App\Support\Settings;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -94,6 +98,25 @@ class SettingsController extends Controller
         $this->settings->set($values);
 
         return to_route('admin.settings.edit')->with('success', 'Settings saved.');
+    }
+
+    /**
+     * Sends one email straight away, not queued, so the answer on screen is
+     * the mail server's own: accepted, or the reason it refused.
+     */
+    public function testMail(Request $request): RedirectResponse
+    {
+        $email = $request->validate(['test_email' => ['required', 'email', 'max:255']])['test_email'];
+
+        try {
+            Mail::to($email)->send(new TestMail($request->user()->name));
+        } catch (\Throwable $e) {
+            Log::error('Test email failed', ['to' => $email, 'exception' => $e]);
+
+            return back()->with('error', 'The test email could not be sent: '.$e->getMessage());
+        }
+
+        return back()->with('success', "Test email sent to {$email}. If it doesn't arrive, check spam and the mail provider's logs.");
     }
 
     private function deleteImage(string $path): void

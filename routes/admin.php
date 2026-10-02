@@ -124,4 +124,5 @@ Route::middleware(['auth'])
 
         Route::get('settings', [SettingsController::class, 'edit'])->middleware('can:settings.view')->name('settings.edit');
         Route::post('settings', [SettingsController::class, 'update'])->middleware('can:settings.edit')->name('settings.update');
+        Route::post('settings/test-mail', [SettingsController::class, 'testMail'])->middleware('can:settings.edit')->name('settings.test-mail');
     });

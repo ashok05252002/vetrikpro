@@ -12,7 +12,7 @@ import { formatDate, formatMoney } from '@/lib/dates';
 import { cn } from '@/lib/utils';
 import type { DateFormat, Option } from '@/types';
 import { useForm } from '@inertiajs/react';
-import { Building2, Globe2, Palette, Phone, ReceiptIndianRupee, Upload, X } from 'lucide-react';
+import { Building2, Globe2, Mail, Palette, Phone, ReceiptIndianRupee, Send, Upload, X } from 'lucide-react';
 import { FormEventHandler, useMemo, useRef } from 'react';
 
 interface SettingsValues {
@@ -159,6 +159,53 @@ function ImageSlot({
             <input ref={input} type="file" accept={slot.accept} className="hidden" onChange={(e) => onPick(e.target.files?.[0] ?? null)} />
             <InputError message={error} />
         </div>
+    );
+}
+
+/**
+ * Sends one email to any address, outside the settings form so it never
+ * saves anything. The result arrives as a flash toast: sent, or the mail
+ * server's reason for refusing.
+ */
+function TestMailCard() {
+    const { data, setData, post, processing, errors } = useForm({ test_email: '' });
+
+    const submit: FormEventHandler = (e) => {
+        e.preventDefault();
+        post(route('admin.settings.test-mail'), { preserveScroll: true });
+    };
+
+    return (
+        <Card className="max-w-5xl">
+            <CardHeader>
+                <CardHeading icon={Mail} tone="blue">
+                    Test email
+                </CardHeading>
+                <CardDescription>Send one email to check that invites and notifications can reach an inbox from this server.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <form onSubmit={submit} className="flex flex-col gap-2 sm:flex-row sm:items-start">
+                    <div className="grid flex-1 gap-2 sm:max-w-sm">
+                        <Label htmlFor="test_email" className="sr-only">
+                            Send to
+                        </Label>
+                        <Input
+                            id="test_email"
+                            type="email"
+                            value={data.test_email}
+                            onChange={(e) => setData('test_email', e.target.value)}
+                            required
+                            placeholder="you@company.com"
+                        />
+                        <InputError message={errors.test_email} />
+                    </div>
+                    <Button type="submit" variant="outline" disabled={processing}>
+                        <Send className="size-4" />
+                        {processing ? 'Sending…' : 'Send test email'}
+                    </Button>
+                </form>
+            </CardContent>
+        </Card>
     );
 }
 
@@ -481,6 +528,12 @@ export default function SettingsPage({ settings, images, timezones, dateFormats,
                     </Card>
                 </div>
             </form>
+
+            {canEdit && (
+                <div className="mt-6">
+                    <TestMailCard />
+                </div>
+            )}
         </ConfigLayout>
     );
 }

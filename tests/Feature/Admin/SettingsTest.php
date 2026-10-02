@@ -2,11 +2,13 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Mail\TestMail;
 use App\Models\User;
 use App\Providers\AppServiceProvider;
 use App\Support\Settings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia;
 use Tests\TestCase;
@@ -254,5 +256,60 @@ class SettingsTest extends TestCase
         $this->actingAs($admin)->post(route('admin.settings.update'), $this->payload([
             'favicon' => UploadedFile::fake()->create('icon.pdf', 10, 'application/pdf'),
         ]))->assertSessionHasErrors('favicon');
+    }
+
+    public function test_an_administrator_can_send_a_test_email()
+    {
+        Mail::fake();
+
+        $this->actingAs(User::factory()->admin()->create())
+            ->from(route('admin.settings.edit'))
+            ->post(route('admin.settings.test-mail'), ['test_email' => 'someone@example.com'])
+            ->assertRedirect(route('admin.settings.edit'))
+            ->assertSessionHas('success');
+
+        Mail::assertSent(TestMail::class, fn (TestMail $mail) => $mail->hasTo('someone@example.com'));
+    }
+
+    public function test_a_refused_test_email_shows_the_reason_instead_of_failing()
+    {
+        // Nothing listens on port 1, so the SMTP connection is refused.
+        config(['mail.default' => 'smtp', 'mail.mailers.smtp.host' => '127.0.0.1', 'mail.mailers.smtp.port' => 1]);
+
+        $this->actingAs(User::factory()->admin()->create())
+            ->from(route('admin.settings.edit'))
+            ->post(route('admin.settings.test-mail'), ['test_email' => 'someone@example.com'])
+            ->assertRedirect(route('admin.settings.edit'))
+            ->assertSessionHas('error', fn (string $message) => str_contains($message, 'could not be sent'));
+    }
+
+    public function test_hr_cannot_send_a_test_email()
+    {
+        Mail::fake();
+
+        $this->actingAs(User::factory()->hr()->create())
+            ->post(route('admin.settings.test-mail'), ['test_email' => 'someone@example.com'])
+            ->assertForbidden();
+
+        Mail::assertNothingSent();
+    }
+
+    public function test_the_test_email_needs_a_valid_address()
+    {
+        Mail::fake();
+
+        $this->actingAs(User::factory()->admin()->create())
+            ->post(route('admin.settings.test-mail'), ['test_email' => 'not-an-email'])
+            ->assertSessionHasErrors('test_email');
+
+        Mail::assertNothingSent();
+    }
+
+    public function test_the_test_email_renders_with_the_branded_layout()
+    {
+        $html = (new TestMail('Asha Admin'))->render();
+
+        $this->assertStringContainsString('Mail is working', $html);
+        $this->assertStringContainsString('Asha Admin', $html);
     }
 }
