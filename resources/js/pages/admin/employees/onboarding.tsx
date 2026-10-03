@@ -22,6 +22,7 @@ interface Props {
     employee: EmployeeProfileHeader;
     onboarding: OnboardingState | null;
     mailIsLocal: boolean;
+    letterKinds: { kind: string; label: string }[];
     can: { manage: boolean; documents: boolean };
 }
 
@@ -72,7 +73,7 @@ function SendBackDialog({ employeeId, open, onOpenChange }: { employeeId: number
     );
 }
 
-export default function EmployeeOnboarding({ employee, onboarding, mailIsLocal, can }: Props) {
+export default function EmployeeOnboarding({ employee, onboarding, mailIsLocal, letterKinds, can }: Props) {
     const format = useFormat();
     const [sendingBack, setSendingBack] = useState(false);
     const letter = useForm<{ offer_letter: File | null }>({ offer_letter: null });
@@ -236,7 +237,7 @@ export default function EmployeeOnboarding({ employee, onboarding, mailIsLocal, 
 
                             {can.manage && beforeSubmit && (
                                 <div className="flex flex-wrap gap-2">
-                                    {(['offer', 'welcome'] as const).map((kind) => (
+                                    {letterKinds.map(({ kind, label }) => (
                                         <Button
                                             key={kind}
                                             type="button"
@@ -251,7 +252,7 @@ export default function EmployeeOnboarding({ employee, onboarding, mailIsLocal, 
                                             }
                                         >
                                             <FileSignature className="size-4" /> {onboarding.offer_letter?.kind === kind ? 'Regenerate' : 'Generate'}{' '}
-                                            {kind === 'offer' ? 'offer letter' : 'welcome letter (no salary)'}
+                                            {label}
                                         </Button>
                                     ))}
                                 </div>

@@ -44,7 +44,7 @@ export default function CreateIntern({
                         email: '',
                         role_id: '',
                         send_invite: true,
-                        offer_letter_mode: 'none',
+                        offer_letter_mode: 'internship',
                         offer_letter: null,
                         employee_code: nextCode,
                         department_id: NONE,

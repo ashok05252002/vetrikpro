@@ -44,7 +44,8 @@ class EmployeeRequest extends FormRequest
             'send_invite' => $creating ? ['boolean'] : ['prohibited'],
             // Generate the offer letter (the default), generate the welcome letter
             // (no salary — e.g. contract staff), upload a file, or send none.
-            'offer_letter_mode' => $creating ? ['nullable', Rule::in(['generate', 'welcome', 'upload', 'none'])] : ['prohibited'],
+            // Interns get the internship letter instead (see InternRequest).
+            'offer_letter_mode' => $creating ? ['nullable', Rule::in(['generate', 'welcome', 'internship', 'upload', 'none'])] : ['prohibited'],
             'offer_letter' => $creating ? ['nullable', 'required_if:offer_letter_mode,upload', 'file', 'max:10240', 'mimes:pdf,doc,docx'] : ['prohibited'],
             'employee_code' => ['required', 'string', 'max:50', Rule::unique(Employee::class, 'employee_code')->ignore($id)],
             'department_id' => ['nullable', 'exists:departments,id', Department::selectableRule($employee?->department_id)],
@@ -54,7 +55,7 @@ class EmployeeRequest extends FormRequest
             'gender' => ['nullable', Rule::in(['male', 'female', 'other'])],
             // A generated letter states the joining date, so it must be known;
             // only the offer letter states the salary.
-            'date_of_joining' => [Rule::requiredIf($creating && in_array($this->input('offer_letter_mode'), ['generate', 'welcome'], true)), 'nullable', 'date'],
+            'date_of_joining' => [Rule::requiredIf($creating && in_array($this->input('offer_letter_mode'), ['generate', 'welcome', 'internship'], true)), 'nullable', 'date'],
             'employment_type' => ['required', Rule::in(['full_time', 'part_time', 'contract', 'intern'])],
             'salary' => [Rule::requiredIf($creating && $this->input('offer_letter_mode') === 'generate'), 'nullable', 'numeric', 'min:0', 'max:99999999.99'],
             // Interns: a stipend, or none.

@@ -9,6 +9,7 @@ use App\Models\Department;
 use App\Models\Designation;
 use App\Models\Employee;
 use App\Models\User;
+use App\Services\OfferLetter;
 use App\Services\Onboarding\EmployeeInvitations;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -67,11 +68,11 @@ class InternController extends Controller
         ]);
     }
 
-    public function store(InternRequest $request, EmployeeInvitations $invitations): RedirectResponse
+    public function store(InternRequest $request, EmployeeInvitations $invitations, OfferLetter $offerLetter): RedirectResponse
     {
         $data = $request->validated();
 
-        $employee = DB::transaction(function () use ($data) {
+        $employee = DB::transaction(function () use ($data, $request, $offerLetter) {
             $user = User::create([
                 'name' => $data['name'],
                 'email' => $data['email'],
@@ -82,6 +83,13 @@ class InternController extends Controller
 
             $employee = Employee::create([...$this->recordFields($data), 'user_id' => $user->id]);
             $employee->forceFill(['onboarding_status' => OnboardingStatus::Invited])->save();
+
+            // The internship letter matches the stipend: one states it, the other says there is none.
+            if ($data['offer_letter_mode'] === 'upload' && $request->hasFile('offer_letter')) {
+                EmployeeController::storeOfferLetter($employee, $request->file('offer_letter'));
+            } elseif ($data['offer_letter_mode'] === 'internship') {
+                $offerLetter->generateFor($employee, OfferLetter::kindFor($employee));
+            }
 
             return $employee;
         });

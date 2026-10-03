@@ -23,7 +23,7 @@ export type FormData = {
     role_id: string;
     send_invite: boolean;
     /** Generate from the template in Configuration hub, upload a file, or none. */
-    offer_letter_mode: 'generate' | 'welcome' | 'upload' | 'none';
+    offer_letter_mode: 'generate' | 'welcome' | 'internship' | 'upload' | 'none';
     offer_letter: File | null;
     employee_code: string;
     department_id: string;
@@ -242,7 +242,7 @@ export default function EmployeeForm({
                 <div className="grid gap-2">
                     <Label htmlFor="date_of_joining">
                         {intern ? 'Internship starts' : 'Date of joining'}{' '}
-                        {creating && !intern && (data.offer_letter_mode === 'generate' || data.offer_letter_mode === 'welcome') && (
+                        {creating && ['generate', 'welcome', 'internship'].includes(data.offer_letter_mode) && (
                             <span className="text-destructive">*</span>
                         )}
                     </Label>
@@ -356,15 +356,68 @@ export default function EmployeeForm({
             </div>
 
             {creating && intern && (
-                <label className="flex items-start gap-3 rounded-xl border p-4">
-                    <Checkbox className="mt-0.5" checked={data.send_invite} onCheckedChange={(checked) => setData('send_invite', checked === true)} />
-                    <span className="text-sm">
-                        Send the invite email now
-                        <span className="text-muted-foreground block text-xs">
-                            They set a password, then complete onboarding: details, bank account and documents.
+                <section className="space-y-4 rounded-xl border p-4">
+                    <div>
+                        <h2 className="text-sm font-semibold">Invite and internship letter</h2>
+                        <p className="text-muted-foreground text-xs">
+                            They set a password, then complete onboarding: details, bank account, documents and the signed internship letter.
+                        </p>
+                    </div>
+
+                    <div className="grid gap-2">
+                        <Label>Internship letter</Label>
+                        <ToggleGroup
+                            type="single"
+                            variant="outline"
+                            value={data.offer_letter_mode}
+                            onValueChange={(value) => value && setData('offer_letter_mode', value as FormData['offer_letter_mode'])}
+                            className="flex-wrap justify-start"
+                        >
+                            <ToggleGroupItem value="internship" className="px-3 text-xs">
+                                {data.has_stipend ? 'Internship letter with stipend' : 'Internship letter, no stipend'}
+                            </ToggleGroupItem>
+                            <ToggleGroupItem value="upload" className="px-3 text-xs">
+                                Upload my own
+                            </ToggleGroupItem>
+                            <ToggleGroupItem value="none" className="px-3 text-xs">
+                                No letter
+                            </ToggleGroupItem>
+                        </ToggleGroup>
+
+                        {data.offer_letter_mode === 'internship' && (
+                            <p className="text-muted-foreground text-xs">
+                                A PDF with your logo, from the{' '}
+                                <Link href={route('admin.config.offer-letter.edit')} className="underline" target="_blank">
+                                    internship letter template
+                                </Link>
+                                . {data.has_stipend ? 'It states the monthly stipend above.' : 'It says the internship is unpaid.'} The start date is
+                                required.
+                            </p>
+                        )}
+
+                        {data.offer_letter_mode === 'upload' && (
+                            <Input
+                                id="offer_letter"
+                                type="file"
+                                accept=".pdf,.doc,.docx"
+                                onChange={(e) => setData('offer_letter', e.target.files?.[0] ?? null)}
+                            />
+                        )}
+                        <InputError message={errors.offer_letter} />
+                    </div>
+
+                    <label className="flex items-start gap-3">
+                        <Checkbox
+                            className="mt-0.5"
+                            checked={data.send_invite}
+                            onCheckedChange={(checked) => setData('send_invite', checked === true)}
+                        />
+                        <span className="text-sm">
+                            Send the invite email now
+                            <span className="text-muted-foreground block text-xs">The letter is attached. Leave unticked to send it later.</span>
                         </span>
-                    </span>
-                </label>
+                    </label>
+                </section>
             )}
 
             {creating && !intern && (

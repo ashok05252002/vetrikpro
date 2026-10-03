@@ -6,54 +6,66 @@ import CardHeading from '@/components/ui/card-heading';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import ConfigLayout from '@/layouts/config/config-layout';
 import { Link, useForm } from '@inertiajs/react';
-import { AlertTriangle, Braces, Eye, HandHeart, PenLine, RotateCcw } from 'lucide-react';
+import { AlertTriangle, Braces, Eye, PenLine, RotateCcw, Signature } from 'lucide-react';
 import { FormEventHandler, useRef, useState } from 'react';
 
-interface Props {
-    template: {
-        title: string;
-        body: string;
-        signatory_name: string;
-        signatory_title: string;
-        valid_days: number;
-        welcome_title: string;
-        welcome_body: string;
-    };
-    defaultBody: string;
-    defaultWelcomeBody: string;
+interface Letter {
+    key: string;
+    label: string;
+    description: string;
+    default_body: string;
     placeholders: { key: string; label: string }[];
+    preview_url: string;
+}
+
+type Template = {
+    signatory_name: string;
+    signatory_title: string;
+    valid_days: number;
+    letters: Record<string, { title: string; body: string }>;
+};
+
+interface Props {
+    template: Template;
+    letters: Letter[];
     letterhead: { logo: boolean; address: boolean; legal_name: boolean };
     can: { edit: boolean };
 }
 
-export default function OfferLetterTemplate({ template, defaultBody, defaultWelcomeBody, placeholders, letterhead, can }: Props) {
+export default function OfferLetterTemplate({ template, letters, letterhead, can }: Props) {
     const body = useRef<HTMLTextAreaElement>(null);
-    const welcomeBody = useRef<HTMLTextAreaElement>(null);
-    // Placeholders go into whichever body was last focused.
-    const [target, setTarget] = useState<'body' | 'welcome_body'>('body');
-    const { data, setData, put, processing, errors, isDirty, recentlySuccessful } = useForm(template);
+    const [active, setActive] = useState(letters[0].key);
+    const letter = letters.find((l) => l.key === active) ?? letters[0];
+    const { data, setData, put, processing, errors, isDirty, recentlySuccessful } = useForm<Template>(template);
+    const current = data.letters[letter.key];
+    const fieldErrors = errors as Record<string, string | undefined>;
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
         put(route('admin.config.offer-letter.update'), { preserveScroll: true });
     };
 
+    const setLetter = (field: 'title' | 'body', value: string) =>
+        setData('letters', { ...data.letters, [letter.key]: { ...current, [field]: value } });
+
     // Drop the placeholder in where the cursor is, not at the end.
     const insert = (key: string) => {
-        const el = (target === 'body' ? body : welcomeBody).current;
-        const text = data[target];
+        const el = body.current;
+        const text = current.body;
         const token = `{${key}}`;
         const start = el?.selectionStart ?? text.length;
         const end = el?.selectionEnd ?? text.length;
-        setData(target, text.slice(0, start) + token + text.slice(end));
+        setLetter('body', text.slice(0, start) + token + text.slice(end));
         requestAnimationFrame(() => {
             el?.focus();
             el?.setSelectionRange(start + token.length, start + token.length);
         });
     };
 
+    const hasError = (key: string) => Boolean(fieldErrors[`letters.${key}.title`] || fieldErrors[`letters.${key}.body`]);
     const missing = [!letterhead.logo && 'logo', !letterhead.legal_name && 'legal name', !letterhead.address && 'address'].filter(Boolean);
 
     return (
@@ -76,25 +88,57 @@ export default function OfferLetterTemplate({ template, defaultBody, defaultWelc
                 <Card>
                     <CardHeader>
                         <CardHeading icon={PenLine} tone="violet">
-                            Offer letter wording
+                            Letter wording
                         </CardHeading>
                         <CardDescription>
-                            Plain text. A blank line starts a new paragraph, and <code>**text**</code> makes it bold. The offer summary table and
-                            signature blocks are added automatically.
+                            Every letter the portal makes as a PDF. Pick one to edit it. Plain text: a blank line starts a new paragraph, and{' '}
+                            <code>**text**</code> makes it bold. The letterhead, summary table and signatures are added automatically.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
+                        <ToggleGroup
+                            type="single"
+                            variant="outline"
+                            value={active}
+                            onValueChange={(value) => value && setActive(value)}
+                            className="flex-wrap justify-start"
+                        >
+                            {letters.map((l) => (
+                                <ToggleGroupItem
+                                    key={l.key}
+                                    value={l.key}
+                                    className={hasError(l.key) ? 'border-destructive px-3 text-xs' : 'px-3 text-xs'}
+                                >
+                                    {l.label}
+                                </ToggleGroupItem>
+                            ))}
+                        </ToggleGroup>
+
+                        <p className="text-muted-foreground text-xs">{letter.description}</p>
+
                         <div className="grid gap-2">
                             <Label htmlFor="title">Heading</Label>
-                            <Input id="title" value={data.title} onChange={(e) => setData('title', e.target.value)} required disabled={!can.edit} />
-                            <InputError message={errors.title} />
+                            <Input
+                                id="title"
+                                value={current.title}
+                                onChange={(e) => setLetter('title', e.target.value)}
+                                required
+                                disabled={!can.edit}
+                            />
+                            <InputError message={fieldErrors[`letters.${letter.key}.title`]} />
                         </div>
 
                         <div className="grid gap-2">
                             <div className="flex items-center justify-between gap-2">
                                 <Label htmlFor="body">Body</Label>
-                                {can.edit && data.body !== defaultBody && (
-                                    <Button type="button" variant="ghost" size="sm" className="h-7" onClick={() => setData('body', defaultBody)}>
+                                {can.edit && current.body !== letter.default_body && (
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7"
+                                        onClick={() => setLetter('body', letter.default_body)}
+                                    >
                                         <RotateCcw className="size-3.5" /> Restore standard wording
                                     </Button>
                                 )}
@@ -104,15 +148,35 @@ export default function OfferLetterTemplate({ template, defaultBody, defaultWelc
                                 ref={body}
                                 rows={18}
                                 className="font-mono text-sm leading-relaxed"
-                                value={data.body}
-                                onChange={(e) => setData('body', e.target.value)}
-                                onFocus={() => setTarget('body')}
+                                value={current.body}
+                                onChange={(e) => setLetter('body', e.target.value)}
                                 required
                                 disabled={!can.edit}
                             />
-                            <InputError message={errors.body} />
+                            <InputError message={fieldErrors[`letters.${letter.key}.body`]} />
                         </div>
 
+                        <div className="flex flex-wrap items-center gap-2">
+                            {can.edit && <Button disabled={processing || !isDirty}>Save templates</Button>}
+                            <Button asChild type="button" variant="outline">
+                                <a href={letter.preview_url} target="_blank" rel="noreferrer">
+                                    <Eye className="size-4" /> Preview PDF
+                                </a>
+                            </Button>
+                            {isDirty && <span className="text-muted-foreground text-xs">Unsaved — the preview shows the saved version.</span>}
+                            {recentlySuccessful && <span className="text-muted-foreground text-xs">Saved</span>}
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card className="xl:col-start-1">
+                    <CardHeader>
+                        <CardHeading icon={Signature} tone="violet">
+                            Signatory and validity
+                        </CardHeading>
+                        <CardDescription>Shared by every letter above.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
                         <div className="grid gap-4 sm:grid-cols-3">
                             <div className="grid gap-2">
                                 <Label htmlFor="signatory_name">Signed by</Label>
@@ -151,81 +215,7 @@ export default function OfferLetterTemplate({ template, defaultBody, defaultWelc
                                 <InputError message={errors.valid_days} />
                             </div>
                         </div>
-
-                        <div className="flex flex-wrap items-center gap-2">
-                            {can.edit && <Button disabled={processing || !isDirty}>Save templates</Button>}
-                            <Button asChild type="button" variant="outline">
-                                <a href={route('admin.config.offer-letter.preview')} target="_blank" rel="noreferrer">
-                                    <Eye className="size-4" /> Preview PDF
-                                </a>
-                            </Button>
-                            {isDirty && <span className="text-muted-foreground text-xs">Unsaved — the preview shows the saved version.</span>}
-                            {recentlySuccessful && <span className="text-muted-foreground text-xs">Saved</span>}
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card className="xl:col-start-1">
-                    <CardHeader>
-                        <CardHeading icon={HandHeart} tone="violet">
-                            Welcome letter — no salary
-                        </CardHeading>
-                        <CardDescription>
-                            For staff whose pay isn&rsquo;t put in writing, such as contract hires. Chosen as &ldquo;Welcome letter&rdquo; when adding
-                            an employee. Same letterhead, signatory and validity as the offer letter; the summary table leaves out the salary, and{' '}
-                            <code>{'{monthly_salary}'}</code> and <code>{'{annual_ctc}'}</code> print as &ldquo;as discussed&rdquo;.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="grid gap-2">
-                            <Label htmlFor="welcome_title">Heading</Label>
-                            <Input
-                                id="welcome_title"
-                                value={data.welcome_title}
-                                onChange={(e) => setData('welcome_title', e.target.value)}
-                                required
-                                disabled={!can.edit}
-                            />
-                            <InputError message={errors.welcome_title} />
-                        </div>
-
-                        <div className="grid gap-2">
-                            <div className="flex items-center justify-between gap-2">
-                                <Label htmlFor="welcome_body">Body</Label>
-                                {can.edit && data.welcome_body !== defaultWelcomeBody && (
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-7"
-                                        onClick={() => setData('welcome_body', defaultWelcomeBody)}
-                                    >
-                                        <RotateCcw className="size-3.5" /> Restore standard wording
-                                    </Button>
-                                )}
-                            </div>
-                            <Textarea
-                                id="welcome_body"
-                                ref={welcomeBody}
-                                rows={14}
-                                className="font-mono text-sm leading-relaxed"
-                                value={data.welcome_body}
-                                onChange={(e) => setData('welcome_body', e.target.value)}
-                                onFocus={() => setTarget('welcome_body')}
-                                required
-                                disabled={!can.edit}
-                            />
-                            <InputError message={errors.welcome_body} />
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-2">
-                            {can.edit && <Button disabled={processing || !isDirty}>Save templates</Button>}
-                            <Button asChild type="button" variant="outline">
-                                <a href={route('admin.config.offer-letter.preview', { kind: 'welcome' })} target="_blank" rel="noreferrer">
-                                    <Eye className="size-4" /> Preview PDF
-                                </a>
-                            </Button>
-                        </div>
+                        {can.edit && <Button disabled={processing || !isDirty}>Save templates</Button>}
                     </CardContent>
                 </Card>
 
@@ -235,14 +225,12 @@ export default function OfferLetterTemplate({ template, defaultBody, defaultWelc
                             Placeholders
                         </CardHeading>
                         <CardDescription>
-                            {can.edit
-                                ? 'Click one to insert it at the cursor, in whichever letter you last clicked into.'
-                                : 'Filled in for each employee.'}
+                            {can.edit ? `Click one to insert it at the cursor in the ${letter.label.toLowerCase()}.` : 'Filled in for each person.'}
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
                         <ul className="space-y-1.5">
-                            {placeholders.map((p) => (
+                            {letter.placeholders.map((p) => (
                                 <li key={p.key}>
                                     <button
                                         type="button"

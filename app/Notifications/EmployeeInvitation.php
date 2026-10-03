@@ -47,7 +47,7 @@ class EmployeeInvitation extends Notification
             'Upload the documents on your checklist.',
         ];
 
-        $letter = $this->offerLetterKind === OfferLetter::WELCOME ? 'welcome letter' : 'offer letter';
+        $letter = strtolower(OfferLetter::label($this->offerLetterKind));
 
         if ($this->offerLetterPath !== null) {
             $steps[] = "Sign the attached {$letter} and upload the signed copy.";

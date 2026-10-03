@@ -71,6 +71,18 @@ export default function DatePicker({
     };
 
     const monthLabel = new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(Date.UTC(cursor.y, cursor.m, 1)));
+    const monthNames = useMemo(
+        () => Array.from({ length: 12 }, (_, m) => new Intl.DateTimeFormat(undefined, { month: 'short', timeZone: 'UTC' }).format(new Date(Date.UTC(2000, m, 1)))),
+        [],
+    );
+    // Year dropdown: bounded by min/max when given, otherwise a century back
+    // (dates of birth) and ten years ahead. Always includes the shown year.
+    const thisYear = Number(today.slice(0, 4));
+    const firstYear = Math.min(min ? Number(min.slice(0, 4)) : thisYear - 100, cursor.y);
+    const lastYear = Math.max(latest ? Number(latest.slice(0, 4)) : thisYear + 10, cursor.y);
+    const years = Array.from({ length: lastYear - firstYear + 1 }, (_, i) => lastYear - i);
+    const selectClass =
+        'border-input bg-background focus-visible:ring-ring h-8 rounded-md border px-1.5 text-sm font-semibold focus-visible:ring-2 focus-visible:outline-none';
 
     return (
         <Popover
@@ -117,7 +129,32 @@ export default function DatePicker({
                     <Button type="button" variant="ghost" size="sm" className="size-8 p-0" onClick={() => move(-1)} aria-label="Previous month">
                         <ChevronLeft className="size-4" />
                     </Button>
-                    <span className="text-sm font-semibold">{monthLabel}</span>
+                    <div className="flex items-center gap-1">
+                        <select
+                            aria-label="Month"
+                            className={selectClass}
+                            value={cursor.m}
+                            onChange={(e) => setCursor(({ y }) => ({ y, m: Number(e.target.value) }))}
+                        >
+                            {monthNames.map((name, m) => (
+                                <option key={m} value={m}>
+                                    {name}
+                                </option>
+                            ))}
+                        </select>
+                        <select
+                            aria-label="Year"
+                            className={selectClass}
+                            value={cursor.y}
+                            onChange={(e) => setCursor(({ m }) => ({ y: Number(e.target.value), m }))}
+                        >
+                            {years.map((y) => (
+                                <option key={y} value={y}>
+                                    {y}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
                     <Button type="button" variant="ghost" size="sm" className="size-8 p-0" onClick={() => move(1)} aria-label="Next month">
                         <ChevronRight className="size-4" />
                     </Button>

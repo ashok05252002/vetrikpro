@@ -3,9 +3,14 @@
 namespace Tests\Feature\Admin;
 
 use App\Models\Employee;
+use App\Models\EmployeeDocument;
 use App\Models\Role;
 use App\Models\User;
+use App\Notifications\EmployeeInvitation;
+use App\Services\OfferLetter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia;
 use Tests\TestCase;
 
@@ -40,6 +45,34 @@ class InternTest extends TestCase
 
         $this->actingAs($admin)->post(route('admin.interns.store'), $this->payload(['has_stipend' => false, 'stipend' => 5000]));
         $this->assertNull(Employee::where('employee_code', 'INT-001')->value('stipend'));
+    }
+
+    public function test_an_intern_gets_the_internship_letter_that_matches_the_stipend()
+    {
+        Storage::fake(EmployeeDocument::DISK);
+        Notification::fake();
+        $admin = User::factory()->admin()->create();
+
+        $this->actingAs($admin)->post(route('admin.interns.store'), $this->payload([
+            'has_stipend' => true, 'stipend' => 12000, 'date_of_joining' => '2026-11-02', 'offer_letter_mode' => 'internship', 'send_invite' => true,
+        ]))->assertSessionHasNoErrors();
+
+        $paid = Employee::where('employee_code', 'INT-001')->first();
+        $this->assertSame(OfferLetter::INTERNSHIP, $paid->offer_letter_kind);
+        $this->assertSame('Internship letter - Kavya S.pdf', $paid->offer_letter_name);
+        Notification::assertSentTo($paid->user, EmployeeInvitation::class, fn (EmployeeInvitation $n) => $n->offerLetterPath === $paid->offer_letter_path
+            && str_contains(implode(' ', $n->toMail($paid->user)->viewData['steps']), 'internship letter'));
+
+        $this->actingAs($admin)->post(route('admin.interns.store'), $this->payload([
+            'email' => 'arun@company.test', 'employee_code' => 'INT-002', 'has_stipend' => false, 'date_of_joining' => '2026-11-02', 'offer_letter_mode' => 'internship',
+        ]))->assertSessionHasNoErrors();
+
+        $this->assertSame(OfferLetter::INTERNSHIP_UNPAID, Employee::where('employee_code', 'INT-002')->value('offer_letter_kind'));
+
+        // The letter states the start date, so it is required.
+        $this->actingAs($admin)->post(route('admin.interns.store'), $this->payload([
+            'email' => 'mani@company.test', 'employee_code' => 'INT-003', 'offer_letter_mode' => 'internship',
+        ]))->assertSessionHasErrors('date_of_joining');
     }
 
     public function test_interns_are_listed_apart_from_staff()

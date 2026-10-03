@@ -6,6 +6,7 @@ use App\Models\Employee;
 use App\Models\EmployeeDocument;
 use App\Support\Clock;
 use App\Support\Letterhead;
+use App\Support\LetterTemplate;
 use App\Support\Settings;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Carbon;
@@ -18,10 +19,11 @@ use Illuminate\Support\Str;
  * address), the template's wording with {placeholders} filled in, an offer
  * summary table and signature blocks.
  *
- * There are two kinds. The offer letter states the salary; the welcome
- * letter is the same letter without the package — for contract staff and
- * anyone whose pay is not put in writing — with its own wording in
- * Configuration hub → Offer letter, and no salary rows in the summary.
+ * There are four kinds, each with its own wording in Configuration hub →
+ * Offer letter: the offer letter states the salary; the welcome letter is
+ * the same letter without the package — for contract staff and anyone whose
+ * pay is not put in writing; and interns get an internship letter, which
+ * states the stipend, or says there is none.
  *
  * The generated file is stored exactly where an uploaded offer letter would
  * be, so the invite email, the onboarding page and HR's review treat all of
@@ -33,7 +35,11 @@ final class OfferLetter
 
     public const WELCOME = 'welcome';
 
-    public const KINDS = [self::OFFER, self::WELCOME];
+    public const INTERNSHIP = 'internship';
+
+    public const INTERNSHIP_UNPAID = 'internship_unpaid';
+
+    public const KINDS = [self::OFFER, self::WELCOME, self::INTERNSHIP, self::INTERNSHIP_UNPAID];
 
     public const DEFAULT_BODY = <<<'TEXT'
 Dear {employee_name},
@@ -63,6 +69,76 @@ Please sign this letter and upload the signed copy on the employee portal by **{
 Welcome aboard.
 TEXT;
 
+    public const DEFAULT_INTERNSHIP_BODY = <<<'TEXT'
+Dear {employee_name},
+
+We are pleased to offer you an internship at {company_name} as **{designation}**, beginning on **{joining_date}**.
+
+During the internship you will receive a stipend of **{stipend} per month**, subject to applicable deductions. The stipend is paid for the duration of the internship only, and this letter is not an offer of permanent employment.
+
+You will work alongside our team on live projects, with guidance from your mentor. We expect you to follow the company's policies and to keep its confidential information private, during the internship and after it.
+
+This offer is subject to satisfactory verification of the documents you submit during onboarding.
+
+To accept, please sign this letter and upload the signed copy on the employee portal by **{offer_valid_until}**.
+
+We look forward to having you with us.
+TEXT;
+
+    public const DEFAULT_INTERNSHIP_UNPAID_BODY = <<<'TEXT'
+Dear {employee_name},
+
+We are pleased to offer you an internship at {company_name} as **{designation}**, beginning on **{joining_date}**.
+
+This internship is a learning opportunity and carries no stipend or salary. It is not an offer of permanent employment.
+
+You will work alongside our team on live projects, with guidance from your mentor. We expect you to follow the company's policies and to keep its confidential information private, during the internship and after it.
+
+This offer is subject to satisfactory verification of the documents you submit during onboarding.
+
+To accept, please sign this letter and upload the signed copy on the employee portal by **{offer_valid_until}**.
+
+We look forward to having you with us.
+TEXT;
+
+    /**
+     * Each kind's name, the settings its wording is saved under, its
+     * reference prefix and its standard wording.
+     *
+     * @return array<string, array{label: string, settings: string, ref: string, body: string}>
+     */
+    public static function kinds(): array
+    {
+        return [
+            self::OFFER => ['label' => 'Offer letter', 'settings' => 'offer', 'ref' => 'OL', 'body' => self::DEFAULT_BODY],
+            self::WELCOME => ['label' => 'Welcome letter', 'settings' => 'welcome', 'ref' => 'WL', 'body' => self::DEFAULT_WELCOME_BODY],
+            self::INTERNSHIP => ['label' => 'Internship letter', 'settings' => 'internship', 'ref' => 'IL', 'body' => self::DEFAULT_INTERNSHIP_BODY],
+            self::INTERNSHIP_UNPAID => ['label' => 'Internship letter', 'settings' => 'internship_unpaid', 'ref' => 'IL', 'body' => self::DEFAULT_INTERNSHIP_UNPAID_BODY],
+        ];
+    }
+
+    /**
+     * What a kind is called in emails and on screen; an uploaded letter is
+     * an offer letter.
+     */
+    public static function label(?string $kind): string
+    {
+        return self::kinds()[$kind ?? self::OFFER]['label'] ?? 'Offer letter';
+    }
+
+    /**
+     * The letter an employee gets by default: interns the internship letter
+     * that matches their stipend, everyone else the offer letter.
+     */
+    public static function kindFor(Employee $employee): string
+    {
+        if (! $employee->isIntern()) {
+            return self::OFFER;
+        }
+
+        return $employee->has_stipend ? self::INTERNSHIP : self::INTERNSHIP_UNPAID;
+    }
+
     /**
      * Every placeholder the template may use, with what it becomes.
      *
@@ -80,6 +156,7 @@ TEXT;
             'joining_date' => 'Date of joining',
             'monthly_salary' => 'Monthly salary, formatted in the company currency (offer letter only)',
             'annual_ctc' => 'Monthly salary × 12 (offer letter only)',
+            'stipend' => 'Monthly stipend, formatted in the company currency (paid internship only)',
             'offer_valid_until' => 'Today plus the validity period',
             'company_name' => 'Company name',
             'today' => 'Date the letter is generated',
@@ -107,6 +184,7 @@ TEXT;
             'joining_date' => $employee->date_of_joining ? $this->date($employee->date_of_joining) : 'a date to be confirmed',
             'monthly_salary' => $salary !== null ? $this->money($salary) : 'as discussed',
             'annual_ctc' => $salary !== null ? $this->money($salary * 12) : 'as discussed',
+            'stipend' => $employee->has_stipend && $employee->stipend !== null ? $this->money((float) $employee->stipend) : 'no stipend',
             ...$this->commonValues(),
         ];
     }
@@ -116,18 +194,21 @@ TEXT;
      *
      * @return array<string, string>
      */
-    public function sampleValues(): array
+    public function sampleValues(string $kind = self::OFFER): array
     {
+        $intern = in_array($kind, [self::INTERNSHIP, self::INTERNSHIP_UNPAID], true);
+
         return [
             'employee_name' => 'Priya Raman',
             'first_name' => 'Priya',
             'employee_code' => 'EMP-0042',
-            'designation' => 'Software Engineer',
+            'designation' => $intern ? 'Software Engineering Intern' : 'Software Engineer',
             'department' => 'Engineering',
-            'employment_type' => 'Full time',
+            'employment_type' => $intern ? 'Internship' : 'Full time',
             'joining_date' => $this->date(Clock::today()->addWeeks(3)),
             'monthly_salary' => $this->money(65000),
             'annual_ctc' => $this->money(65000 * 12),
+            'stipend' => $kind === self::INTERNSHIP_UNPAID ? 'no stipend' : $this->money(10000),
             ...$this->commonValues(),
         ];
     }
@@ -146,7 +227,7 @@ TEXT;
 
         $employee->forceFill([
             'offer_letter_path' => $path,
-            'offer_letter_name' => ($kind === self::WELCOME ? 'Welcome letter - ' : 'Offer letter - ').$employee->user->name.'.pdf',
+            'offer_letter_name' => self::label($kind).' - '.$employee->user->name.'.pdf',
             'offer_letter_kind' => $kind,
         ])->save();
 
@@ -169,21 +250,41 @@ TEXT;
     public function html(array $values, ?string $email = null, string $kind = self::OFFER): string
     {
         $s = $this->settings;
-        $welcome = $kind === self::WELCOME;
+        $meta = self::kinds()[$kind] ?? self::kinds()[self::OFFER];
+        $offer = $kind === self::OFFER;
+        $intern = in_array($kind, [self::INTERNSHIP, self::INTERNSHIP_UNPAID], true);
 
-        // The welcome letter never states pay, whatever its wording asks for.
-        if ($welcome) {
+        // Only the offer letter states the salary, and only the paid
+        // internship letter the stipend, whatever the wording asks for.
+        if (! $offer) {
             $values = [...$values, 'monthly_salary' => 'as discussed', 'annual_ctc' => 'as discussed'];
         }
+        if ($kind !== self::INTERNSHIP) {
+            $values = [...$values, 'stipend' => 'no stipend'];
+        }
+
+        $summary = [
+            ['Position', $values['designation']],
+            ['Department', $values['department']],
+            [$intern ? 'Internship starts' : 'Date of joining', $values['joining_date']],
+            ['Employment type', $values['employment_type']],
+            ...($offer ? [['Monthly salary', $values['monthly_salary']], ['Annual CTC', $values['annual_ctc']]] : []),
+            ...($kind === self::INTERNSHIP ? [['Monthly stipend', $values['stipend']]] : []),
+            ...($kind === self::INTERNSHIP_UNPAID ? [['Stipend', 'Unpaid internship']] : []),
+            [$intern ? 'Intern code' : 'Employee code', $values['employee_code']],
+            [$offer || $intern ? 'Offer valid until' : 'Please confirm by', $values['offer_valid_until']],
+        ];
 
         return view('pdf.offer-letter', [
             'company' => $this->letterhead->company(),
-            'title' => $this->fill((string) $s->get($welcome ? 'welcome.title' : 'offer.title'), $values),
-            'paragraphs' => $this->paragraphs((string) $s->get($welcome ? 'welcome.body' : 'offer.body'), $values),
-            'withPackage' => ! $welcome,
+            'title' => LetterTemplate::fill((string) $s->get($meta['settings'].'.title'), $values),
+            'paragraphs' => LetterTemplate::paragraphs((string) $s->get($meta['settings'].'.body'), $values),
+            'summaryTitle' => $offer ? 'Offer summary' : ($intern ? 'Internship summary' : 'Summary'),
+            'summary' => array_chunk($summary, 2),
+            'acceptance' => $offer || $intern ? 'I accept this offer on the terms set out above.' : 'I accept this engagement on the terms discussed.',
             'values' => $values,
             'email' => $email,
-            'reference' => ($welcome ? 'WL/' : 'OL/').$values['employee_code'].'/'.Clock::today()->format('Y'),
+            'reference' => $meta['ref'].'/'.$values['employee_code'].'/'.Clock::today()->format('Y'),
             'signatory' => ['name' => (string) $s->get('offer.signatory_name'), 'title' => (string) $s->get('offer.signatory_title')],
         ])->render();
     }
@@ -196,37 +297,7 @@ TEXT;
      */
     public static function unknownPlaceholders(string $text): array
     {
-        preg_match_all('/\{([a-z_]+)\}/', $text, $m);
-
-        return array_values(array_unique(array_diff($m[1], array_keys(self::placeholders()))));
-    }
-
-    /**
-     * Blank lines separate paragraphs, single line breaks are kept, and
-     * **text** is bold. Everything is escaped before any markup is added, so
-     * nothing in the template or an employee's name can inject HTML.
-     *
-     * @param  array<string, string>  $values
-     * @return list<string>
-     */
-    private function paragraphs(string $body, array $values): array
-    {
-        $blocks = preg_split('/\R\s*\R/', trim($body)) ?: [];
-
-        return array_values(array_filter(array_map(function (string $block) use ($values) {
-            $html = e($this->fill(trim($block), $values));
-            $html = preg_replace('/\*\*(.+?)\*\*/s', '<strong>$1</strong>', $html);
-
-            return nl2br($html, false);
-        }, $blocks)));
-    }
-
-    /**
-     * @param  array<string, string>  $values
-     */
-    private function fill(string $text, array $values): string
-    {
-        return preg_replace_callback('/\{([a-z_]+)\}/', fn ($m) => $values[$m[1]] ?? $m[0], $text);
+        return LetterTemplate::unknownPlaceholders($text, array_keys(self::placeholders()));
     }
 
     /**

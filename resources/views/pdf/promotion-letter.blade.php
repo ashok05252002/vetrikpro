@@ -69,34 +69,31 @@
 
     <h1>{{ $title }}</h1>
 
-    <p>Dear {{ $employee['first_name'] }},</p>
-
-    @if ($promoted)
-        <p>In recognition of your contribution and performance, we are pleased to promote you to the position of <strong>{{ $rows['Designation'][1] }}</strong>, with effect from <strong>{{ $effective }}</strong>.</p>
-    @else
-        <p>We are pleased to inform you that your compensation has been revised with effect from <strong>{{ $effective }}</strong>, in recognition of your contribution to {{ $company['name'] }}.</p>
-    @endif
-
-    @if ($increase)
-        <p>Your monthly salary increases by <strong>{{ $increase }}</strong>. The change is summarised below.</p>
-    @else
-        <p>Your revised terms are summarised below.</p>
-    @endif
+    @foreach ($before as $paragraph)
+        <p>{!! $paragraph !!}</p>
+    @endforeach
 
     <table class="change">
         <tr><th></th><th>Before</th><th>From {{ $effective }}</th></tr>
-        @foreach ($rows as $label => [$before, $after])
+        @foreach ($rows as $label => [$was, $now])
             <tr>
                 <td class="label">{{ $label }}</td>
-                <td>{{ $before }}</td>
-                <td class="new">{{ $after }}</td>
+                <td>{{ $was }}</td>
+                <td class="new">{{ $now }}</td>
             </tr>
         @endforeach
+        @if ($increase)
+            <tr>
+                <td class="label">Increase</td>
+                <td></td>
+                <td class="new">{{ $increase }}</td>
+            </tr>
+        @endif
     </table>
 
-    <p>All other terms and conditions of your employment remain unchanged. Salary is subject to applicable taxes and statutory deductions.</p>
-
-    <p>We thank you for your work and look forward to your continued success with us.</p>
+    @foreach ($after as $paragraph)
+        <p>{!! $paragraph !!}</p>
+    @endforeach
 
     <table class="signs">
         <tr>

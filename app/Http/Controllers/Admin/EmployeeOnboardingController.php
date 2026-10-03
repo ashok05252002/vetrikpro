@@ -31,6 +31,10 @@ class EmployeeOnboardingController extends Controller
             'employee' => EmployeeProfile::header($employee, $viewer),
             'onboarding' => $employee->onboarding_status === null ? null : OnboardingPresenter::state($employee),
             'mailIsLocal' => EmployeeInvitations::mailIsLocal(),
+            // The letters HR can generate here: internship letters for interns, offer and welcome letters for staff.
+            'letterKinds' => $employee->isIntern()
+                ? [['kind' => OfferLetter::INTERNSHIP, 'label' => 'internship letter (with stipend)'], ['kind' => OfferLetter::INTERNSHIP_UNPAID, 'label' => 'internship letter (no stipend)']]
+                : [['kind' => OfferLetter::OFFER, 'label' => 'offer letter'], ['kind' => OfferLetter::WELCOME, 'label' => 'welcome letter (no salary)']],
             'can' => [
                 'manage' => $viewer->can('employees.onboard'),
                 'documents' => $viewer->can('documents.view'),
@@ -67,7 +71,7 @@ class EmployeeOnboardingController extends Controller
      */
     public function generateOfferLetter(Request $request, Employee $employee, OfferLetter $offerLetter): RedirectResponse
     {
-        $kind = $request->validate(['kind' => ['nullable', Rule::in(OfferLetter::KINDS)]])['kind'] ?? OfferLetter::OFFER;
+        $kind = $request->validate(['kind' => ['nullable', Rule::in(OfferLetter::KINDS)]])['kind'] ?? OfferLetter::kindFor($employee);
 
         if (! $employee->onboarding_status?->isEditable()) {
             return back()->with('error', 'The offer letter can only change before the profile is submitted.');
@@ -79,7 +83,11 @@ class EmployeeOnboardingController extends Controller
 
         $offerLetter->generateFor($employee, $kind);
 
-        $what = $kind === OfferLetter::WELCOME ? 'Welcome letter' : 'Offer letter';
+        if ($kind === OfferLetter::INTERNSHIP && ! ($employee->has_stipend && $employee->stipend !== null)) {
+            return back()->with('error', 'No stipend is recorded, so the letter would have none to state. Add it on the intern, or generate the letter without a stipend.');
+        }
+
+        $what = OfferLetter::label($kind);
 
         return back()->with('success', "{$what} generated from the template. Resend the invite to email it.");
     }

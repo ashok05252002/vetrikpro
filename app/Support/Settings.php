@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Services\OfferLetter;
+use App\Services\PromotionLetter;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -90,6 +91,16 @@ class Settings
             // whose pay is not put in writing. Shares the signatory and validity.
             'welcome.title' => ['type' => 'string', 'default' => 'Welcome Letter', 'group' => 'offer'],
             'welcome.body' => ['type' => 'string', 'default' => OfferLetter::DEFAULT_WELCOME_BODY, 'group' => 'offer'],
+            // Internship letters, with a stipend and without one.
+            'internship.title' => ['type' => 'string', 'default' => 'Internship Offer', 'group' => 'offer'],
+            'internship.body' => ['type' => 'string', 'default' => OfferLetter::DEFAULT_INTERNSHIP_BODY, 'group' => 'offer'],
+            'internship_unpaid.title' => ['type' => 'string', 'default' => 'Internship Offer', 'group' => 'offer'],
+            'internship_unpaid.body' => ['type' => 'string', 'default' => OfferLetter::DEFAULT_INTERNSHIP_UNPAID_BODY, 'group' => 'offer'],
+            // Promotion and salary revision letters (App\Services\PromotionLetter).
+            'promotion.title' => ['type' => 'string', 'default' => 'Letter of Promotion', 'group' => 'offer'],
+            'promotion.body' => ['type' => 'string', 'default' => PromotionLetter::DEFAULT_PROMOTION_BODY, 'group' => 'offer'],
+            'revision.title' => ['type' => 'string', 'default' => 'Salary Revision', 'group' => 'offer'],
+            'revision.body' => ['type' => 'string', 'default' => PromotionLetter::DEFAULT_REVISION_BODY, 'group' => 'offer'],
         ];
     }
 

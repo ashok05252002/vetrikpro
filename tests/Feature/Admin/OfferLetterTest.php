@@ -2,12 +2,14 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Http\Controllers\Admin\Config\OfferLetterTemplateController;
 use App\Models\Designation;
 use App\Models\Employee;
 use App\Models\EmployeeDocument;
 use App\Models\User;
 use App\Notifications\EmployeeInvitation;
 use App\Services\OfferLetter;
+use App\Services\PromotionLetter;
 use App\Support\Settings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
@@ -187,18 +189,30 @@ class OfferLetterTest extends TestCase
 
     // The template in the Configuration hub
 
+    /**
+     * Every letter's saved wording, with some replaced.
+     *
+     * @param  array<string, array{title?: string, body?: string}>  $letters
+     */
+    private function templates(array $letters = [], array $overrides = []): array
+    {
+        $settings = app(Settings::class);
+        $all = collect(OfferLetterTemplateController::letters())
+            ->map(fn ($letter, $key) => [...['title' => $settings->get("{$key}.title"), 'body' => $settings->get("{$key}.body")], ...($letters[$key] ?? [])])
+            ->all();
+
+        return ['signatory_name' => '', 'signatory_title' => '', 'valid_days' => 7, 'letters' => $all, ...$overrides];
+    }
+
     public function test_the_template_is_saved_and_used()
     {
         $this->actingAs(User::factory()->admin()->create())
-            ->put(route('admin.config.offer-letter.update'), [
-                'title' => 'Letter of Offer',
-                'body' => "Hi {first_name},\n\nWelcome aboard as {designation}.",
-                'signatory_name' => 'Ashok Kumar',
-                'signatory_title' => 'Director',
-                'valid_days' => 10,
-                'welcome_title' => 'Welcome Aboard',
-                'welcome_body' => 'Greetings {first_name}.',
-            ])
+            ->put(route('admin.config.offer-letter.update'), $this->templates([
+                'offer' => ['title' => 'Letter of Offer', 'body' => "Hi {first_name},\n\nWelcome aboard as {designation}."],
+                'welcome' => ['title' => 'Welcome Aboard', 'body' => 'Greetings {first_name}.'],
+                'internship' => ['title' => 'Paid Internship', 'body' => 'Stipend {stipend} for {first_name}.'],
+                'promotion' => ['title' => 'You are promoted', 'body' => "Well done {first_name}, now {new_designation}.\n\n{summary_table}\n\nKeep going."],
+            ], ['signatory_name' => 'Ashok Kumar', 'signatory_title' => 'Director', 'valid_days' => 10]))
             ->assertSessionHas('success');
 
         $html = app(OfferLetter::class)->html(app(OfferLetter::class)->sampleValues());
@@ -212,18 +226,44 @@ class OfferLetterTest extends TestCase
         $this->assertStringContainsString('Welcome Aboard', $welcome);
         $this->assertStringContainsString('Greetings Priya.', $welcome);
         $this->assertStringContainsString('Ashok Kumar', $welcome);
+
+        $internship = app(OfferLetter::class)->html(app(OfferLetter::class)->sampleValues(OfferLetter::INTERNSHIP), null, OfferLetter::INTERNSHIP);
+        $this->assertStringContainsString('Paid Internship', $internship);
+        $this->assertStringContainsString('Stipend Rs. 10,000 for Priya.', $internship);
+
+        $promotion = app(PromotionLetter::class)->sampleHtml(PromotionLetter::PROMOTION);
+        $this->assertStringContainsString('You are promoted', $promotion);
+        $this->assertStringContainsString('Well done Priya, now Senior Software Engineer.', $promotion);
+        // The table sits between the two paragraphs.
+        $this->assertMatchesRegularExpression('/Well done.*class="change".*Keep going\./s', $promotion);
+    }
+
+    public function test_internship_letters_state_the_stipend_or_that_there_is_none()
+    {
+        $paid = app(OfferLetter::class)->html(app(OfferLetter::class)->sampleValues(OfferLetter::INTERNSHIP), null, OfferLetter::INTERNSHIP);
+        $this->assertStringContainsString('Monthly stipend', $paid);
+        $this->assertStringContainsString('Rs. 10,000', $paid);
+        $this->assertStringContainsString('IL/EMP-0042/', $paid);
+        $this->assertStringNotContainsString('Annual CTC', $paid);
+
+        $unpaid = app(OfferLetter::class)->html(app(OfferLetter::class)->sampleValues(OfferLetter::INTERNSHIP_UNPAID), null, OfferLetter::INTERNSHIP_UNPAID);
+        $this->assertStringContainsString('Unpaid internship', $unpaid);
+        $this->assertStringNotContainsString('Rs.', $unpaid);
     }
 
     public function test_an_unknown_placeholder_is_refused()
     {
         $this->actingAs(User::factory()->admin()->create())
-            ->put(route('admin.config.offer-letter.update'), [
-                'title' => 'Offer', 'body' => 'Joining on {joinig_date}', 'valid_days' => 7,
-                'welcome_title' => 'Welcome', 'welcome_body' => 'Hi {frist_name}',
-            ])
+            ->put(route('admin.config.offer-letter.update'), $this->templates([
+                'offer' => ['body' => 'Joining on {joinig_date}'],
+                'welcome' => ['body' => 'Hi {frist_name}'],
+                // Promotion placeholders belong to the promotion letters only.
+                'internship_unpaid' => ['body' => 'Now {new_designation}'],
+            ]))
             ->assertSessionHasErrors([
-                'body' => 'Unknown placeholder: {joinig_date}. Pick one from the list.',
-                'welcome_body' => 'Unknown placeholder: {frist_name}. Pick one from the list.',
+                'letters.offer.body' => 'Unknown placeholder: {joinig_date}. Pick one from the list.',
+                'letters.welcome.body' => 'Unknown placeholder: {frist_name}. Pick one from the list.',
+                'letters.internship_unpaid.body' => 'Unknown placeholder: {new_designation}. Pick one from the list.',
             ]);
     }
 
@@ -236,13 +276,16 @@ class OfferLetterTest extends TestCase
         $this->get(route('admin.config.offer-letter.preview', ['kind' => 'welcome']))
             ->assertOk()
             ->assertHeader('Content-Disposition', 'inline; filename="welcome-letter-preview.pdf"');
+        foreach (['internship', 'internship_unpaid', 'promotion', 'revision'] as $kind) {
+            $this->get(route('admin.config.offer-letter.preview', ['kind' => $kind]))->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        }
 
         $this->actingAs(User::factory()->hr()->create())->get(route('admin.config.offer-letter.preview'))->assertForbidden();
 
         $reader = User::factory()->create();
         $reader->syncPermissionOverrides(['settings.view' => true]);
         $this->actingAs($reader)->get(route('admin.config.offer-letter.edit'))->assertOk();
-        $this->actingAs($reader)->put(route('admin.config.offer-letter.update'), ['title' => 'x', 'body' => 'y', 'valid_days' => 7])->assertForbidden();
+        $this->actingAs($reader)->put(route('admin.config.offer-letter.update'), $this->templates())->assertForbidden();
     }
 
     // The hub
