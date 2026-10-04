@@ -84,19 +84,59 @@ class EmployeeManagementTest extends TestCase
         $this->assertSame('renamed@company.com', $employee->user->fresh()->email);
     }
 
-    public function test_the_role_cannot_be_changed_through_the_edit_form()
+    public function test_the_role_can_be_changed_on_the_edit_form_by_someone_who_may_change_access()
     {
         $employee = Employee::factory()->create();
+        $hr = Role::bySlug(Role::HR);
+        $edit = fn (User $actor, Role $role) => $this->actingAs($actor)->put(route('admin.employees.update', $employee), [
+            ...$this->payload(['email' => $employee->user->email, 'employee_code' => $employee->employee_code]),
+            'send_invite' => null,
+            'role_id' => $role->id,
+        ]);
 
-        $this->actingAs(User::factory()->admin()->create())
-            ->put(route('admin.employees.update', $employee), [
-                ...$this->payload(['email' => $employee->user->email, 'employee_code' => $employee->employee_code]),
-                'send_invite' => null,
-                'role_id' => Role::bySlug(Role::ADMIN)->id,
-            ])
-            ->assertSessionHasErrors('role_id');
+        $admin = User::factory()->admin()->create();
+        $this->actingAs($admin)->get(route('admin.employees.edit', $employee))
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('employee.role_id', (string) $employee->user->role_id)
+                ->where('roles', fn ($roles) => collect($roles)->pluck('value')->contains((string) $hr->id)));
+
+        $edit($admin, $hr)->assertSessionHasNoErrors()->assertRedirect(route('admin.employees.show', $employee));
+        $this->assertSame($hr->id, $employee->user->fresh()->role_id);
+
+        // Without permission to change access, the role is shown but not sent or accepted.
+        $hrManager = User::factory()->hr()->create();
+        $this->assertFalse($hrManager->can('roles.edit'));
+        $this->actingAs($hrManager)->get(route('admin.employees.edit', $employee))
+            ->assertInertia(fn (AssertableInertia $page) => $page->where('roles', [])->where('roleName', $hr->name));
+        $edit($hrManager, Role::bySlug(Role::ADMIN))->assertSessionHasErrors('role_id');
+        $this->assertFalse($employee->user->fresh()->isSuper());
+    }
+
+    public function test_nobody_assigns_a_role_with_more_access_than_they_hold()
+    {
+        $employee = Employee::factory()->create();
+        $editor = User::factory()->hr()->create();
+        $editor->syncPermissionOverrides(['roles.edit' => true]);
+
+        $this->actingAs($editor->fresh())->put(route('admin.employees.update', $employee), [
+            ...$this->payload(['email' => $employee->user->email, 'employee_code' => $employee->employee_code]),
+            'send_invite' => null,
+            'role_id' => Role::bySlug(Role::ADMIN)->id,
+        ])->assertSessionHasErrors(['role_id' => 'You cannot assign a role with access you do not have yourself.']);
 
         $this->assertFalse($employee->user->fresh()->isSuper());
+    }
+
+    public function test_an_administrator_cannot_demote_themselves_from_the_edit_form()
+    {
+        $admin = User::factory()->admin()->create();
+        $employee = $admin->employee ?? Employee::factory()->create(['user_id' => $admin->id]);
+
+        $this->actingAs($admin)->put(route('admin.employees.update', $employee), [
+            ...$this->payload(['email' => $admin->email, 'employee_code' => $employee->employee_code]),
+            'send_invite' => null,
+            'role_id' => Role::bySlug(Role::EMPLOYEE)->id,
+        ])->assertSessionHasErrors(['role_id' => 'You cannot remove your own administrator role.']);
     }
 
     public function test_deleting_an_employee_removes_their_login()

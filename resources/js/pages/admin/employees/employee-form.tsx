@@ -44,8 +44,10 @@ export type FormData = {
 interface Props {
     departments: Department[];
     designations: Designation[];
-    /** Only the roles the signed-in person may give; create only. */
+    /** Only the roles the signed-in person may give. On an edit, empty when they may not change access. */
     roles?: Option[];
+    /** Edit only: the current role, shown when it cannot be changed here. */
+    roleName?: string | null;
     initial: FormData;
     action: { url: string; method: 'post' | 'put' };
     submitLabel: string;
@@ -59,6 +61,7 @@ export default function EmployeeForm({
     departments,
     designations,
     roles = [],
+    roleName = null,
     initial,
     action,
     submitLabel,
@@ -78,12 +81,13 @@ export default function EmployeeForm({
             gender: payload.gender === NONE ? '' : payload.gender,
         };
 
-        // Role, invite and offer letter are chosen once, at creation; the
-        // server refuses them on an edit, so they are not sent.
+        // Invite and offer letter are chosen once, at creation; the role on an
+        // edit only by someone who may change access. The server refuses the
+        // rest on an edit, so they are not sent.
         if (!creating) {
             const { role_id: _r, send_invite: _s, offer_letter: _o, offer_letter_mode: _m, ...rest } = cleaned;
-            void [_r, _s, _o, _m];
-            return rest as typeof cleaned;
+            void [_s, _o, _m];
+            return (roles.length > 0 && !intern ? { ...rest, role_id: _r } : rest) as typeof cleaned;
         }
 
         return cleaned;
@@ -149,7 +153,15 @@ export default function EmployeeForm({
                     </p>
                 </div>
 
-                {creating && !intern && (
+                {!creating && !intern && roles.length === 0 && (
+                    <div className="grid gap-2">
+                        <Label>Role</Label>
+                        <p className="flex h-9 items-center text-sm">{roleName ?? '—'}</p>
+                        <p className="text-muted-foreground text-xs">Changing someone&rsquo;s role needs permission to edit access.</p>
+                    </div>
+                )}
+
+                {(creating || roles.length > 0) && !intern && (
                     <div className="grid gap-2">
                         <Label htmlFor="role_id">Role</Label>
                         <Select value={data.role_id} onValueChange={(value) => setData('role_id', value)}>
@@ -165,7 +177,9 @@ export default function EmployeeForm({
                             </SelectContent>
                         </Select>
                         <InputError message={errors.role_id} />
-                        <p className="text-muted-foreground text-xs">What they can do in the portal. Fine-tune later on their Access tab.</p>
+                        <p className="text-muted-foreground text-xs">
+                            What they can do in the portal. {creating ? 'Fine-tune later on their Access tab.' : 'Fine-tune on their Access tab.'}
+                        </p>
                     </div>
                 )}
 

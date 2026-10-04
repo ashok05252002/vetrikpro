@@ -38,9 +38,9 @@ class EmployeeRequest extends FormRequest
             // Each employee is also their login, edited together.
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', Rule::unique(User::class)->ignore($employee?->user_id)],
-            // Role and invite are chosen once, at creation; later the role is
-            // changed on the Access tab under its own permission.
-            'role_id' => $creating ? ['nullable', 'integer', 'exists:roles,id'] : ['prohibited'],
+            // The role is chosen at creation; on an edit, only by someone who
+            // may change access (the same permission as the Access tab).
+            'role_id' => $creating || $this->user()->can('roles.edit') ? ['nullable', 'integer', 'exists:roles,id'] : ['prohibited'],
             'send_invite' => $creating ? ['boolean'] : ['prohibited'],
             // Generate the offer letter (the default), generate the welcome letter
             // (no salary — e.g. contract staff), upload a file, or send none.
@@ -84,8 +84,16 @@ class EmployeeRequest extends FormRequest
         return [function (Validator $validator) {
             $role = $this->filled('role_id') ? Role::find($this->integer('role_id')) : null;
 
-            if ($role !== null && ! $this->user()->canAssignRole($role)) {
+            $employee = $this->route('employee');
+
+            // Keeping someone's current role is always allowed; changing it to
+            // one with access you lack is not.
+            if ($role !== null && $role->id !== $employee?->user->role_id && ! $this->user()->canAssignRole($role)) {
                 $validator->errors()->add('role_id', 'You cannot assign a role with access you do not have yourself.');
+            }
+
+            if ($role !== null && $employee?->user->is($this->user()) && $this->user()->isSuper() && ! $role->is_super) {
+                $validator->errors()->add('role_id', 'You cannot remove your own administrator role.');
             }
         }];
     }

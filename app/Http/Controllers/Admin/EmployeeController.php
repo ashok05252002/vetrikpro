@@ -187,8 +187,18 @@ class EmployeeController extends Controller
                 ),
                 'name' => $employee->user->name,
                 'email' => $employee->user->email,
+                'role_id' => (string) $employee->user->role_id,
             ],
             ...$this->formOptions($employee),
+            // The role can be changed here by those who may change access; the
+            // list keeps the current role even if the editor could not assign it.
+            'roles' => $request->user()->can('roles.edit')
+                ? Role::orderBy('name')->get()
+                    ->filter(fn (Role $role) => $role->id === $employee->user->role_id || $request->user()->canAssignRole($role))
+                    ->map(fn (Role $role) => ['value' => (string) $role->id, 'label' => $role->name])
+                    ->values()
+                : [],
+            'roleName' => $employee->user->role?->name,
         ]);
     }
 
@@ -197,7 +207,11 @@ class EmployeeController extends Controller
         $data = $request->validated();
 
         DB::transaction(function () use ($employee, $data) {
-            $employee->user->update(['name' => $data['name'], 'email' => $data['email']]);
+            $employee->user->update([
+                'name' => $data['name'],
+                'email' => $data['email'],
+                ...(isset($data['role_id']) ? ['role_id' => $data['role_id']] : []),
+            ]);
             $employee->update($this->recordFields($data));
         });
 

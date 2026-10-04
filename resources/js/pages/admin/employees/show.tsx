@@ -140,6 +140,7 @@ export default function ShowEmployee({ employee, profile, promotions, promoteOpt
                             <Field label="Department" value={employee.department?.name} />
                             <Field label="Designation" value={employee.designation?.name} />
                             <Field label="Employment type" value={employmentTypeLabels[employee.employment_type]} />
+                            <Field label="Role" value={profile.role?.name} />
                             <div className="space-y-1">
                                 <dt className="text-muted-foreground text-xs tracking-wide uppercase">Status</dt>
                                 <dd>
