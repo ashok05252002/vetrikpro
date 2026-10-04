@@ -116,6 +116,9 @@ class InternController extends Controller
                     'id', 'department_id', 'designation_id', 'employee_code', 'phone', 'date_of_birth', 'gender',
                     'date_of_joining', 'has_stipend', 'stipend', 'address', 'status',
                 ),
+                // Plain Y-m-d, so the date input shows it and it saves back unchanged.
+                'date_of_birth' => $employee->date_of_birth?->toDateString(),
+                'date_of_joining' => $employee->date_of_joining?->toDateString(),
                 'name' => $employee->user->name,
                 'email' => $employee->user->email,
             ],

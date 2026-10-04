@@ -73,6 +73,9 @@ class ProjectController extends Controller
         return Inertia::render('admin/projects/edit', [
             'project' => [
                 ...$project->only('id', 'name', 'code', 'description', 'repository_url', 'default_branch', 'status', 'owner_id', 'start_date', 'due_date'),
+                // Plain Y-m-d, so the date input shows it and it saves back unchanged.
+                'start_date' => $project->start_date?->toDateString(),
+                'due_date' => $project->due_date?->toDateString(),
                 'members_count' => $project->members()->count(),
                 'owner' => $project->owner?->only('id', 'name', 'email'),
                 'lead_ids' => $project->leads()->pluck('users.id')->map(fn ($id) => (string) $id)->all(),

@@ -185,6 +185,10 @@ class EmployeeController extends Controller
                     'id', 'department_id', 'designation_id', 'employee_code', 'phone',
                     'date_of_birth', 'gender', 'date_of_joining', 'employment_type', 'salary', 'address', 'status',
                 ),
+                // Plain Y-m-d: a Carbon from only() would reach the form as a UTC
+                // timestamp, shift a day, and be refused by the date column on save.
+                'date_of_birth' => $employee->date_of_birth?->toDateString(),
+                'date_of_joining' => $employee->date_of_joining?->toDateString(),
                 'name' => $employee->user->name,
                 'email' => $employee->user->email,
                 'role_id' => (string) $employee->user->role_id,
