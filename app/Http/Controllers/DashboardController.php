@@ -21,6 +21,7 @@ class DashboardController extends Controller
         return Inertia::render('dashboard', [
             'stats' => $this->stats($user),
             'taskPipeline' => $this->taskPipeline($user),
+            'pipelineOrgWide' => $user->isSuper(),
             'myTasks' => $this->myTasks($user),
             'projects' => $this->projectProgress($user),
             'orgWide' => $user->can('projects.view'),
@@ -63,11 +64,14 @@ class DashboardController extends Controller
 
     /**
      * Task counts per workflow stage, in stage order — the dashboard renders
-     * this as a single part-to-whole bar.
+     * this as a single part-to-whole bar. Only the Administrator sees the whole
+     * organisation's; everyone else, whatever projects they may see, gets the
+     * tasks assigned to them.
      */
     private function taskPipeline(User $user): array
     {
-        $counts = $this->visibleTasks($user)
+        $counts = Task::query()
+            ->unless($user->isSuper(), fn ($query) => $query->where('assigned_to', $user->id))
             ->selectRaw('status, COUNT(*) as total')
             ->groupBy('status')
             ->pluck('total', 'status');

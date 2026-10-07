@@ -43,6 +43,8 @@ interface Stats {
 interface Props {
     stats: Stats;
     taskPipeline: PipelineStage[];
+    /** Only the Administrator's pipeline counts everyone's tasks. */
+    pipelineOrgWide: boolean;
     myTasks: TaskSummary[];
     projects: ProjectSummary[];
     orgWide: boolean;
@@ -139,7 +141,7 @@ function Hero({ name, stats, orgWide }: { name: string; stats: Stats; orgWide: b
     );
 }
 
-export default function Dashboard({ stats, taskPipeline, myTasks, projects, orgWide, peopleStats }: Props) {
+export default function Dashboard({ stats, taskPipeline, pipelineOrgWide, myTasks, projects, orgWide, peopleStats }: Props) {
     const { auth } = usePage<SharedData>().props;
     const format = useFormat();
     const totalTasks = taskPipeline.reduce((sum, stage) => sum + stage.count, 0);
@@ -197,7 +199,7 @@ export default function Dashboard({ stats, taskPipeline, myTasks, projects, orgW
                         description={
                             totalTasks === 0
                                 ? 'No tasks yet.'
-                                : orgWide
+                                : pipelineOrgWide
                                   ? `Where all ${totalTasks} tasks currently sit.`
                                   : `Where your ${totalTasks} tasks currently sit.`
                         }
