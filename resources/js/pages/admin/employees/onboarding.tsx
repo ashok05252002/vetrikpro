@@ -23,7 +23,7 @@ interface Props {
     onboarding: OnboardingState | null;
     mailIsLocal: boolean;
     letterKinds: { kind: string; label: string }[];
-    can: { manage: boolean; documents: boolean };
+    can: { manage: boolean; documents: boolean; offer_letter: boolean };
 }
 
 function Row({ label, value }: { label: string; value: string | null | undefined }) {
@@ -213,7 +213,7 @@ export default function EmployeeOnboarding({ employee, onboarding, mailIsLocal, 
                             {onboarding.offer_letter ? (
                                 <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
                                     <span className="truncate">{onboarding.offer_letter.name}</span>
-                                    {can.documents && (
+                                    {can.offer_letter && (
                                         <Button asChild variant="outline" size="sm">
                                             <a href={route('admin.employees.onboarding.offer-letter', employee.id)}>
                                                 <Download className="size-4" /> Download

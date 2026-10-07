@@ -198,6 +198,12 @@ class User extends Authenticatable
         return in_array($key, $this->permissions(), true);
     }
 
+    /** Whether this user may see (and set) the given person's salary or stipend. */
+    public function canSeePayOf(Employee $employee): bool
+    {
+        return $this->can($employee->payPermission());
+    }
+
     public function isSuper(): bool
     {
         return (bool) $this->role?->is_super;

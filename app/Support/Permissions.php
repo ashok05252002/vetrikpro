@@ -20,6 +20,14 @@ final class Permissions
 {
     public const VIEW = 'view';
 
+    /**
+     * Keys that bring others with them, beyond the implied "view": revising
+     * someone's salary means seeing it.
+     */
+    public const IMPLIES = [
+        'employees.promote' => ['employees.salary'],
+    ];
+
     public const STANDARD = ['view', 'create', 'edit', 'delete'];
 
     /**
@@ -44,15 +52,19 @@ final class Permissions
                     'edit' => 'Edit employees, send password resets, activate or deactivate',
                     'delete' => 'Delete employees and their login',
                     'onboard' => 'Send invites and review onboarding',
-                    'promote' => 'Promote people and revise salaries, with a letter by email',
+                    // Pay is kept from everyone else: the amount on the profile,
+                    // the forms, the promotion history and the letters that state it.
+                    'salary' => 'See and set salaries, and open offer and promotion letters',
+                    'promote' => 'Promote people and revise salaries, with a letter by email (includes seeing salaries)',
                 ]],
                 // Interns are managed apart from staff, so a coordinator can run
                 // the internship programme without seeing everyone's records.
                 'interns' => ['label' => 'Interns', 'actions' => [
                     'view' => 'See interns',
                     'create' => 'Add interns (creates their login)',
-                    'edit' => 'Edit interns, their stipend, and archive them',
+                    'edit' => 'Edit interns and archive them',
                     'delete' => 'Delete interns added by mistake',
+                    'stipend' => 'See and set stipends, and open internship letters that state them',
                 ]],
                 'documents' => ['label' => 'Employee documents', 'actions' => [
                     'view' => 'Open and download employee documents',
@@ -159,8 +171,8 @@ final class Permissions
     }
 
     /**
-     * Keep only the keys the registry knows, add each module's implied "view",
-     * and return them in registry order.
+     * Keep only the keys the registry knows, add what each one implies (its
+     * module's "view", and anything in IMPLIES), and return them in registry order.
      *
      * @param  iterable<string>  $keys
      * @return list<string>
@@ -169,6 +181,12 @@ final class Permissions
     {
         $keys = collect($keys)->all();
         $all = self::all();
+
+        foreach ($keys as $key) {
+            if (in_array($key, $all, true)) {
+                array_push($keys, ...(self::IMPLIES[$key] ?? []));
+            }
+        }
 
         foreach ($keys as $key) {
             $view = strtok($key, '.').'.'.self::VIEW;

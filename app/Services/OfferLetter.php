@@ -127,6 +127,15 @@ TEXT;
     }
 
     /**
+     * Whether a letter of this kind states the person's pay. An uploaded
+     * letter (no kind) is treated as an offer letter, which does.
+     */
+    public static function statesPay(?string $kind): bool
+    {
+        return ! in_array($kind, [self::WELCOME, self::INTERNSHIP_UNPAID], true);
+    }
+
+    /**
      * The letter an employee gets by default: interns the internship letter
      * that matches their stipend, everyone else the offer letter.
      */

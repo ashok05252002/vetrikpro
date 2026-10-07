@@ -15,10 +15,12 @@ export default function CreateIntern({
     departments,
     designations,
     nextCode,
+    canSetPay,
 }: {
     departments: Department[];
     designations: Designation[];
     nextCode: string;
+    canSetPay: boolean;
 }) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -36,6 +38,7 @@ export default function CreateIntern({
                 <EmployeeForm
                     creating
                     intern
+                    canSetPay={canSetPay}
                     cancelHref={route('admin.interns.index')}
                     departments={departments}
                     designations={designations}
@@ -44,7 +47,7 @@ export default function CreateIntern({
                         email: '',
                         role_id: '',
                         send_invite: true,
-                        offer_letter_mode: 'internship',
+                        offer_letter_mode: canSetPay ? 'internship' : 'none',
                         offer_letter: null,
                         employee_code: nextCode,
                         department_id: NONE,

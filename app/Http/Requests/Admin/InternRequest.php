@@ -17,6 +17,9 @@ class InternRequest extends EmployeeRequest
     {
         $creating = $this->route('employee') === null;
         $paid = $this->boolean('has_stipend');
+        // The generated letter states the stipend (or that there is none), so
+        // only someone who may set the stipend generates it.
+        $modes = $this->user()->can('interns.stipend') ? ['internship', 'upload'] : ['upload'];
 
         $this->merge([
             'employment_type' => Employee::INTERN,
@@ -25,7 +28,7 @@ class InternRequest extends EmployeeRequest
             'salary' => null,
             ...($creating ? [
                 'role_id' => Role::where('slug', Role::EMPLOYEE)->value('id'),
-                'offer_letter_mode' => in_array($this->input('offer_letter_mode'), ['internship', 'upload'], true) ? $this->input('offer_letter_mode') : 'none',
+                'offer_letter_mode' => in_array($this->input('offer_letter_mode'), $modes, true) ? $this->input('offer_letter_mode') : 'none',
             ] : []),
         ]);
     }

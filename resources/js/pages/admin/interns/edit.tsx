@@ -26,10 +26,12 @@ export default function EditIntern({
     intern,
     departments,
     designations,
+    canSetPay,
 }: {
     intern: Intern;
     departments: Department[];
     designations: Designation[];
+    canSetPay: boolean;
 }) {
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Dashboard', href: '/dashboard' },
@@ -51,6 +53,7 @@ export default function EditIntern({
 
                 <EmployeeForm
                     intern
+                    canSetPay={canSetPay}
                     cancelHref={route('admin.interns.index')}
                     departments={departments}
                     designations={designations}

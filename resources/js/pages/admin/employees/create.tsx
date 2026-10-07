@@ -17,9 +17,10 @@ interface Props {
     roles: Option[];
     defaultRoleId: string;
     nextCode: string;
+    canSetPay: boolean;
 }
 
-export default function CreateEmployee({ departments, designations, roles, defaultRoleId, nextCode }: Props) {
+export default function CreateEmployee({ departments, designations, roles, defaultRoleId, nextCode, canSetPay }: Props) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="New employee" />
@@ -35,6 +36,7 @@ export default function CreateEmployee({ departments, designations, roles, defau
 
                 <EmployeeForm
                     creating
+                    canSetPay={canSetPay}
                     roles={roles}
                     departments={departments}
                     designations={designations}
@@ -43,7 +45,7 @@ export default function CreateEmployee({ departments, designations, roles, defau
                         email: '',
                         role_id: roles.some((r) => r.value === defaultRoleId) ? defaultRoleId : (roles[0]?.value ?? ''),
                         send_invite: true,
-                        offer_letter_mode: 'generate',
+                        offer_letter_mode: canSetPay ? 'generate' : 'welcome',
                         offer_letter: null,
                         employee_code: nextCode,
                         department_id: NONE,

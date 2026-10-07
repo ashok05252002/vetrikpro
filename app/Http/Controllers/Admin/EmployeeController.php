@@ -62,7 +62,7 @@ class EmployeeController extends Controller
             ->withQueryString()
             // Onboarding progress per row: two small queries each, on ten rows.
             ->through(fn (Employee $employee) => [
-                ...$employee->toArray(),
+                ...$employee->withPayFor($viewer)->toArray(),
                 'onboarding' => $employee->onboarding_status === null ? null : [
                     'status' => $employee->onboarding_status->value,
                     ...OnboardingChecklist::progress($employee),
@@ -90,6 +90,7 @@ class EmployeeController extends Controller
                 ->values(),
             'defaultRoleId' => (string) Role::where('slug', Role::EMPLOYEE)->value('id'),
             'nextCode' => Employee::nextCode(),
+            'canSetPay' => $request->user()->can('employees.salary'),
         ]);
     }
 
@@ -159,16 +160,22 @@ class EmployeeController extends Controller
         $employee->load(['user:id,name,email,role_id,is_active', 'department:id,name', 'designation:id,name']);
 
         $canPromote = $request->user()->can('employees.promote') && ! $request->user()->is($employee->user) && $request->user()->canGrant($employee->user->permissions());
+        // Promotion history stays visible; the amounts and the letters (which state them) only with the salary permission.
+        $canSeeSalary = $request->user()->can('employees.salary');
 
         return Inertia::render('admin/employees/show', [
-            'employee' => $employee,
+            'employee' => $employee->withPayFor($request->user()),
+            'canSeePay' => $request->user()->canSeePayOf($employee),
             'profile' => EmployeeProfile::header($employee, $request->user()),
             'promotions' => $employee->promotions()->with('creator:id,name')->get()->map(fn (Promotion $p) => [
-                ...$p->only('id', 'from_designation_name', 'to_designation_name', 'from_salary', 'to_salary', 'effective_date', 'note', 'emailed_at', 'created_at'),
+                ...$p->only('id', 'from_designation_name', 'to_designation_name', 'effective_date', 'note', 'emailed_at', 'created_at'),
+                ...($canSeeSalary ? [
+                    ...$p->only('from_salary', 'to_salary'),
+                    'increment_percent' => $p->incrementPercent(),
+                ] : ['from_salary' => null, 'to_salary' => null, 'increment_percent' => null]),
                 'is_promotion' => $p->isDesignationChange(),
-                'increment_percent' => $p->incrementPercent(),
                 'creator' => $p->creator?->only('id', 'name'),
-                'letter_url' => $p->letter_path ? route('admin.employees.promotions.letter', [$employee, $p]) : null,
+                'letter_url' => $canSeeSalary && $p->letter_path ? route('admin.employees.promotions.letter', [$employee, $p]) : null,
             ]),
             // Only what the Promote dialog needs, and only for those who may use it.
             'promoteOptions' => $canPromote && ! $employee->isArchived() ? $this->formOptions($employee) : null,
@@ -183,8 +190,9 @@ class EmployeeController extends Controller
             'employee' => [
                 ...$employee->only(
                     'id', 'department_id', 'designation_id', 'employee_code', 'phone',
-                    'date_of_birth', 'gender', 'date_of_joining', 'employment_type', 'salary', 'address', 'status',
+                    'date_of_birth', 'gender', 'date_of_joining', 'employment_type', 'address', 'status',
                 ),
+                'salary' => $request->user()->can('employees.salary') ? $employee->salary : null,
                 // Plain Y-m-d: a Carbon from only() would reach the form as a UTC
                 // timestamp, shift a day, and be refused by the date column on save.
                 'date_of_birth' => $employee->date_of_birth?->toDateString(),
@@ -203,6 +211,7 @@ class EmployeeController extends Controller
                     ->values()
                 : [],
             'roleName' => $employee->user->role?->name,
+            'canSetPay' => $request->user()->can('employees.salary'),
         ]);
     }
 

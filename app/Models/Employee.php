@@ -82,6 +82,18 @@ class Employee extends Model
         return $this->employment_type === self::INTERN;
     }
 
+    /** The permission that guards this person's pay: a salary for staff, a stipend for interns. */
+    public function payPermission(): string
+    {
+        return $this->isIntern() ? 'interns.stipend' : 'employees.salary';
+    }
+
+    /** Hide the pay amounts from a viewer who may not see them, for serialising. */
+    public function withPayFor(User $viewer): static
+    {
+        return $viewer->canSeePayOf($this) ? $this : $this->makeHidden(['salary', 'stipend']);
+    }
+
     /** @param  Builder<Employee>  $query */
     public function scopeInterns(Builder $query): Builder
     {

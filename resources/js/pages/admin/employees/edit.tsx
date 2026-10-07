@@ -12,9 +12,10 @@ interface Props {
     /** Empty when the viewer may not change access; the role is then shown, not edited. */
     roles: { value: string; label: string }[];
     roleName: string | null;
+    canSetPay: boolean;
 }
 
-export default function EditEmployee({ employee, departments, designations, roles, roleName }: Props) {
+export default function EditEmployee({ employee, departments, designations, roles, roleName, canSetPay }: Props) {
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Dashboard', href: '/dashboard' },
         { title: 'Employees', href: '/admin/employees' },
@@ -36,6 +37,7 @@ export default function EditEmployee({ employee, departments, designations, role
                 />
 
                 <EmployeeForm
+                    canSetPay={canSetPay}
                     departments={departments}
                     designations={designations}
                     roles={roles}

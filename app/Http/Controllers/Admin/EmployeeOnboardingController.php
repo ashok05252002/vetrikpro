@@ -26,18 +26,23 @@ class EmployeeOnboardingController extends Controller
     public function show(Request $request, Employee $employee): Response
     {
         $viewer = $request->user();
+        $canSeePay = $viewer->canSeePayOf($employee);
 
         return Inertia::render('admin/employees/onboarding', [
             'employee' => EmployeeProfile::header($employee, $viewer),
             'onboarding' => $employee->onboarding_status === null ? null : OnboardingPresenter::state($employee),
             'mailIsLocal' => EmployeeInvitations::mailIsLocal(),
             // The letters HR can generate here: internship letters for interns, offer and welcome letters for staff.
-            'letterKinds' => $employee->isIntern()
+            // Letters that state pay only for those who may see it.
+            'letterKinds' => collect($employee->isIntern()
                 ? [['kind' => OfferLetter::INTERNSHIP, 'label' => 'internship letter (with stipend)'], ['kind' => OfferLetter::INTERNSHIP_UNPAID, 'label' => 'internship letter (no stipend)']]
-                : [['kind' => OfferLetter::OFFER, 'label' => 'offer letter'], ['kind' => OfferLetter::WELCOME, 'label' => 'welcome letter (no salary)']],
+                : [['kind' => OfferLetter::OFFER, 'label' => 'offer letter'], ['kind' => OfferLetter::WELCOME, 'label' => 'welcome letter (no salary)']])
+                ->filter(fn (array $letter) => $canSeePay || ! OfferLetter::statesPay($letter['kind']))
+                ->values(),
             'can' => [
                 'manage' => $viewer->can('employees.onboard'),
                 'documents' => $viewer->can('documents.view'),
+                'offer_letter' => $viewer->can('documents.view') && ($canSeePay || ! OfferLetter::statesPay($employee->offer_letter_kind)),
             ],
         ]);
     }
@@ -73,6 +78,8 @@ class EmployeeOnboardingController extends Controller
     {
         $kind = $request->validate(['kind' => ['nullable', Rule::in(OfferLetter::KINDS)]])['kind'] ?? OfferLetter::kindFor($employee);
 
+        abort_if(OfferLetter::statesPay($kind) && ! $request->user()->canSeePayOf($employee), 403, 'This letter states their pay, which you do not have access to.');
+
         if (! $employee->onboarding_status?->isEditable()) {
             return back()->with('error', 'The offer letter can only change before the profile is submitted.');
         }
@@ -92,9 +99,10 @@ class EmployeeOnboardingController extends Controller
         return back()->with('success', "{$what} generated from the template. Resend the invite to email it.");
     }
 
-    public function downloadOfferLetter(Employee $employee): StreamedResponse
+    public function downloadOfferLetter(Request $request, Employee $employee): StreamedResponse
     {
         abort_if($employee->offer_letter_path === null, 404);
+        abort_if(OfferLetter::statesPay($employee->offer_letter_kind) && ! $request->user()->canSeePayOf($employee), 403, 'This letter states their pay, which you do not have access to.');
 
         return Storage::disk(EmployeeDocument::DISK)->download($employee->offer_letter_path, $employee->offer_letter_name);
     }

@@ -29,6 +29,8 @@ class InternController extends Controller
     {
         $viewer = $request->user();
         $archived = $request->boolean('archived');
+        // Who is paid stays visible; how much, only with the stipend permission.
+        $canSeePay = $viewer->can('interns.stipend');
 
         $interns = Employee::query()->interns()
             ->with(['user:id,name,email,is_active', 'department:id,name', 'designation:id,name'])
@@ -41,7 +43,8 @@ class InternController extends Controller
             ->paginate(15)
             ->withQueryString()
             ->through(fn (Employee $e) => [
-                ...$e->only('id', 'employee_code', 'date_of_joining', 'has_stipend', 'stipend', 'status', 'onboarding_status'),
+                ...$e->only('id', 'employee_code', 'date_of_joining', 'has_stipend', 'status', 'onboarding_status'),
+                'stipend' => $canSeePay ? $e->stipend : null,
                 'user' => $e->user->only('id', 'name', 'email', 'is_active'),
                 'department' => $e->department?->name,
                 'designation' => $e->designation?->name,
@@ -57,14 +60,16 @@ class InternController extends Controller
                 'paid' => Employee::interns()->current()->where('has_stipend', true)->count(),
             ],
             'canSeeProfiles' => $viewer->can('employees.view'),
+            'canSeePay' => $canSeePay,
         ]);
     }
 
-    public function create(): Response
+    public function create(Request $request): Response
     {
         return Inertia::render('admin/interns/create', [
             ...$this->formOptions(),
             'nextCode' => Employee::nextCode(),
+            'canSetPay' => $request->user()->can('interns.stipend'),
         ]);
     }
 
@@ -114,8 +119,9 @@ class InternController extends Controller
             'intern' => [
                 ...$employee->only(
                     'id', 'department_id', 'designation_id', 'employee_code', 'phone', 'date_of_birth', 'gender',
-                    'date_of_joining', 'has_stipend', 'stipend', 'address', 'status',
+                    'date_of_joining', 'has_stipend', 'address', 'status',
                 ),
+                'stipend' => $request->user()->can('interns.stipend') ? $employee->stipend : null,
                 // Plain Y-m-d, so the date input shows it and it saves back unchanged.
                 'date_of_birth' => $employee->date_of_birth?->toDateString(),
                 'date_of_joining' => $employee->date_of_joining?->toDateString(),
@@ -123,6 +129,7 @@ class InternController extends Controller
                 'email' => $employee->user->email,
             ],
             ...$this->formOptions($employee),
+            'canSetPay' => $request->user()->can('interns.stipend'),
         ]);
     }
 

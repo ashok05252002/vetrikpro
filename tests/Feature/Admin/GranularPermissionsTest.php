@@ -85,9 +85,10 @@ class GranularPermissionsTest extends TestCase
     {
         $hr = User::factory()->hr()->create();
 
-        // Plus employees.promote, granted to HR on its own when promotions arrived.
+        // Plus employees.promote, granted to HR on its own when promotions arrived,
+        // and employees.salary when pay got its own permission.
         $this->assertSame([
-            'employees.view', 'employees.create', 'employees.edit', 'employees.delete', 'employees.onboard', 'employees.promote',
+            'employees.view', 'employees.create', 'employees.edit', 'employees.delete', 'employees.onboard', 'employees.salary', 'employees.promote',
             'documents.view', 'documents.create', 'documents.delete',
             'departments.view', 'departments.create', 'departments.edit', 'departments.delete',
             'designations.view', 'designations.create', 'designations.edit', 'designations.delete',

@@ -66,7 +66,7 @@ Route::middleware(['auth'])
             });
 
             Route::post('promotions', [PromotionController::class, 'store'])->middleware('can:employees.promote')->name('promotions.store');
-            Route::get('promotions/{promotion}/letter', [PromotionController::class, 'letter'])->middleware('can:employees.view')->name('promotions.letter');
+            Route::get('promotions/{promotion}/letter', [PromotionController::class, 'letter'])->middleware('can:employees.salary')->name('promotions.letter');
 
             Route::middleware('can:employees.view')->group(function () {
                 Route::get('projects', [EmployeeProfileController::class, 'projects'])->name('projects');

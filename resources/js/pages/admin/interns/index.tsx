@@ -39,9 +39,11 @@ interface Props {
     filters: { search?: string; stipend?: string; archived: boolean };
     counts: { current: number; archived: number; paid: number };
     canSeeProfiles: boolean;
+    /** Without the stipend permission the list says who is paid, not how much. */
+    canSeePay: boolean;
 }
 
-export default function Interns({ interns, filters, counts, canSeeProfiles }: Props) {
+export default function Interns({ interns, filters, counts, canSeeProfiles, canSeePay }: Props) {
     const { can } = usePermission();
     const format = useFormat();
     const { archived, ...narrowing } = filters;
@@ -155,7 +157,7 @@ export default function Interns({ interns, filters, counts, canSeeProfiles }: Pr
                                     <TableCell>
                                         {intern.has_stipend ? (
                                             <Pill color="var(--status-good)" icon={HandCoins}>
-                                                {format.money(intern.stipend)} / month
+                                                {canSeePay ? `${format.money(intern.stipend)} / month` : 'Paid'}
                                             </Pill>
                                         ) : (
                                             <Pill color="var(--muted-foreground)">Unpaid</Pill>

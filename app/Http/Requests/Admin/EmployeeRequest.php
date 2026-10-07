@@ -33,6 +33,10 @@ class EmployeeRequest extends FormRequest
         $employee = $this->route('employee');
         $id = $employee?->id;
         $creating = $employee === null;
+        // Pay is set only by those who may see it. For anyone else the fields
+        // are dropped, so an edit leaves the amount as it was.
+        $salary = $this->user()->can('employees.salary');
+        $stipend = $this->user()->can('interns.stipend');
 
         return [
             // Each employee is also their login, edited together.
@@ -45,7 +49,8 @@ class EmployeeRequest extends FormRequest
             // Generate the offer letter (the default), generate the welcome letter
             // (no salary — e.g. contract staff), upload a file, or send none.
             // Interns get the internship letter instead (see InternRequest).
-            'offer_letter_mode' => $creating ? ['nullable', Rule::in(['generate', 'welcome', 'internship', 'upload', 'none'])] : ['prohibited'],
+            // The offer letter states the salary, so only those who may set it generate one.
+            'offer_letter_mode' => $creating ? ['nullable', Rule::in($salary ? ['generate', 'welcome', 'internship', 'upload', 'none'] : ['welcome', 'internship', 'upload', 'none'])] : ['prohibited'],
             'offer_letter' => $creating ? ['nullable', 'required_if:offer_letter_mode,upload', 'file', 'max:10240', 'mimes:pdf,doc,docx'] : ['prohibited'],
             'employee_code' => ['required', 'string', 'max:50', Rule::unique(Employee::class, 'employee_code')->ignore($id)],
             'department_id' => ['nullable', 'exists:departments,id', Department::selectableRule($employee?->department_id)],
@@ -57,10 +62,10 @@ class EmployeeRequest extends FormRequest
             // only the offer letter states the salary.
             'date_of_joining' => [Rule::requiredIf($creating && in_array($this->input('offer_letter_mode'), ['generate', 'welcome', 'internship'], true)), 'nullable', 'date'],
             'employment_type' => ['required', Rule::in(['full_time', 'part_time', 'contract', 'intern'])],
-            'salary' => [Rule::requiredIf($creating && $this->input('offer_letter_mode') === 'generate'), 'nullable', 'numeric', 'min:0', 'max:99999999.99'],
+            'salary' => $salary ? [Rule::requiredIf($creating && $this->input('offer_letter_mode') === 'generate'), 'nullable', 'numeric', 'min:0', 'max:99999999.99'] : ['exclude'],
             // Interns: a stipend, or none.
-            'has_stipend' => ['boolean'],
-            'stipend' => ['nullable', 'required_if_accepted:has_stipend', 'numeric', 'gt:0', 'max:99999999.99'],
+            'has_stipend' => $stipend ? ['boolean'] : ['exclude'],
+            'stipend' => $stipend ? ['nullable', 'required_if_accepted:has_stipend', 'numeric', 'gt:0', 'max:99999999.99'] : ['exclude'],
             'address' => ['nullable', 'string', 'max:2000'],
             'status' => ['required', Rule::in(['active', 'probation', 'on_leave', 'resigned', 'terminated'])],
         ];

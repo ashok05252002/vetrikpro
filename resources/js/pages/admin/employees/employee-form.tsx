@@ -54,6 +54,8 @@ interface Props {
     creating?: boolean;
     /** Intern mode: no role, employment type, salary or offer letter; a stipend instead. */
     intern?: boolean;
+    /** Whether the signed-in person may see and set pay. Without it the salary or stipend, and the letters that state them, are left out. */
+    canSetPay?: boolean;
     cancelHref?: string;
 }
 
@@ -67,6 +69,7 @@ export default function EmployeeForm({
     submitLabel,
     creating = false,
     intern = false,
+    canSetPay = true,
     cancelHref,
 }: Props) {
     const { data, setData, post, put, processing, errors, transform } = useForm<FormData>(initial);
@@ -303,7 +306,7 @@ export default function EmployeeForm({
                     <InputError message={errors.status} />
                 </div>
 
-                {!intern && (
+                {!intern && canSetPay && (
                     <div className="grid gap-2">
                         <Label htmlFor="salary">
                             Monthly salary {creating && data.offer_letter_mode === 'generate' && <span className="text-destructive">*</span>}
@@ -321,7 +324,7 @@ export default function EmployeeForm({
                 )}
             </div>
 
-            {intern && (
+            {intern && canSetPay && (
                 <section className="space-y-3 rounded-xl border p-4">
                     <div>
                         <h2 className="text-sm font-semibold">Stipend</h2>
@@ -387,9 +390,11 @@ export default function EmployeeForm({
                             onValueChange={(value) => value && setData('offer_letter_mode', value as FormData['offer_letter_mode'])}
                             className="flex-wrap justify-start"
                         >
-                            <ToggleGroupItem value="internship" className="px-3 text-xs">
-                                {data.has_stipend ? 'Internship letter with stipend' : 'Internship letter, no stipend'}
-                            </ToggleGroupItem>
+                            {canSetPay && (
+                                <ToggleGroupItem value="internship" className="px-3 text-xs">
+                                    {data.has_stipend ? 'Internship letter with stipend' : 'Internship letter, no stipend'}
+                                </ToggleGroupItem>
+                            )}
                             <ToggleGroupItem value="upload" className="px-3 text-xs">
                                 Upload my own
                             </ToggleGroupItem>
@@ -452,9 +457,11 @@ export default function EmployeeForm({
                             onValueChange={(value) => value && setData('offer_letter_mode', value as FormData['offer_letter_mode'])}
                             className="flex-wrap justify-start"
                         >
-                            <ToggleGroupItem value="generate" className="px-3 text-xs">
-                                Offer letter with salary
-                            </ToggleGroupItem>
+                            {canSetPay && (
+                                <ToggleGroupItem value="generate" className="px-3 text-xs">
+                                    Offer letter with salary
+                                </ToggleGroupItem>
+                            )}
                             <ToggleGroupItem value="welcome" className="px-3 text-xs">
                                 Welcome letter, no salary
                             </ToggleGroupItem>
@@ -479,7 +486,7 @@ export default function EmployeeForm({
                         {data.offer_letter_mode === 'welcome' && (
                             <p className="text-muted-foreground text-xs">
                                 A greeting letter with your logo, like the offer letter but with no package details — for contract staff and anyone
-                                whose pay you don&rsquo;t send. Salary is optional. Wording is under{' '}
+                                whose pay you don&rsquo;t send.{canSetPay && ' Salary is optional.'} Wording is under{' '}
                                 <Link href={route('admin.config.offer-letter.edit')} className="underline" target="_blank">
                                     offer letter template
                                 </Link>

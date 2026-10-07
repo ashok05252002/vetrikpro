@@ -23,8 +23,9 @@ interface PromotionRow {
     is_promotion: boolean;
     from_designation_name: string | null;
     to_designation_name: string;
+    /** Null for a viewer without the salary permission, like the letter. */
     from_salary: string | null;
-    to_salary: string;
+    to_salary: string | null;
     increment_percent: number | null;
     effective_date: string;
     note: string | null;
@@ -65,12 +66,17 @@ function CareerHistory({ promotions }: { promotions: PromotionRow[] }) {
                                         )}
                                     </p>
                                     <p className="text-muted-foreground text-xs">
-                                        {p.from_salary !== null ? `${format.money(p.from_salary)} → ` : ''}
-                                        <span className="text-foreground font-medium">{format.money(p.to_salary)}</span> a month
-                                        {p.increment_percent !== null &&
-                                            p.increment_percent !== 0 &&
-                                            ` (${p.increment_percent > 0 ? '+' : ''}${p.increment_percent}%)`}
-                                        {' · '}effective {format.date(p.effective_date)}
+                                        {p.to_salary !== null && (
+                                            <>
+                                                {p.from_salary !== null ? `${format.money(p.from_salary)} → ` : ''}
+                                                <span className="text-foreground font-medium">{format.money(p.to_salary)}</span> a month
+                                                {p.increment_percent !== null &&
+                                                    p.increment_percent !== 0 &&
+                                                    ` (${p.increment_percent > 0 ? '+' : ''}${p.increment_percent}%)`}
+                                                {' · '}
+                                            </>
+                                        )}
+                                        effective {format.date(p.effective_date)}
                                         {p.creator && ` · by ${p.creator.name}`}
                                     </p>
                                     {p.note && <p className="text-muted-foreground text-xs italic">{p.note}</p>}
@@ -101,10 +107,12 @@ interface Props {
     employee: Employee;
     profile: EmployeeProfileHeader;
     promotions: PromotionRow[];
+    /** Whether the viewer may see this person's salary or stipend. */
+    canSeePay: boolean;
     promoteOptions: { departments: Pick<Department, 'id' | 'name'>[]; designations: Pick<Designation, 'id' | 'name' | 'department_id'>[] } | null;
 }
 
-export default function ShowEmployee({ employee, profile, promotions, promoteOptions }: Props) {
+export default function ShowEmployee({ employee, profile, promotions, canSeePay, promoteOptions }: Props) {
     const format = useFormat();
 
     return (
@@ -151,9 +159,14 @@ export default function ShowEmployee({ employee, profile, promotions, promoteOpt
                             </div>
                             <Field label="Date of joining" value={format.date(employee.date_of_joining)} />
                             {employee.employment_type === 'intern' ? (
-                                <Field label="Monthly stipend" value={employee.has_stipend ? format.money(employee.stipend) : 'Unpaid internship'} />
+                                <Field
+                                    label="Monthly stipend"
+                                    value={
+                                        employee.has_stipend ? (canSeePay ? format.money(employee.stipend) : 'Paid internship') : 'Unpaid internship'
+                                    }
+                                />
                             ) : (
-                                <Field label="Monthly salary" value={format.money(employee.salary)} />
+                                canSeePay && <Field label="Monthly salary" value={format.money(employee.salary)} />
                             )}
                         </dl>
                     </CardContent>
