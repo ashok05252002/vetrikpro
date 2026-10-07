@@ -70,6 +70,19 @@ class InvoiceTest extends TestCase
         $this->assertSame('Acme Foods', $invoice->bill_name);
     }
 
+    public function test_a_draft_saves_back_unchanged_from_its_edit_page()
+    {
+        $this->actingAs($this->admin)->post(route('accounts.invoices.store'), $this->payload($this->customer()))->assertRedirect();
+        $invoice = Invoice::sole();
+
+        // Exactly what the editor is given, sent straight back.
+        $initial = $this->get(route('accounts.invoices.edit', $invoice))->viewData('page')['props']['initial'];
+
+        $this->put(route('accounts.invoices.update', $invoice), [...$initial, 'customer_id' => (string) $initial['customer_id']])
+            ->assertSessionHasNoErrors()
+            ->assertRedirect(route('accounts.invoices.show', $invoice));
+    }
+
     public function test_a_customer_in_another_state_is_charged_igst()
     {
         $customer = $this->customer(['state_code' => '29']); // Karnataka

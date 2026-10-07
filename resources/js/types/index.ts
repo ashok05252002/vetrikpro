@@ -72,6 +72,8 @@ export interface PermissionAction {
     /** The action part, e.g. "edit". */
     action: string;
     label: string;
+    /** Doesn't bring its module's View (Permissions::STANDALONE), e.g. projects.create. */
+    standalone: boolean;
 }
 
 export interface PermissionModule {

@@ -127,7 +127,11 @@ class InvoiceController extends Controller
                 ...$invoice->only('customer_id', 'bill_email', 'bill_address', 'place_of_supply', 'charge_tax', 'notes', 'terms'),
                 'issue_date' => $invoice->issue_date->toDateString(),
                 'due_date' => $invoice->due_date?->toDateString(),
-                'items' => $invoice->items->map->only('product_id', 'description', 'hsn_sac', 'quantity', 'unit', 'unit_price', 'discounted_price', 'gst_rate'),
+                // The decimal cast gives "18.00", which the GST rate list would refuse on save.
+                'items' => $invoice->items->map(fn ($item) => [
+                    ...$item->only('product_id', 'description', 'hsn_sac', 'quantity', 'unit', 'unit_price', 'discounted_price'),
+                    'gst_rate' => (float) $item->gst_rate,
+                ]),
             ],
             ...$this->editorOptions($invoice),
         ]);

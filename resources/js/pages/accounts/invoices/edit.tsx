@@ -397,7 +397,8 @@ export default function InvoiceEditor({ invoice, initial, customers, products, s
                                             placeholder="HSN/SAC"
                                             aria-label="HSN or SAC code"
                                         />
-                                        <InputError message={e('product_id') ?? e('description')} />
+                                        {/* With tax off the GST column is hidden, so its error shows here. */}
+                                        <InputError message={e('product_id') ?? e('description') ?? (tax ? undefined : e('gst_rate'))} />
                                     </div>
 
                                     <div className="space-y-1">
@@ -471,6 +472,7 @@ export default function InvoiceEditor({ invoice, initial, customers, products, s
                                                     ))}
                                                 </SelectContent>
                                             </Select>
+                                            <InputError message={e('gst_rate')} />
                                         </div>
                                     )}
                                     <div className="col-span-1 space-y-1 text-right sm:col-span-1">

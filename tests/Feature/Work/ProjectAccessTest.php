@@ -3,6 +3,7 @@
 namespace Tests\Feature\Work;
 
 use App\Models\Project;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia;
@@ -11,6 +12,15 @@ use Tests\TestCase;
 class ProjectAccessTest extends TestCase
 {
     use RefreshDatabase;
+
+    /** Can create projects but only sees their own. */
+    private function creatorWithoutViewAll(array $extra = []): User
+    {
+        $role = Role::create(['name' => 'Custom '.uniqid(), 'slug' => 'custom-'.uniqid()]);
+        $role->syncPermissions(['projects.create', ...$extra]);
+
+        return User::factory()->create(['role_id' => $role->id]);
+    }
 
     public function test_the_project_list_is_scoped_to_what_you_belong_to()
     {
@@ -68,6 +78,60 @@ class ProjectAccessTest extends TestCase
         $this->assertNotNull($project);
         $response->assertRedirect(route('projects.members.index', $project));
         $this->assertSame('main', $project->default_branch);
+    }
+
+    public function test_a_creator_who_cannot_see_every_project_joins_it()
+    {
+        $creator = $this->creatorWithoutViewAll();
+
+        $this->actingAs($creator)->post(route('admin.projects.store'), [
+            'name' => 'Payroll', 'code' => 'PAY', 'status' => 'active', 'default_branch' => 'main',
+        ])->assertRedirect();
+
+        $project = Project::where('code', 'PAY')->firstOrFail();
+
+        $this->assertTrue($project->hasMember($creator));
+        $this->assertSame('member', $project->members()->whereKey($creator->id)->first()->pivot->role);
+        $this->actingAs($creator)->get(route('projects.members.index', $project))->assertOk();
+    }
+
+    public function test_creating_projects_does_not_mean_seeing_every_project()
+    {
+        $creator = $this->creatorWithoutViewAll();
+        $theirs = Project::factory()->create();
+        $theirs->members()->attach($creator);
+        Project::factory()->create();
+
+        $this->assertFalse($creator->can('projects.view'));
+        $this->actingAs($creator)->get(route('admin.projects.index'))->assertForbidden();
+        $this->actingAs($creator)->get(route('projects.index'))
+            ->assertInertia(fn (AssertableInertia $page) => $page->has('projects', 1)->where('projects.0.id', $theirs->id));
+    }
+
+    public function test_a_creator_who_picks_themselves_as_lead_stays_lead()
+    {
+        $creator = $this->creatorWithoutViewAll(['project_roles.lead']);
+
+        $this->actingAs($creator)->post(route('admin.projects.store'), [
+            'name' => 'Payroll', 'code' => 'PAY', 'status' => 'active', 'default_branch' => 'main',
+            'lead_ids' => [$creator->id],
+        ])->assertRedirect();
+
+        $project = Project::where('code', 'PAY')->firstOrFail();
+
+        $this->assertTrue($project->isLedBy($creator));
+        $this->assertSame(1, $project->members()->count());
+    }
+
+    public function test_an_admin_who_creates_a_project_is_not_added_to_it()
+    {
+        $admin = User::factory()->admin()->create();
+
+        $this->actingAs($admin)->post(route('admin.projects.store'), [
+            'name' => 'Payroll', 'code' => 'PAY', 'status' => 'active', 'default_branch' => 'main',
+        ])->assertRedirect();
+
+        $this->assertFalse(Project::where('code', 'PAY')->firstOrFail()->hasMember($admin));
     }
 
     public function test_project_codes_are_unique()

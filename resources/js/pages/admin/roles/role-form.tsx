@@ -30,18 +30,22 @@ export default function RoleForm({ groups, initial, action, submitLabel, superRo
     const allKeys = (module: PermissionModule) => module.actions.map((a) => a.key);
 
     // Ticking any action brings its module's View along; unticking View clears
-    // the row — nobody edits what they cannot see.
+    // the row — nobody edits what they cannot see. Standalone actions (creating
+    // a project) neither need View nor go with it.
     const toggle = (key: string, on: boolean, module: PermissionModule) => {
         const view = viewKey(module);
+        const standalone = (k: string) => module.actions.some((a) => a.key === k && a.standalone);
         const next = new Set(data.permissions);
 
         if (on) {
             next.add(key);
-            if (view) {
+            if (view && !standalone(key)) {
                 next.add(view);
             }
         } else if (key === view) {
-            allKeys(module).forEach((k) => next.delete(k));
+            allKeys(module)
+                .filter((k) => !standalone(k))
+                .forEach((k) => next.delete(k));
         } else {
             next.delete(key);
         }

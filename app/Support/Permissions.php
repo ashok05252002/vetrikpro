@@ -28,6 +28,13 @@ final class Permissions
         'employees.promote' => ['employees.salary'],
     ];
 
+    /**
+     * Actions that do not bring their module's "view". Creating a project is
+     * not seeing every project: the creator joins what they make (see
+     * Admin\ProjectController::store) and otherwise sees only their own.
+     */
+    public const STANDALONE = ['projects.create'];
+
     public const STANDARD = ['view', 'create', 'edit', 'delete'];
 
     /**
@@ -191,7 +198,7 @@ final class Permissions
         foreach ($keys as $key) {
             $view = strtok($key, '.').'.'.self::VIEW;
 
-            if (in_array($key, $all, true) && in_array($view, $all, true)) {
+            if (in_array($key, $all, true) && in_array($view, $all, true) && ! in_array($key, self::STANDALONE, true)) {
                 $keys[] = $view;
             }
         }
@@ -203,7 +210,7 @@ final class Permissions
      * Shape for the permission matrix: groups of modules, each with its
      * actions in the standard column order first, extras after.
      *
-     * @return list<array{group: string, modules: list<array{key: string, label: string, actions: list<array{key: string, action: string, label: string}>}>}>
+     * @return list<array{group: string, modules: list<array{key: string, label: string, actions: list<array{key: string, action: string, label: string, standalone: bool}>}>}>
      */
     public static function forEditor(): array
     {
@@ -215,7 +222,12 @@ final class Permissions
                     'label' => $module['label'],
                     'actions' => collect($module['actions'])
                         ->sortBy(fn ($label, string $action) => ($i = array_search($action, self::STANDARD, true)) === false ? 99 : $i)
-                        ->map(fn (string $label, string $action) => ['key' => "{$key}.{$action}", 'action' => $action, 'label' => $label])
+                        ->map(fn (string $label, string $action) => [
+                            'key' => "{$key}.{$action}",
+                            'action' => $action,
+                            'label' => $label,
+                            'standalone' => in_array("{$key}.{$action}", self::STANDALONE, true),
+                        ])
                         ->values()
                         ->all(),
                 ])->values()->all(),

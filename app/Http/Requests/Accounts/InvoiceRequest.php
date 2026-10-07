@@ -13,6 +13,20 @@ use Illuminate\Validation\Rule;
 class InvoiceRequest extends FormRequest
 {
     /**
+     * GST rates are matched as text, so "18.00" (a decimal column's form) would
+     * miss 18. Compare them as numbers.
+     */
+    protected function prepareForValidation(): void
+    {
+        if (is_array($items = $this->input('items'))) {
+            $this->merge(['items' => array_map(
+                fn ($item) => is_array($item) && is_numeric($item['gst_rate'] ?? null) ? [...$item, 'gst_rate' => (float) $item['gst_rate']] : $item,
+                $items,
+            )]);
+        }
+    }
+
+    /**
      * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array

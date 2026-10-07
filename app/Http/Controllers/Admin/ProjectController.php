@@ -49,9 +49,13 @@ class ProjectController extends Controller
         ]);
     }
 
-    public function create(): Response
+    public function create(Request $request): Response
     {
-        return Inertia::render('admin/projects/create', $this->formOptions());
+        return Inertia::render('admin/projects/create', [
+            ...$this->formOptions(),
+            // Whoever can't see every project joins the ones they create; see store().
+            'joinsAsMember' => ! $request->user()->can('projects.view'),
+        ]);
     }
 
     public function store(ProjectRequest $request): RedirectResponse
@@ -59,6 +63,14 @@ class ProjectController extends Controller
         $project = DB::transaction(function () use ($request) {
             $project = Project::create($request->safe()->except('lead_ids'));
             self::syncLeads($project, $request->validated('lead_ids') ?? []);
+
+            // Someone who only sees their own projects would otherwise be shut
+            // out of the one they just made. Picking themselves as a lead
+            // above already added them, with that role.
+            $creator = $request->user();
+            if (! $creator->can('projects.view') && ! $project->hasMember($creator)) {
+                $project->members()->attach($creator->id, ['role' => ProjectMemberRole::Member->value]);
+            }
 
             return $project;
         });

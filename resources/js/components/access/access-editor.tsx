@@ -72,13 +72,15 @@ export default function AccessEditor({ groups, inherited, superRole = false, val
         }
 
         // Keep the row coherent: allowing an action allows seeing the module,
-        // and denying View denies everything else in it.
-        if (nextState === 'allow' && view && key !== view && !effective(view)) {
+        // and denying View denies everything else in it — except standalone
+        // actions (creating a project), which don't depend on View.
+        const standalone = module.actions.some((a) => a.key === key && a.standalone);
+        if (nextState === 'allow' && view && key !== view && !standalone && !effective(view)) {
             next[view] = 'allow';
         }
         if (nextState === 'deny' && key === view) {
             module.actions.forEach((a) => {
-                if (a.key !== view && (inherited.includes(a.key) || next[a.key] === 'allow')) {
+                if (a.key !== view && !a.standalone && (inherited.includes(a.key) || next[a.key] === 'allow')) {
                     next[a.key] = 'deny';
                 }
             });
