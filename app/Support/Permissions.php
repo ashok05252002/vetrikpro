@@ -13,20 +13,14 @@ namespace App\Support;
  * Keys are "<module>.<action>". Most modules offer the four standard actions;
  * a few add their own (employees.onboard, merge_requests.review). Holding any
  * action on a module implies its "view": nobody edits what they cannot see.
+ * Nothing else is implied: pay in particular is seen only by a role that has
+ * the salary or stipend box ticked, whatever else it holds.
  *
  * Adding a permission means one entry here plus the check that uses it.
  */
 final class Permissions
 {
     public const VIEW = 'view';
-
-    /**
-     * Keys that bring others with them, beyond the implied "view": revising
-     * someone's salary means seeing it.
-     */
-    public const IMPLIES = [
-        'employees.promote' => ['employees.salary'],
-    ];
 
     /**
      * Actions that do not bring their module's "view". Creating a project is
@@ -62,7 +56,7 @@ final class Permissions
                     // Pay is kept from everyone else: the amount on the profile,
                     // the forms, the promotion history and the letters that state it.
                     'salary' => 'See and set salaries, and open offer and promotion letters',
-                    'promote' => 'Promote people and revise salaries, with a letter by email (includes seeing salaries)',
+                    'promote' => 'Promote people, with a letter by email (revising pay also needs the salary permission)',
                 ]],
                 // Interns are managed apart from staff, so a coordinator can run
                 // the internship programme without seeing everyone's records.
@@ -178,8 +172,8 @@ final class Permissions
     }
 
     /**
-     * Keep only the keys the registry knows, add what each one implies (its
-     * module's "view", and anything in IMPLIES), and return them in registry order.
+     * Keep only the keys the registry knows, add each one's module "view",
+     * and return them in registry order.
      *
      * @param  iterable<string>  $keys
      * @return list<string>
@@ -188,12 +182,6 @@ final class Permissions
     {
         $keys = collect($keys)->all();
         $all = self::all();
-
-        foreach ($keys as $key) {
-            if (in_array($key, $all, true)) {
-                array_push($keys, ...(self::IMPLIES[$key] ?? []));
-            }
-        }
 
         foreach ($keys as $key) {
             $view = strtok($key, '.').'.'.self::VIEW;

@@ -178,7 +178,8 @@ class EmployeeController extends Controller
                 'letter_url' => $canSeeSalary && $p->letter_path ? route('admin.employees.promotions.letter', [$employee, $p]) : null,
             ]),
             // Only what the Promote dialog needs, and only for those who may use it.
-            'promoteOptions' => $canPromote && ! $employee->isArchived() ? $this->formOptions($employee) : null,
+            // Without the salary permission the dialog changes the designation only.
+            'promoteOptions' => $canPromote && ! $employee->isArchived() ? [...$this->formOptions($employee), 'canSetPay' => $canSeeSalary] : null,
         ]);
     }
 

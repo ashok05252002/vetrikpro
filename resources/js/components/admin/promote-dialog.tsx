@@ -24,6 +24,8 @@ interface Props {
     };
     departments: Pick<Department, 'id' | 'name'>[];
     designations: Pick<Designation, 'id' | 'name' | 'department_id'>[];
+    /** False when the viewer's role cannot see pay: the dialog changes the designation only and the salary carries over. */
+    canSetPay: boolean;
 }
 
 type PromotionForm = {
@@ -41,14 +43,15 @@ const round2 = (n: number) => Math.round(n * 100) / 100;
 /**
  * Promote someone or revise their salary. The raise can be typed as a new
  * salary or as a percentage — each fills in the other — and the letter goes
- * out by email unless unticked.
+ * out by email unless unticked. Without the salary permission only the
+ * designation changes, and no pay is shown or sent.
  */
-export default function PromoteDialog({ employee, departments, designations }: Props) {
+export default function PromoteDialog({ employee, departments, designations, canSetPay }: Props) {
     const format = useFormat();
     const [open, setOpen] = useState(false);
     const current = employee.salary !== null ? Number(employee.salary) : null;
 
-    const { data, setData, post, processing, errors, reset, clearErrors } = useForm<PromotionForm>({
+    const { data, setData, post, processing, errors, reset, clearErrors, transform } = useForm<PromotionForm>({
         to_designation_id: employee.designation_id ? String(employee.designation_id) : '',
         to_department_id: employee.department_id ? String(employee.department_id) : '',
         to_salary: employee.salary ?? '',
@@ -89,6 +92,15 @@ export default function PromoteDialog({ employee, departments, designations }: P
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
+        transform((form) => {
+            if (canSetPay) {
+                return form;
+            }
+
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { to_salary, ...rest } = form;
+            return rest;
+        });
         post(route('admin.employees.promotions.store', employee.id), {
             preserveScroll: true,
             onSuccess: () => {
@@ -111,14 +123,14 @@ export default function PromoteDialog({ employee, departments, designations }: P
         >
             <DialogTrigger asChild>
                 <Button size="sm">
-                    <TrendingUp className="size-4" /> Promote / revise salary
+                    <TrendingUp className="size-4" /> {canSetPay ? 'Promote / revise salary' : 'Promote'}
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-lg">
                 <form onSubmit={submit} className="space-y-5">
                     <DialogHeader>
                         <DialogTitle>
-                            {promoted
+                            {promoted || !canSetPay
                                 ? `Promote ${employee.name}`
                                 : data.to_designation_id
                                   ? `Revise ${employee.name}'s salary`
@@ -146,7 +158,7 @@ export default function PromoteDialog({ employee, departments, designations }: P
                                     ))}
                                 </SelectContent>
                             </Select>
-                            <p className="text-muted-foreground text-xs">Keep the current one to revise the salary only.</p>
+                            {canSetPay && <p className="text-muted-foreground text-xs">Keep the current one to revise the salary only.</p>}
                             <InputError message={errors.to_designation_id} />
                         </div>
 
@@ -167,47 +179,53 @@ export default function PromoteDialog({ employee, departments, designations }: P
                             <InputError message={errors.to_department_id} />
                         </div>
 
-                        <div className="grid gap-2">
-                            <Label htmlFor="to_salary">New monthly salary</Label>
-                            <Input
-                                id="to_salary"
-                                type="number"
-                                inputMode="decimal"
-                                min={0}
-                                step="0.01"
-                                required
-                                value={data.to_salary}
-                                onChange={(e) => typeSalary(e.target.value)}
-                            />
-                            <InputError message={errors.to_salary} />
-                        </div>
+                        {canSetPay && (
+                            <>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="to_salary">New monthly salary</Label>
+                                    <Input
+                                        id="to_salary"
+                                        type="number"
+                                        inputMode="decimal"
+                                        min={0}
+                                        step="0.01"
+                                        required
+                                        value={data.to_salary}
+                                        onChange={(e) => typeSalary(e.target.value)}
+                                    />
+                                    <InputError message={errors.to_salary} />
+                                </div>
 
-                        <div className="grid gap-2">
-                            <Label htmlFor="percent">Increase %</Label>
-                            <Input
-                                id="percent"
-                                type="number"
-                                inputMode="decimal"
-                                step="0.1"
-                                value={percent}
-                                onChange={(e) => typePercent(e.target.value)}
-                                disabled={!current}
-                                placeholder={current ? 'e.g. 15' : 'No current salary'}
-                            />
-                        </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="percent">Increase %</Label>
+                                    <Input
+                                        id="percent"
+                                        type="number"
+                                        inputMode="decimal"
+                                        step="0.1"
+                                        value={percent}
+                                        onChange={(e) => typePercent(e.target.value)}
+                                        disabled={!current}
+                                        placeholder={current ? 'e.g. 15' : 'No current salary'}
+                                    />
+                                </div>
 
-                        <p className="text-muted-foreground -mt-2 text-xs sm:col-span-2">
-                            Now {current !== null ? format.money(current) : 'not set'}
-                            {increase !== null && increase !== 0 && (
-                                <span
-                                    className={increase > 0 ? 'font-medium text-emerald-700 dark:text-emerald-400' : 'text-destructive font-medium'}
-                                >
-                                    {' '}
-                                    → {format.money(newSalary)} ({increase > 0 ? '+' : ''}
-                                    {format.money(increase)} a month)
-                                </span>
-                            )}
-                        </p>
+                                <p className="text-muted-foreground -mt-2 text-xs sm:col-span-2">
+                                    Now {current !== null ? format.money(current) : 'not set'}
+                                    {increase !== null && increase !== 0 && (
+                                        <span
+                                            className={
+                                                increase > 0 ? 'font-medium text-emerald-700 dark:text-emerald-400' : 'text-destructive font-medium'
+                                            }
+                                        >
+                                            {' '}
+                                            → {format.money(newSalary)} ({increase > 0 ? '+' : ''}
+                                            {format.money(increase)} a month)
+                                        </span>
+                                    )}
+                                </p>
+                            </>
+                        )}
 
                         <div className="grid gap-2">
                             <Label htmlFor="effective_date">Effective from</Label>
@@ -251,7 +269,7 @@ export default function PromoteDialog({ employee, departments, designations }: P
                         <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                             Cancel
                         </Button>
-                        <Button disabled={processing}>{promoted ? 'Promote' : 'Revise salary'}</Button>
+                        <Button disabled={processing}>{promoted || !canSetPay ? 'Promote' : 'Revise salary'}</Button>
                     </DialogFooter>
                 </form>
             </DialogContent>

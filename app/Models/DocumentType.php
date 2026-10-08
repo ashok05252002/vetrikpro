@@ -14,12 +14,14 @@ class DocumentType extends Model
 {
     public const SIGNED_OFFER_LETTER = 'signed_offer_letter';
 
-    protected $fillable = ['name', 'code', 'description', 'is_required', 'is_active', 'sort_order'];
+    protected $fillable = ['name', 'code', 'description', 'is_required', 'states_pay', 'is_active', 'sort_order'];
 
     protected function casts(): array
     {
         return [
             'is_required' => 'boolean',
+            // Offer letters, contracts: shown only to those who may see the person's pay.
+            'states_pay' => 'boolean',
             'is_active' => 'boolean',
             'is_system' => 'boolean',
             'sort_order' => 'integer',

@@ -43,13 +43,17 @@ class EmployeeDocumentController extends Controller
         return back()->with('success', "“{$data['title']}” uploaded.");
     }
 
-    public function download(Employee $employee, EmployeeDocument $document): StreamedResponse
+    public function download(Request $request, Employee $employee, EmployeeDocument $document): StreamedResponse
     {
+        abort_unless($document->isVisibleTo($request->user(), $employee), 403, 'This document states their pay, which you do not have access to.');
+
         return Storage::disk(EmployeeDocument::DISK)->download($document->file_path, $document->original_name);
     }
 
-    public function destroy(Employee $employee, EmployeeDocument $document): RedirectResponse
+    public function destroy(Request $request, Employee $employee, EmployeeDocument $document): RedirectResponse
     {
+        abort_unless($document->isVisibleTo($request->user(), $employee), 403, 'This document states their pay, which you do not have access to.');
+
         $document->delete();
 
         return back()->with('success', "“{$document->title}” deleted.");

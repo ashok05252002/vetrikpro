@@ -37,7 +37,7 @@ class PromotionAnnounced extends Notification
         $letterhead = app(Letterhead::class);
         $promoted = $promotion->isDesignationChange();
         $from = $promotion->from_salary !== null ? (float) $promotion->from_salary : null;
-        $to = (float) $promotion->to_salary;
+        $to = $promotion->to_salary !== null ? (float) $promotion->to_salary : null;
         $percent = $promotion->incrementPercent();
 
         $mail = (new MailMessage)
@@ -50,8 +50,8 @@ class PromotionAnnounced extends Notification
                 'facts' => array_filter([
                     'New designation' => $promoted ? $promotion->to_designation_name : null,
                     'Previous designation' => $promoted ? $promotion->from_designation_name : null,
-                    'New monthly salary' => $letterhead->money($to),
-                    'Increase' => $from !== null && $to > $from ? $letterhead->money($to - $from).($percent !== null ? " ({$percent}%)" : '') : null,
+                    'New monthly salary' => $to !== null ? $letterhead->money($to) : null,
+                    'Increase' => $from !== null && $to !== null && $to > $from ? $letterhead->money($to - $from).($percent !== null ? " ({$percent}%)" : '') : null,
                     'Effective from' => $letterhead->date($promotion->effective_date),
                 ]),
                 'hasLetter' => $promotion->letter_path !== null,

@@ -21,11 +21,14 @@ class DocumentTypeController extends Controller
     {
         return Inertia::render('admin/config/document-types', [
             'types' => DocumentType::ordered()->withCount('documents')->get()
-                ->map(fn (DocumentType $type) => $type->only('id', 'name', 'code', 'description', 'is_required', 'is_active', 'is_system', 'sort_order', 'documents_count')),
+                ->map(fn (DocumentType $type) => $type->only('id', 'name', 'code', 'description', 'is_required', 'states_pay', 'is_active', 'is_system', 'sort_order', 'documents_count')),
             'can' => [
                 'create' => $request->user()->can('document_types.create'),
                 'edit' => $request->user()->can('document_types.edit'),
                 'delete' => $request->user()->can('document_types.delete'),
+                // Whether a type states pay decides who sees its documents, so
+                // only someone who may see pay can change it.
+                'statesPay' => $request->user()->can('employees.salary'),
             ],
         ]);
     }
@@ -102,6 +105,7 @@ class DocumentTypeController extends Controller
             'name' => ['required', 'string', 'max:100', Rule::unique('document_types')->ignore($type?->id)],
             'description' => ['nullable', 'string', 'max:255'],
             'is_required' => ['required', 'boolean'],
+            'states_pay' => $request->user()->can('employees.salary') ? ['sometimes', 'boolean'] : ['prohibited'],
             'is_active' => ['required', 'boolean'],
         ]);
     }

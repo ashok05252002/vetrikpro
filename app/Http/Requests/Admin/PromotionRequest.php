@@ -32,7 +32,11 @@ class PromotionRequest extends FormRequest
         return [
             'to_designation_id' => ['required', 'integer', 'exists:designations,id', Designation::selectableRule($employee->designation_id)],
             'to_department_id' => ['nullable', 'integer', 'exists:departments,id', Department::selectableRule($employee->department_id)],
-            'to_salary' => ['required', 'numeric', 'min:0', 'max:99999999.99'],
+            // Without the salary permission a promotion changes the designation
+            // only: the pay is neither seen nor set, and carries over as it is.
+            'to_salary' => $this->user()->can('employees.salary')
+                ? ['required', 'numeric', 'min:0', 'max:99999999.99']
+                : ['prohibited'],
             'effective_date' => ['required', 'date'],
             'note' => ['nullable', 'string', 'max:2000'],
             'send_email' => ['boolean'],
@@ -47,6 +51,15 @@ class PromotionRequest extends FormRequest
         return [function (Validator $validator) {
             $employee = $this->route('employee');
             $sameTitle = (int) $this->input('to_designation_id') === (int) $employee->designation_id;
+
+            if (! $this->user()->can('employees.salary')) {
+                if ($sameTitle) {
+                    $validator->errors()->add('to_designation_id', 'Choose the new designation.');
+                }
+
+                return;
+            }
+
             $samePay = $employee->salary !== null && (float) $this->input('to_salary') === (float) $employee->salary;
 
             if ($sameTitle && $samePay) {

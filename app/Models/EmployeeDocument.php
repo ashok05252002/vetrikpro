@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Storage;
@@ -38,6 +39,23 @@ class EmployeeDocument extends Model
     public function type(): BelongsTo
     {
         return $this->belongsTo(DocumentType::class, 'document_type_id');
+    }
+
+    /**
+     * Documents whose type states pay (offer letters, contracts — see
+     * Configuration → Document types) only for a viewer who may see this
+     * person's pay; the rest for anyone with documents.view.
+     */
+    public function scopeVisibleTo(Builder $query, User $viewer, Employee $employee): void
+    {
+        if (! $viewer->canSeePayOf($employee)) {
+            $query->whereDoesntHave('type', fn (Builder $type) => $type->where('states_pay', true));
+        }
+    }
+
+    public function isVisibleTo(User $viewer, Employee $employee): bool
+    {
+        return ! $this->type?->states_pay || $viewer->canSeePayOf($employee);
     }
 
     public function employee(): BelongsTo

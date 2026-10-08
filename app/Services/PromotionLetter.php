@@ -115,9 +115,9 @@ TEXT;
         $employee = $promotion->employee;
         $name = $employee->user->name;
         $from = $promotion->from_salary !== null ? (float) $promotion->from_salary : null;
-        $to = (float) $promotion->to_salary;
+        $to = $promotion->to_salary !== null ? (float) $promotion->to_salary : null;
         $percent = $promotion->incrementPercent();
-        $increase = $from !== null && $to > $from
+        $increase = $from !== null && $to !== null && $to > $from
             ? $this->letterhead->money($to - $from).' per month'.($percent !== null ? " ({$percent}%)" : '')
             : null;
 
@@ -129,9 +129,9 @@ TEXT;
             'previous_designation' => $promotion->from_designation_name ?? '—',
             'new_designation' => (string) $promotion->to_designation_name,
             'previous_salary' => $from !== null ? $this->letterhead->money($from) : '—',
-            'new_salary' => $this->letterhead->money($to),
+            'new_salary' => $to !== null ? $this->letterhead->money($to) : '—',
             'previous_annual_ctc' => $from !== null ? $this->letterhead->money($from * 12) : '—',
-            'new_annual_ctc' => $this->letterhead->money($to * 12),
+            'new_annual_ctc' => $to !== null ? $this->letterhead->money($to * 12) : '—',
             'salary_increase' => $increase ?? 'no change',
             'effective_date' => $this->letterhead->date($promotion->effective_date),
             'company_name' => (string) $this->settings->get('company.name'),

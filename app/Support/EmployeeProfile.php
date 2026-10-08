@@ -35,7 +35,7 @@ final class EmployeeProfile
             'onboarding_status' => $employee->onboarding_status?->value,
             'designation' => $employee->designation?->name,
             'counts' => [
-                'documents' => $viewer->can('documents.view') ? $employee->documents()->count() : null,
+                'documents' => $viewer->can('documents.view') ? $employee->documents()->visibleTo($viewer, $employee)->count() : null,
                 'projects' => $user->projects()->count(),
                 'open_tasks' => $user->assignedTasks()->where('status', '!=', TaskStatus::Done)->count(),
             ],

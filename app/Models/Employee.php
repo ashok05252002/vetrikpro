@@ -38,8 +38,14 @@ class Employee extends Model
         'bank_branch',
     ];
 
-    /** Onboarding columns change only through the onboarding flow, never mass assignment. */
-    protected $hidden = ['bank_account_number', 'offer_letter_path'];
+    /**
+     * Onboarding columns change only through the onboarding flow, never mass assignment.
+     *
+     * Pay never leaves the server unless asked for: withPayFor() shows it to a
+     * viewer whose role has the salary or stipend permission. A page that
+     * forgets the check shows nothing rather than leaking it.
+     */
+    protected $hidden = ['bank_account_number', 'offer_letter_path', 'salary', 'stipend'];
 
     protected function casts(): array
     {
@@ -88,10 +94,10 @@ class Employee extends Model
         return $this->isIntern() ? 'interns.stipend' : 'employees.salary';
     }
 
-    /** Hide the pay amounts from a viewer who may not see them, for serialising. */
+    /** Show the pay amounts, hidden by default, to a viewer who may see them, for serialising. */
     public function withPayFor(User $viewer): static
     {
-        return $viewer->canSeePayOf($this) ? $this : $this->makeHidden(['salary', 'stipend']);
+        return $viewer->canSeePayOf($this) ? $this->makeVisible(['salary', 'stipend']) : $this;
     }
 
     /** @param  Builder<Employee>  $query */

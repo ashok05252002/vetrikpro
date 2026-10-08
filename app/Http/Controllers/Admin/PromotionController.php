@@ -26,6 +26,8 @@ class PromotionController extends Controller
     public function store(PromotionRequest $request, Employee $employee, PromotionLetter $letter): RedirectResponse
     {
         $data = $request->validated();
+        // Set only by someone with the salary permission; otherwise it stays as it is.
+        $data['to_salary'] = array_key_exists('to_salary', $data) ? $data['to_salary'] : $employee->salary;
         $to = Designation::findOrFail($data['to_designation_id']);
         // A designation that belongs to a department brings them into it, unless HR chose otherwise.
         $toDepartment = $data['to_department_id'] ?? $to->department_id ?? $employee->department_id;

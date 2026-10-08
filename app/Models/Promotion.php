@@ -51,6 +51,10 @@ class Promotion extends Model
     /** The increase as a percentage of the old salary, or null when there was none. */
     public function incrementPercent(): ?float
     {
+        if ($this->to_salary === null) {
+            return null;
+        }
+
         $from = (float) $this->from_salary;
 
         return $from > 0 ? round(((float) $this->to_salary - $from) / $from * 100, 1) : null;

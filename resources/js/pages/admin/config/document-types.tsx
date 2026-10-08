@@ -18,6 +18,8 @@ interface DocumentTypeRow {
     code: string;
     description: string | null;
     is_required: boolean;
+    /** Offer letters, contracts: only those whose role may see pay see these documents. */
+    states_pay: boolean;
     is_active: boolean;
     is_system: boolean;
     sort_order: number;
@@ -26,17 +28,40 @@ interface DocumentTypeRow {
 
 interface Props {
     types: DocumentTypeRow[];
-    can: { create: boolean; edit: boolean; delete: boolean };
+    /** statesPay: only a role that may see salaries can mark which types state pay. */
+    can: { create: boolean; edit: boolean; delete: boolean; statesPay: boolean };
 }
 
-type Form = { name: string; description: string; is_required: boolean; is_active: boolean };
+type Form = { name: string; description: string; is_required: boolean; states_pay: boolean; is_active: boolean };
 
-function TypeDialog({ type, open, onOpenChange }: { type: DocumentTypeRow | null; open: boolean; onOpenChange: (open: boolean) => void }) {
-    const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm<Form>({
+function TypeDialog({
+    type,
+    open,
+    onOpenChange,
+    canStatesPay,
+}: {
+    type: DocumentTypeRow | null;
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    canStatesPay: boolean;
+}) {
+    const { data, setData, post, put, processing, errors, reset, clearErrors, transform } = useForm<Form>({
         name: '',
         description: '',
         is_required: false,
+        states_pay: false,
         is_active: true,
+    });
+
+    // Only a role that may see pay can change which types state it.
+    transform((form) => {
+        if (canStatesPay) {
+            return form;
+        }
+
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { states_pay, ...rest } = form;
+        return rest;
     });
 
     useEffect(() => {
@@ -48,6 +73,7 @@ function TypeDialog({ type, open, onOpenChange }: { type: DocumentTypeRow | null
             name: type?.name ?? '',
             description: type?.description ?? '',
             is_required: type?.is_required ?? false,
+            states_pay: type?.states_pay ?? false,
             is_active: type?.is_active ?? true,
         });
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -112,6 +138,19 @@ function TypeDialog({ type, open, onOpenChange }: { type: DocumentTypeRow | null
                         </span>
                     </label>
 
+                    {canStatesPay && (
+                        <label className="flex items-start gap-3">
+                            <Checkbox className="mt-0.5" checked={data.states_pay} onCheckedChange={(c) => setData('states_pay', c === true)} />
+                            <span className="text-sm">
+                                States pay
+                                <span className="text-muted-foreground block text-xs">
+                                    Like an offer letter or contract. These documents are shown only to roles allowed to see salaries (or stipends,
+                                    for interns).
+                                </span>
+                            </span>
+                        </label>
+                    )}
+
                     <label className="flex items-start gap-3">
                         <Checkbox
                             className="mt-0.5"
@@ -152,10 +191,17 @@ export default function DocumentTypes({ types, can }: Props) {
         router.post(route('admin.config.document-types.reorder'), { ids }, { preserveScroll: true });
     };
 
-    const toggle = (type: DocumentTypeRow, field: 'is_required' | 'is_active', value: boolean) =>
+    const toggle = (type: DocumentTypeRow, field: 'is_required' | 'is_active' | 'states_pay', value: boolean) =>
         router.put(
             route('admin.config.document-types.update', type.id),
-            { name: type.name, description: type.description ?? '', is_required: type.is_required, is_active: type.is_active, [field]: value },
+            {
+                name: type.name,
+                description: type.description ?? '',
+                is_required: type.is_required,
+                is_active: type.is_active,
+                ...(can.statesPay ? { states_pay: type.states_pay } : {}),
+                [field]: value,
+            },
             { preserveScroll: true },
         );
 
@@ -188,6 +234,7 @@ export default function DocumentTypes({ types, can }: Props) {
                             {can.edit && <TableHead className="w-20">Order</TableHead>}
                             <TableHead>Document</TableHead>
                             <TableHead className="w-28 text-center">Required</TableHead>
+                            <TableHead className="w-24 text-center">States pay</TableHead>
                             <TableHead className="w-24 text-center">Active</TableHead>
                             <TableHead className="hidden w-28 md:table-cell">Uploaded</TableHead>
                             <TableHead className="w-24 text-right">Actions</TableHead>
@@ -243,6 +290,14 @@ export default function DocumentTypes({ types, can }: Props) {
                                 </TableCell>
                                 <TableCell className="text-center">
                                     <Checkbox
+                                        aria-label={`${type.name} states pay`}
+                                        checked={type.states_pay}
+                                        disabled={!can.edit || !can.statesPay}
+                                        onCheckedChange={(c) => toggle(type, 'states_pay', c === true)}
+                                    />
+                                </TableCell>
+                                <TableCell className="text-center">
+                                    <Checkbox
                                         aria-label={`${type.name} is active`}
                                         checked={type.is_active}
                                         disabled={!can.edit || type.is_system}
@@ -286,7 +341,7 @@ export default function DocumentTypes({ types, can }: Props) {
                 </Table>
             </div>
 
-            <TypeDialog type={editing} open={open} onOpenChange={setOpen} />
+            <TypeDialog type={editing} open={open} onOpenChange={setOpen} canStatesPay={can.statesPay} />
         </ConfigLayout>
     );
 }

@@ -109,7 +109,12 @@ interface Props {
     promotions: PromotionRow[];
     /** Whether the viewer may see this person's salary or stipend. */
     canSeePay: boolean;
-    promoteOptions: { departments: Pick<Department, 'id' | 'name'>[]; designations: Pick<Designation, 'id' | 'name' | 'department_id'>[] } | null;
+    promoteOptions: {
+        departments: Pick<Department, 'id' | 'name'>[];
+        designations: Pick<Designation, 'id' | 'name' | 'department_id'>[];
+        /** False: the role may promote but not see or set pay, so the dialog changes the designation only. */
+        canSetPay: boolean;
+    } | null;
 }
 
 export default function ShowEmployee({ employee, profile, promotions, canSeePay, promoteOptions }: Props) {
@@ -132,6 +137,7 @@ export default function ShowEmployee({ employee, profile, promotions, canSeePay,
                         }}
                         departments={promoteOptions.departments}
                         designations={promoteOptions.designations}
+                        canSetPay={promoteOptions.canSetPay}
                     />
                 )
             }

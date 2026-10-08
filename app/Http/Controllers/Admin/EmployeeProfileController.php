@@ -31,6 +31,7 @@ class EmployeeProfileController extends Controller
     public function documents(Request $request, Employee $employee): Response
     {
         $documents = $employee->documents()
+            ->visibleTo($request->user(), $employee)
             ->with(['uploader:id,name', 'type:id,name'])
             ->when($request->integer('type'), fn ($query, int $type) => $query->where('document_type_id', $type))
             ->when($request->string('search')->trim()->value(), fn ($query, string $search) => $query

@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Models\Designation;
+use App\Models\DocumentType;
 use App\Models\Employee;
 use App\Models\EmployeeDocument;
 use App\Models\Promotion;
@@ -10,13 +12,15 @@ use App\Models\User;
 use App\Services\OfferLetter;
 use App\Support\Permissions;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia;
 use Tests\TestCase;
 
 /**
  * Salaries and stipends are seen and set only with employees.salary and
- * interns.stipend; everyone else gets the record without the amounts.
+ * interns.stipend, ticked on the role — nothing else brings them. Everyone
+ * else gets the record, and the documents, without the amounts.
  */
 class PayAccessTest extends TestCase
 {
@@ -88,9 +92,132 @@ class PayAccessTest extends TestCase
             ->assertSessionHasErrors('offer_letter_mode');
     }
 
-    public function test_promoting_includes_seeing_salaries()
+    public function test_promoting_does_not_include_seeing_salaries()
     {
-        $this->assertContains('employees.salary', Permissions::only(['employees.promote']));
+        // Only what is ticked on the role counts: promote brings its module's view, nothing more.
+        $this->assertNotContains('employees.salary', Permissions::only(['employees.promote']));
+    }
+
+    public function test_a_role_that_promotes_without_the_salary_permission_sees_no_pay()
+    {
+        $employee = Employee::factory()->create(['salary' => 50000]);
+
+        $this->actingAs($this->withPermissions(['employees.view', 'employees.promote']))
+            ->get(route('admin.employees.show', $employee))
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->missing('employee.salary')
+                ->where('canSeePay', false)
+                ->where('promoteOptions.canSetPay', false));
+    }
+
+    public function test_promoting_without_the_salary_permission_changes_the_designation_only()
+    {
+        Storage::fake(EmployeeDocument::DISK);
+        Notification::fake();
+        $employee = Employee::factory()->create(['salary' => 50000]);
+        $senior = Designation::factory()->create();
+        $promoter = $this->withPermissions(['employees.view', 'employees.promote']);
+
+        $this->actingAs($promoter)->post(route('admin.employees.promotions.store', $employee), [
+            'to_designation_id' => $senior->id, 'to_salary' => 90000, 'effective_date' => '2026-10-01', 'send_email' => false,
+        ])->assertSessionHasErrors('to_salary');
+
+        $this->actingAs($promoter)->post(route('admin.employees.promotions.store', $employee), [
+            'to_designation_id' => $employee->designation_id, 'effective_date' => '2026-10-01', 'send_email' => false,
+        ])->assertSessionHasErrors('to_designation_id');
+
+        $this->actingAs($promoter)->post(route('admin.employees.promotions.store', $employee), [
+            'to_designation_id' => $senior->id, 'effective_date' => '2026-10-01', 'send_email' => false,
+        ])->assertSessionHas('success');
+
+        $employee->refresh();
+        $this->assertSame($senior->id, $employee->designation_id);
+        $this->assertEquals(50000, $employee->salary);
+        $this->assertEquals(50000, Promotion::sole()->to_salary);
+    }
+
+    public function test_promoting_someone_with_no_salary_recorded_keeps_it_empty()
+    {
+        Storage::fake(EmployeeDocument::DISK);
+        $employee = Employee::factory()->create(['salary' => null]);
+
+        $this->actingAs($this->withPermissions(['employees.view', 'employees.promote']))
+            ->post(route('admin.employees.promotions.store', $employee), [
+                'to_designation_id' => Designation::factory()->create()->id, 'effective_date' => '2026-10-01', 'send_email' => false,
+            ])->assertSessionHas('success');
+
+        $this->assertNull(Promotion::sole()->to_salary);
+        $this->assertNull(Promotion::sole()->incrementPercent());
+    }
+
+    public function test_documents_that_state_pay_need_the_pay_permission()
+    {
+        Storage::fake(EmployeeDocument::DISK);
+        $employee = Employee::factory()->create();
+        $offer = $this->document($employee, 'offer_letter');
+        $pan = $this->document($employee, 'pan');
+
+        $withoutPay = $this->withPermissions(['employees.view', 'documents.view', 'documents.delete']);
+        $this->actingAs($withoutPay)
+            ->get(route('admin.employees.documents.index', $employee))
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('documents.data', fn ($docs) => collect($docs)->pluck('id')->all() === [$pan->id])
+                ->where('employee.counts.documents', 1));
+        $this->actingAs($withoutPay)->get(route('admin.employees.documents.download', [$employee, $offer]))->assertForbidden();
+        $this->actingAs($withoutPay)->get(route('admin.employees.documents.download', [$employee, $pan]))->assertOk();
+        $this->actingAs($withoutPay)->delete(route('admin.employees.documents.destroy', [$employee, $offer]))->assertForbidden();
+
+        $withPay = $this->withPermissions(['employees.view', 'documents.view', 'employees.salary']);
+        $this->actingAs($withPay)
+            ->get(route('admin.employees.documents.index', $employee))
+            ->assertInertia(fn (AssertableInertia $page) => $page->has('documents.data', 2));
+        $this->actingAs($withPay)->get(route('admin.employees.documents.download', [$employee, $offer]))->assertOk();
+    }
+
+    public function test_an_interns_pay_documents_follow_the_stipend_permission()
+    {
+        Storage::fake(EmployeeDocument::DISK);
+        $intern = $this->intern();
+        $offer = $this->document($intern, 'offer_letter');
+
+        $this->actingAs($this->withPermissions(['documents.view', 'employees.salary']))
+            ->get(route('admin.employees.documents.download', [$intern, $offer]))->assertForbidden();
+        $this->actingAs($this->withPermissions(['documents.view', 'interns.stipend']))
+            ->get(route('admin.employees.documents.download', [$intern, $offer]))->assertOk();
+    }
+
+    public function test_only_a_role_that_sees_pay_decides_which_documents_state_it()
+    {
+        $offer = DocumentType::where('code', 'offer_letter')->sole();
+        $this->assertTrue($offer->states_pay);
+
+        $this->actingAs($this->withPermissions(['document_types.edit']))
+            ->put(route('admin.config.document-types.update', $offer), ['name' => $offer->name, 'is_required' => false, 'is_active' => true, 'states_pay' => false])
+            ->assertSessionHasErrors('states_pay');
+        $this->assertTrue($offer->fresh()->states_pay);
+
+        $this->actingAs($this->withPermissions(['document_types.edit', 'employees.salary']))
+            ->put(route('admin.config.document-types.update', $offer), ['name' => $offer->name, 'is_required' => false, 'is_active' => true, 'states_pay' => false])
+            ->assertSessionHasNoErrors();
+        $this->assertFalse($offer->fresh()->states_pay);
+    }
+
+    public function test_pay_never_leaves_the_server_unless_asked_for()
+    {
+        $employee = Employee::factory()->create(['salary' => 50000]);
+
+        $this->assertArrayNotHasKey('salary', $employee->toArray());
+        $this->assertArrayHasKey('salary', $employee->withPayFor(User::factory()->admin()->create())->toArray());
+    }
+
+    private function document(Employee $employee, string $code): EmployeeDocument
+    {
+        Storage::disk(EmployeeDocument::DISK)->put("docs/{$code}.pdf", 'pdf');
+
+        return $employee->documents()->create([
+            'document_type_id' => DocumentType::where('code', $code)->value('id'),
+            'title' => $code, 'file_path' => "docs/{$code}.pdf", 'original_name' => "{$code}.pdf", 'mime_type' => 'application/pdf', 'size' => 3,
+        ]);
     }
 
     public function test_promotion_amounts_and_letters_need_the_permission()
