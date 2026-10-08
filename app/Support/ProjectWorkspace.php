@@ -20,6 +20,9 @@ final class ProjectWorkspace
 
         return [
             ...$project->only('id', 'name', 'code', 'description', 'status', 'start_date', 'due_date', 'repository_url', 'default_branch'),
+            // Plain Y-m-d: a Carbon reaches the page as a UTC ISO string, a day early in Indian time.
+            'start_date' => $project->start_date?->toDateString(),
+            'due_date' => $project->due_date?->toDateString(),
             'owner' => $project->owner?->only('id', 'name'),
             'members_count' => $project->members_count,
             'progress' => $project->progress(),

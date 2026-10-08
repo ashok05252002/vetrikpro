@@ -50,6 +50,8 @@ class TaskController extends Controller
             ->withQueryString()
             ->through(fn (Task $task) => [
                 ...$task->only('id', 'number', 'title', 'status', 'priority', 'due_date'),
+                // Plain Y-m-d: a Carbon reaches the page as a UTC ISO string, a day early in Indian time.
+                'due_date' => $task->due_date?->toDateString(),
                 'reference' => $task->reference(),
                 'project' => $task->project?->only('id', 'name', 'code'),
                 'assignee' => $task->assignee?->only('id', 'name'),
@@ -89,6 +91,8 @@ class TaskController extends Controller
         return Inertia::render('tasks/show', [
             'task' => [
                 ...$task->only('id', 'project_id', 'number', 'title', 'description', 'status', 'priority', 'due_date', 'completed_at'),
+                // Plain Y-m-d: a Carbon reaches the page as a UTC ISO string, a day early in Indian time.
+                'due_date' => $task->due_date?->toDateString(),
                 'reference' => $task->reference(),
                 'project' => $task->project?->only('id', 'name', 'code'),
                 'assignee' => $task->assignee?->only('id', 'name'),

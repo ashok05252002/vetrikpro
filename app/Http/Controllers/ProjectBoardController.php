@@ -38,6 +38,8 @@ class ProjectBoardController extends Controller
             ->get()
             ->map(fn (Project $project) => [
                 ...$project->only('id', 'name', 'code', 'description', 'status', 'due_date'),
+                // Plain Y-m-d: a Carbon reaches the page as a UTC ISO string, a day early in Indian time.
+                'due_date' => $project->due_date?->toDateString(),
                 'owner' => $project->owner?->only('id', 'name'),
                 'tasks_count' => $project->tasks_count,
                 'done_tasks_count' => $project->done_tasks_count,

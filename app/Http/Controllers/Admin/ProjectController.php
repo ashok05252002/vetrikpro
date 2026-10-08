@@ -35,6 +35,9 @@ class ProjectController extends Controller
             ->withQueryString()
             ->through(fn (Project $project) => [
                 ...$project->only('id', 'name', 'code', 'status', 'start_date', 'due_date'),
+                // Plain Y-m-d: a Carbon reaches the page as a UTC ISO string, a day early in Indian time.
+                'start_date' => $project->start_date?->toDateString(),
+                'due_date' => $project->due_date?->toDateString(),
                 'owner' => $project->owner?->only('id', 'name'),
                 'tasks_count' => $project->tasks_count,
                 'done_tasks_count' => $project->done_tasks_count,

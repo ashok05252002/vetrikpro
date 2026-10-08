@@ -36,6 +36,8 @@ final class Cards
         return [
             'can_move' => $viewer !== null && $task->statusChangeableBy($viewer),
             ...$task->only('id', 'project_id', 'number', 'title', 'status', 'priority', 'due_date', 'position'),
+            // Plain Y-m-d: a Carbon reaches the page as a UTC ISO string, a day early in Indian time.
+            'due_date' => $task->due_date?->toDateString(),
             'reference' => $task->reference(),
             'assignee' => $task->assignee?->only('id', 'name'),
             ...self::people($task),

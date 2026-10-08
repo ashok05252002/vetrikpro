@@ -23,7 +23,8 @@ class TaskRequest extends FormRequest
             'status' => ['required', Rule::enum(TaskStatus::class)],
             'priority' => ['required', Rule::enum(TaskPriority::class)],
             'assigned_to' => ['nullable', 'exists:users,id', ProjectPeople::notArchivedRule($this->route('task')?->assigned_to)],
-            'due_date' => ['nullable', 'date'],
+            // Y-m-d only: anything with a time or zone would be refused by MySQL as a 500.
+            'due_date' => ['nullable', 'date_format:Y-m-d'],
         ];
     }
 }

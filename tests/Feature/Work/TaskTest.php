@@ -39,6 +39,70 @@ class TaskTest extends TestCase
         $this->assertSame($project->id, $task->project_id);
     }
 
+    /**
+     * Live runs in Indian time: a Carbon due date reached the edit dialog as
+     * 2026-10-03T18:30:00Z, went back on save, and MySQL refused it — a 500
+     * on assigning someone to any task with a due date.
+     */
+    public function test_editing_a_task_keeps_its_due_date_in_indian_time()
+    {
+        $zone = date_default_timezone_get();
+        date_default_timezone_set('Asia/Kolkata');
+
+        try {
+            $owner = User::factory()->create();
+            $assignee = User::factory()->create();
+            $project = Project::factory()->create(['owner_id' => $owner->id]);
+            $project->members()->attach([$owner->id, $assignee->id]);
+            $task = Task::factory()->create(['project_id' => $project->id, 'created_by' => $owner->id, 'assigned_to' => null, 'due_date' => '2026-10-04']);
+
+            $sent = null;
+            $this->actingAs($owner)
+                ->get(route('tasks.show', $task))
+                ->assertInertia(function (AssertableInertia $page) use (&$sent) {
+                    $sent = $page->toArray()['props']['task']['due_date'];
+                });
+
+            $this->assertSame('2026-10-04', $sent);
+
+            $this->actingAs($owner)
+                ->put(route('tasks.update', $task), [
+                    'project_id' => $project->id,
+                    'title' => $task->title,
+                    'status' => $task->status->value,
+                    'priority' => $task->priority->value,
+                    'assigned_to' => (string) $assignee->id,
+                    'due_date' => $sent,
+                ])
+                ->assertSessionHasNoErrors()
+                ->assertRedirect();
+
+            $task->refresh();
+            $this->assertSame($assignee->id, $task->assigned_to);
+            $this->assertSame('2026-10-04', $task->due_date->toDateString());
+        } finally {
+            date_default_timezone_set($zone);
+        }
+    }
+
+    public function test_a_due_date_with_a_time_is_refused_not_a_server_error()
+    {
+        $owner = User::factory()->create();
+        $project = Project::factory()->create(['owner_id' => $owner->id]);
+        $project->members()->attach($owner);
+        $task = Task::factory()->create(['project_id' => $project->id, 'created_by' => $owner->id]);
+
+        $this->actingAs($owner)
+            ->put(route('tasks.update', $task), [
+                'project_id' => $project->id,
+                'title' => $task->title,
+                'status' => $task->status->value,
+                'priority' => $task->priority->value,
+                'due_date' => '2026-10-03T18:30:00.000000Z',
+            ])
+            ->assertSessionHasErrors('due_date');
+    }
+
     public function test_an_outsider_cannot_create_a_task_on_a_project()
     {
         $project = Project::factory()->create();

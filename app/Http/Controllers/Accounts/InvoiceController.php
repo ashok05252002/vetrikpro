@@ -52,6 +52,9 @@ class InvoiceController extends Controller
             ->withQueryString()
             ->through(fn (Invoice $invoice) => [
                 ...$invoice->only('id', 'number', 'status', 'bill_name', 'issue_date', 'due_date', 'total', 'issued_at', 'sent_at', 'sent_to', 'paid_at'),
+                // Plain Y-m-d: a Carbon reaches the page as a UTC ISO string, a day early in Indian time.
+                'due_date' => $invoice->due_date?->toDateString(),
+                'issue_date' => $invoice->issue_date?->toDateString(),
                 'reference' => $invoice->reference(),
                 'is_overdue' => $invoice->isOverdue(),
             ]);

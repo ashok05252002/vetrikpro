@@ -72,6 +72,8 @@ class EmployeeProfileController extends Controller
             ->withQueryString()
             ->through(fn (Project $project) => [
                 ...$project->only('id', 'name', 'code', 'status', 'due_date'),
+                // Plain Y-m-d: a Carbon reaches the page as a UTC ISO string, a day early in Indian time.
+                'due_date' => $project->due_date?->toDateString(),
                 'owner' => $project->owner?->only('id', 'name'),
                 'is_owner' => $project->owner_id === $user->id,
                 'project_role' => $project->members->first()?->pivot->role,
@@ -116,6 +118,8 @@ class EmployeeProfileController extends Controller
             ->get()
             ->map(fn (Task $task) => [
                 ...$task->only('id', 'title', 'status', 'priority', 'due_date'),
+                // Plain Y-m-d: a Carbon reaches the page as a UTC ISO string, a day early in Indian time.
+                'due_date' => $task->due_date?->toDateString(),
                 'reference' => $task->reference(),
                 'is_overdue' => $task->isOverdue(),
                 'creator' => $task->creator?->only('id', 'name'),
@@ -138,6 +142,8 @@ class EmployeeProfileController extends Controller
             ->withQueryString()
             ->through(fn (Task $task) => [
                 ...$task->only('id', 'title', 'status', 'priority', 'due_date'),
+                // Plain Y-m-d: a Carbon reaches the page as a UTC ISO string, a day early in Indian time.
+                'due_date' => $task->due_date?->toDateString(),
                 'project' => $task->project?->only('id', 'name', 'code'),
                 'is_overdue' => $task->isOverdue(),
             ]);

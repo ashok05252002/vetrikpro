@@ -30,7 +30,11 @@ final class OnboardingPresenter
             'note' => $employee->onboarding_note,
             'checklist' => $items,
             'progress' => OnboardingChecklist::progress($employee, $items),
-            'details' => $employee->only('phone', 'date_of_birth', 'gender', 'address'),
+            'details' => [
+                ...$employee->only('phone', 'gender', 'address'),
+                // Plain Y-m-d: a Carbon reaches the page as a UTC ISO string, a day early in Indian time.
+                'date_of_birth' => $employee->date_of_birth?->toDateString(),
+            ],
             'bank' => [
                 'account_name' => $employee->bank_account_name,
                 'account_number' => $fullAccountNumber ? $employee->bank_account_number : $employee->maskedAccountNumber(),
