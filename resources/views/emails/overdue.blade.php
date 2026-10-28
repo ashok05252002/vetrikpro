@@ -1,17 +1,13 @@
 @extends('emails.layout', ['accent' => '#d03b3b'])
 
-@section('preheader', $mine ? "{$count} {$noun} past due — oldest first." : "{$count} {$noun} past due across your projects.")
+@section('preheader', "{$count} {$noun} past due — oldest first.")
 @section('eyebrow', 'Overdue')
-@section('heading', $mine ? "{$count} overdue {$noun}" : "{$count} overdue {$noun} on your projects")
+@section('heading', "{$count} overdue {$noun}")
 
 @section('content')
     <p style="margin:0 0 16px;">
         Hi {{ $firstName }},
-        @if ($mine)
-            these are past their due date and still open. Please update them or move the dates.
-        @else
-            these tasks on projects you own are past their due date and still open.
-        @endif
+        these are past their due date and still open. Please update them or move the dates.
     </p>
 
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #fde2e2; border-radius:12px; background:#fff7f7; font-size:14px;">
@@ -25,7 +21,6 @@
                     <div style="margin-top:3px; font-size:12px; color:#8a90a0;">
                         {{ $task['project'] }} · due {{ $task['due'] }}
                         <span style="color:#d03b3b; font-weight:600;">({{ $task['days'] }} {{ $task['days'] === 1 ? 'day' : 'days' }} late)</span>
-                        @unless ($mine) · {{ $task['assignee'] ?? 'unassigned' }}@endunless
                     </div>
                 </td>
             </tr>

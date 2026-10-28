@@ -114,6 +114,7 @@ Route::middleware(['auth'])
 
             Route::get('notifications', [NotificationSettingsController::class, 'edit'])->middleware('can:settings.view')->name('notifications.edit');
             Route::put('notifications', [NotificationSettingsController::class, 'update'])->middleware('can:settings.edit')->name('notifications.update');
+            Route::get('notifications/summary-preview', [NotificationSettingsController::class, 'preview'])->middleware('can:settings.view')->name('notifications.summary-preview');
 
             Route::get('document-types', [DocumentTypeController::class, 'index'])->middleware('can:document_types.view')->name('document-types.index');
             Route::post('document-types', [DocumentTypeController::class, 'store'])->middleware('can:document_types.create')->name('document-types.store');

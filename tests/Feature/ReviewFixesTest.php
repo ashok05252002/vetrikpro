@@ -75,7 +75,7 @@ class ReviewFixesTest extends TestCase
         $this->assertSame([$yesterday->id], Task::overdue()->pluck('id')->all());
     }
 
-    // 6 + 10: live projects only; an owner is not told twice about their own task.
+    // 6 + 10: live projects only; the owner's summary is the daily summary now.
     public function test_the_overdue_digest_skips_paused_projects_and_duplicates()
     {
         Notification::fake();
@@ -92,8 +92,8 @@ class ReviewFixesTest extends TestCase
         $this->artisan('tasks:overdue-digest');
 
         Notification::assertSentTo($dev, OverdueTasksDigest::class, fn ($n) => $n->tasks->count() === 1);
-        Notification::assertSentTo($owner, OverdueTasksDigest::class, fn ($n) => $n->scope === OverdueTasksDigest::MINE && $n->tasks->count() === 1);
-        Notification::assertSentTo($owner, OverdueTasksDigest::class, fn ($n) => $n->scope === OverdueTasksDigest::OWNED && $n->tasks->count() === 1);
+        Notification::assertSentToTimes($owner, OverdueTasksDigest::class, 1);
+        Notification::assertSentTo($owner, OverdueTasksDigest::class, fn ($n) => $n->tasks->count() === 1);
     }
 
     // 7: issuing by hand is not emailing.

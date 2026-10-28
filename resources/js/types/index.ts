@@ -245,6 +245,12 @@ export interface DisplaySettings {
 }
 
 /** The header every project workspace tab receives (App\Support\ProjectWorkspace). */
+/** Who gets a project's daily summary besides the owner (Members tab). */
+export interface SummaryRecipients {
+    recipients: { id: number; name: string | null; email: string; is_active: boolean }[];
+    candidates: Option[];
+}
+
 export interface ProjectWorkspaceHeader extends ProjectSummary {
     repository_url: string | null;
     default_branch: string;

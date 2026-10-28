@@ -6,6 +6,7 @@ use App\Enums\ProjectMemberRole;
 use App\Enums\TaskStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Project;
+use App\Models\ProjectSummaryRecipient;
 use App\Models\User;
 use App\Support\ProjectRoles;
 use App\Support\ProjectWorkspace;
@@ -47,8 +48,12 @@ class ProjectMemberController extends Controller
                 'open_tasks_count' => $user->open_tasks_count,
             ]);
 
+        $header = ProjectWorkspace::header($project, $request->user());
+
         return Inertia::render('projects/members', [
-            'project' => ProjectWorkspace::header($project, $request->user()),
+            'project' => $header,
+            // Outside addresses are only shown to whoever manages the list.
+            'summary' => $header['viewer']['can_manage_members'] ? $this->summary($project) : null,
             'members' => $members,
             'roles' => ProjectMemberRole::options(),
             'filters' => $request->only('search', 'department', 'designation', 'role'),
@@ -123,5 +128,30 @@ class ProjectMemberController extends Controller
         $project->members()->detach($user->id);
 
         return back()->with('success', "{$user->name} was removed from the project. Tasks assigned to them keep their assignee.");
+    }
+
+    /**
+     * The daily summary list for the Members tab: who gets it, and which
+     * members could still be added (everyone on the project but the owner).
+     *
+     * @return array{recipients: list<array<string, mixed>>, candidates: list<array{value: string, label: string}>}
+     */
+    private function summary(Project $project): array
+    {
+        $recipients = $project->summaryRecipients()->with('user:id,name,email,is_active')->orderBy('id')->get();
+        $taken = $recipients->pluck('user_id')->filter()->push($project->owner_id)->all();
+
+        return [
+            'recipients' => $recipients->map(fn (ProjectSummaryRecipient $r) => [
+                'id' => $r->id,
+                'name' => $r->user?->name,
+                'email' => $r->user?->email ?? (string) $r->email,
+                'is_active' => $r->user === null || $r->user->is_active,
+            ])->all(),
+            'candidates' => $project->members()->where('users.is_active', true)->whereNotIn('users.id', $taken)
+                ->orderBy('users.name')->get(['users.id', 'users.name'])
+                ->map(fn (User $u) => ['value' => (string) $u->id, 'label' => $u->name])
+                ->all(),
+        ];
     }
 }

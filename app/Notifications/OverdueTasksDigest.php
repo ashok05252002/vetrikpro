@@ -3,28 +3,29 @@
 namespace App\Notifications;
 
 use App\Models\User;
+use App\Support\MailThread;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
+use Symfony\Component\Mime\Email;
 
 /**
  * The daily overdue email: one per person, listing every overdue task they
- * hold — or, for a project owner, the overdue tasks across their projects.
+ * hold. Owners see their projects' overdue tasks in the daily summary.
  */
 class OverdueTasksDigest extends Notification
 {
     use Queueable;
 
-    public const MINE = 'mine';
-
-    public const OWNED = 'owned';
-
     /**
      * @param  Collection<int, array{reference: string, title: string, project: string, due: string, days: int, assignee: ?string, url: string}>  $tasks
      */
-    public function __construct(public readonly Collection $tasks, public readonly string $scope = self::MINE) {}
+    /** Fixed, so every day's email lands in the same conversation (see MailThread); the count is in the heading. */
+    public const SUBJECT = 'Your overdue tasks';
+
+    public function __construct(public readonly Collection $tasks) {}
 
     /**
      * @return array<int, string>
@@ -38,17 +39,16 @@ class OverdueTasksDigest extends Notification
     {
         $count = $this->tasks->count();
         $noun = $count === 1 ? 'task' : 'tasks';
-        $mine = $this->scope === self::MINE;
 
         return (new MailMessage)
-            ->subject($mine ? "You have {$count} overdue {$noun}" : "{$count} overdue {$noun} on your projects")
+            ->subject(self::SUBJECT)
+            ->withSymfonyMessage(fn (Email $message) => MailThread::apply($message, 'overdue-digest', $notifiable->email, self::SUBJECT))
             ->view(['emails.overdue', 'emails.overdue-text'], [
                 'firstName' => Str::before($notifiable->name, ' ') ?: $notifiable->name,
-                'mine' => $mine,
                 'count' => $count,
                 'noun' => $noun,
                 'tasks' => $this->tasks,
-                'url' => $mine ? route('tasks.index', ['overdue' => 1]) : route('tasks.index', ['overdue' => 1, 'scope' => 'all']),
+                'url' => route('tasks.index', ['overdue' => 1]),
             ]);
     }
 }

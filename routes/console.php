@@ -18,3 +18,12 @@ Schedule::command('tasks:overdue-digest')
     ->dailyAt(rescue(fn () => (string) app(Settings::class)->get('notify.overdue.time', '17:00'), '17:00', false) ?: '17:00')
     ->timezone(rescue(fn () => (string) app(Settings::class)->get('display.timezone', 'UTC'), 'UTC', false) ?: 'UTC')
     ->withoutOverlapping();
+
+/*
+ * The daily project summary to leadership, owners and project recipients, at
+ * its own time in Configuration hub → Email notifications.
+ */
+Schedule::command('summaries:daily')
+    ->dailyAt(rescue(fn () => (string) app(Settings::class)->get('notify.summary.time', '18:00'), '18:00', false) ?: '18:00')
+    ->timezone(rescue(fn () => (string) app(Settings::class)->get('display.timezone', 'UTC'), 'UTC', false) ?: 'UTC')
+    ->withoutOverlapping();

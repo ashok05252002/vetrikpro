@@ -8,6 +8,7 @@ use App\Http\Controllers\ProjectBoardController;
 use App\Http\Controllers\Projects\BranchController;
 use App\Http\Controllers\Projects\MergeRequestController;
 use App\Http\Controllers\Projects\ProjectMemberController;
+use App\Http\Controllers\Projects\ProjectSummaryRecipientController;
 use App\Http\Controllers\Projects\ReferenceLookupController;
 use App\Http\Controllers\Projects\RequirementController;
 use App\Http\Controllers\Projects\TestPointAttachmentController;
@@ -89,6 +90,10 @@ Route::middleware(['auth'])->group(function () {
             Route::get('merge-requests/{mergeRequest}', [MergeRequestController::class, 'show'])->name('merge-requests.show');
             Route::post('merge-requests/{mergeRequest}/transition', [MergeRequestController::class, 'transition'])->name('merge-requests.transition');
             Route::post('merge-requests/{mergeRequest}/comments', [MergeRequestController::class, 'comment'])->name('merge-requests.comments.store');
+
+            // Who gets the daily summary besides the owner (shown on the Members tab).
+            Route::post('summary-recipients', [ProjectSummaryRecipientController::class, 'store'])->name('summary-recipients.store');
+            Route::delete('summary-recipients/{summaryRecipient}', [ProjectSummaryRecipientController::class, 'destroy'])->name('summary-recipients.destroy');
         });
     });
 

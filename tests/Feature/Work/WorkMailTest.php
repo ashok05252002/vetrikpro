@@ -92,7 +92,7 @@ class WorkMailTest extends TestCase
         Notification::assertNothingSent();
     }
 
-    public function test_the_overdue_digest_goes_to_each_assignee_and_a_summary_to_owners()
+    public function test_the_overdue_digest_goes_to_each_assignee_only()
     {
         Task::factory()->create(['project_id' => $this->project->id, 'assigned_to' => $this->dev->id, 'status' => TaskStatus::InProgress, 'due_date' => today()->subDays(3)]);
         Task::factory()->create(['project_id' => $this->project->id, 'assigned_to' => $this->dev->id, 'status' => TaskStatus::Todo, 'due_date' => today()->subDay()]);
@@ -101,8 +101,9 @@ class WorkMailTest extends TestCase
 
         $this->artisan('tasks:overdue-digest')->assertSuccessful();
 
-        Notification::assertSentTo($this->dev, OverdueTasksDigest::class, fn (OverdueTasksDigest $n) => $n->scope === OverdueTasksDigest::MINE && $n->tasks->count() === 2);
-        Notification::assertSentTo($this->lead, OverdueTasksDigest::class, fn (OverdueTasksDigest $n) => $n->scope === OverdueTasksDigest::OWNED && $n->tasks->count() === 2);
+        Notification::assertSentTo($this->dev, OverdueTasksDigest::class, fn (OverdueTasksDigest $n) => $n->tasks->count() === 2);
+        // The owner sees these in the daily summary instead (DailySummaryTest).
+        Notification::assertNotSentTo($this->lead, OverdueTasksDigest::class);
         Notification::assertNotSentTo($this->tester, OverdueTasksDigest::class);
     }
 
@@ -110,12 +111,7 @@ class WorkMailTest extends TestCase
     {
         Task::factory()->create(['project_id' => $this->project->id, 'assigned_to' => $this->dev->id, 'status' => TaskStatus::Todo, 'due_date' => today()->subDay()]);
 
-        app(Settings::class)->set(['notify.overdue.owners' => false]);
-        $this->artisan('tasks:overdue-digest');
-        Notification::assertNotSentTo($this->lead, OverdueTasksDigest::class);
-
         app(Settings::class)->set(['notify.overdue.enabled' => false]);
-        Notification::fake();
         $this->artisan('tasks:overdue-digest');
         Notification::assertNothingSent();
     }
@@ -125,13 +121,18 @@ class WorkMailTest extends TestCase
         $this->actingAs(User::factory()->admin()->create())->put(route('admin.config.notifications.update'), [
             'task_assigned' => false, 'task_urgent' => true, 'task_status' => ['done'],
             'bug_assigned' => true, 'bug_status' => ['open', 'closed'],
-            'overdue_enabled' => true, 'overdue_owners' => false, 'overdue_time' => '18:30',
+            'overdue_enabled' => true, 'overdue_time' => '18:30',
+            'summary_leaders' => true, 'summary_emails' => ['Founder@Example.com', 'founder@example.com', 'cfo@example.com'],
+            'summary_projects' => false, 'summary_time' => '19:00',
         ])->assertSessionHasNoErrors();
 
         $s = app(Settings::class);
         $this->assertFalse($s->get('notify.task.assigned'));
         $this->assertSame(['open', 'closed'], $s->get('notify.bug.status'));
         $this->assertSame('18:30', $s->get('notify.overdue.time'));
+        $this->assertSame(['founder@example.com', 'cfo@example.com'], $s->get('notify.summary.emails'));
+        $this->assertFalse($s->get('notify.summary.projects'));
+        $this->assertSame('19:00', $s->get('notify.summary.time'));
 
         $this->actingAs(User::factory()->hr()->create())->put(route('admin.config.notifications.update'), [])->assertForbidden();
     }

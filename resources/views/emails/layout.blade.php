@@ -8,6 +8,7 @@
       eyebrow    — small label above the heading (e.g. WELCOME)
       heading    — the headline
       content    — the body
+      footnote   — (optional) why they get this email, under the footer
     and $accent (optional) recolours the eyebrow and top rule, e.g. red for urgent.
 --}}
 @php
@@ -94,7 +95,7 @@
                             <strong style="color:#5b6170;">{{ $brand['legal_name'] }}</strong><br>
                             @if ($brand['address']){!! nl2br(e($brand['address']), false) !!}<br>@endif
                             @if ($brand['contact']){{ $brand['contact'] }}<br>@endif
-                            <span style="color:#a3a8b5;">You are receiving this because you have an account on the {{ $brand['name'] }} employee portal.</span>
+                            <span style="color:#a3a8b5;">@hasSection('footnote')@yield('footnote')@else You are receiving this because you have an account on the {{ $brand['name'] }} employee portal.@endif</span>
                         </td>
                     </tr>
                 </table>

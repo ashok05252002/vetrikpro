@@ -76,9 +76,15 @@ class Settings
             'notify.bug.assigned' => ['type' => 'bool', 'default' => true, 'group' => 'notify'],
             'notify.bug.status' => ['type' => 'array', 'default' => ['ready_for_test', 'repeated', 'closed'], 'group' => 'notify'],
             'notify.overdue.enabled' => ['type' => 'bool', 'default' => true, 'group' => 'notify'],
-            'notify.overdue.owners' => ['type' => 'bool', 'default' => true, 'group' => 'notify'],
             // "HH:MM" in the display timezone.
             'notify.overdue.time' => ['type' => 'string', 'default' => '17:00', 'group' => 'notify'],
+            // The daily summary: every active project's status to the leadership
+            // addresses, and each project's own status to its owner and the
+            // people added on its Members tab.
+            'notify.summary.leaders' => ['type' => 'bool', 'default' => true, 'group' => 'notify'],
+            'notify.summary.emails' => ['type' => 'array', 'default' => [], 'group' => 'notify'],
+            'notify.summary.projects' => ['type' => 'bool', 'default' => true, 'group' => 'notify'],
+            'notify.summary.time' => ['type' => 'string', 'default' => '18:00', 'group' => 'notify'],
 
             // Offer letter template (Configuration hub → Offer letter). The body
             // is plain text with {placeholders}; see App\Services\OfferLetter.

@@ -6,11 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AddMembersDialog from '@/components/work/add-members-dialog';
+import SummaryRecipientsCard from '@/components/work/summary-recipients-card';
 import UserAvatar from '@/components/work/user-avatar';
 import { useFormat } from '@/hooks/use-format';
 import { usePermission } from '@/hooks/use-permission';
 import ProjectWorkspaceLayout from '@/layouts/project/workspace-layout';
-import type { Option, Paginated, ProjectMember, ProjectWorkspaceHeader } from '@/types';
+import type { Option, Paginated, ProjectMember, ProjectWorkspaceHeader, SummaryRecipients } from '@/types';
 import { Link, router } from '@inertiajs/react';
 import { UserPlus } from 'lucide-react';
 import { useState } from 'react';
@@ -18,13 +19,14 @@ import { useState } from 'react';
 interface Props {
     project: ProjectWorkspaceHeader;
     members: Paginated<ProjectMember>;
+    summary: SummaryRecipients | null;
     roles: Option[];
     departments: Option[];
     designations: Option[];
     filters: { search?: string; department?: string; designation?: string; role?: string };
 }
 
-export default function ProjectMembers({ project, members, roles, departments, designations, filters }: Props) {
+export default function ProjectMembers({ project, members, summary, roles, departments, designations, filters }: Props) {
     const format = useFormat();
     const { can } = usePermission();
     const [adding, setAdding] = useState(false);
@@ -145,6 +147,8 @@ export default function ProjectMembers({ project, members, roles, departments, d
             </div>
 
             <Pagination meta={members} />
+
+            {summary && <SummaryRecipientsCard project={project} summary={summary} />}
 
             {manage && <AddMembersDialog projectId={project.id} open={adding} onOpenChange={setAdding} departments={departments} roles={roles} />}
         </ProjectWorkspaceLayout>

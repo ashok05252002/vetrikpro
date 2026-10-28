@@ -148,6 +148,12 @@ class Project extends Model
         return $this->hasMany(MergeRequest::class);
     }
 
+    /** Who gets the daily summary besides the owner. */
+    public function summaryRecipients(): HasMany
+    {
+        return $this->hasMany(ProjectSummaryRecipient::class);
+    }
+
     /**
      * Percentage of tasks in the Done column, 0 when the project has no tasks.
      */
