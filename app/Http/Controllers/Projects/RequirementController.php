@@ -38,8 +38,24 @@ class RequirementController extends Controller
                     ->orWhere('notes', 'like', "%{$s}%")
                     ->when(ctype_digit($s), fn ($n) => $n->orWhere('number', (int) $s))))
                 ->when($request->string('module')->value(), fn ($q, string $m) => $q->where('module', $m))
+                ->when($request->string('coverage')->value(), fn ($q, string $c) => match ($c) {
+                    'none' => $q->whereDoesntHave('tasks'),
+                    'linked' => $q->whereHas('tasks'),
+                    default => $q,
+                })
+                ->with(['tasks' => fn ($t) => $t->select('tasks.id', 'tasks.number', 'tasks.title', 'tasks.status')->orderBy('tasks.number')])
                 ->paginate(50)
                 ->withQueryString()
+                ->through(fn (RequirementPoint $p) => [
+                    ...$p->only('id', 'number', 'module', 'description', 'notes'),
+                    'tasks' => $p->tasks->map(fn ($t) => [
+                        'id' => $t->id,
+                        'reference' => $t->reference(),
+                        'title' => $t->title,
+                        'status' => $t->status->value,
+                        'status_label' => $t->status->label(),
+                    ])->values(),
+                ])
             : null;
 
         return Inertia::render('projects/requirements', [
@@ -53,7 +69,11 @@ class RequirementController extends Controller
             'points' => $points,
             'modules' => $current ? $current->points()->reorder()->distinct()->orderBy('module')->pluck('module') : [],
             'next' => RequirementVersion::nextFor($project)['label'],
-            'filters' => $request->only('search', 'module'),
+            'filters' => $request->only('search', 'module', 'coverage'),
+            'coverage' => $current ? [
+                'linked' => $current->points()->whereHas('tasks')->count(),
+                'total' => $current->points()->count(),
+            ] : null,
             'can' => ['manage' => $this->canManage($request, $project)],
         ]);
     }
@@ -166,6 +186,7 @@ class RequirementController extends Controller
     {
         return DB::transaction(function () use ($request, $project, $source, $points, $fileName) {
             Project::whereKey($project->id)->lockForUpdate()->value('id');
+            $previous = RequirementVersion::latestFor($project);
             $next = RequirementVersion::nextFor($project);
 
             $version = RequirementVersion::create([
@@ -182,8 +203,48 @@ class RequirementController extends Controller
                 RequirementPoint::insert(array_map(fn ($p) => [...$p, 'requirement_version_id' => $version->id, 'created_at' => $now, 'updated_at' => $now], $chunk));
             }
 
+            if ($previous) {
+                $this->carryTaskLinks($previous, $version);
+            }
+
             return $version;
         });
+    }
+
+    /**
+     * Tasks linked to a point that the new version repeats unchanged (same
+     * module and description) follow it to the new version. A point that was
+     * changed or dropped keeps its link to the old version, so the task shows
+     * that its requirement changed.
+     */
+    private function carryTaskLinks(RequirementVersion $previous, RequirementVersion $version): void
+    {
+        $key = fn (RequirementPoint $p) => mb_strtolower(trim($p->module)).'|'.mb_strtolower(trim($p->description));
+
+        $linked = $previous->points()->whereHas('tasks')->get();
+
+        if ($linked->isEmpty()) {
+            return;
+        }
+
+        $fresh = $version->points()->get()->groupBy($key);
+
+        foreach ($linked as $old) {
+            $candidates = $fresh->get($key($old));
+
+            if (! $candidates) {
+                continue;
+            }
+
+            // The same S.No when the text repeats; otherwise the first match.
+            $new = $candidates->firstWhere('number', $old->number) ?? $candidates->first();
+            $taskIds = DB::table('task_requirement_point')->where('requirement_point_id', $old->id)->pluck('task_id');
+
+            DB::table('task_requirement_point')->insertOrIgnore(
+                $taskIds->map(fn ($taskId) => ['task_id' => $taskId, 'requirement_point_id' => $new->id])->all()
+            );
+            DB::table('task_requirement_point')->where('requirement_point_id', $old->id)->delete();
+        }
     }
 
     /** Who adds versions: whoever edits projects, the project's owner and leads, and those with merge access. */

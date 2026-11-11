@@ -204,9 +204,23 @@ export interface TaskComment {
     created_at: string;
 }
 
+/** A requirement point a task delivers, as shown on the task. */
+export interface LinkedRequirementPoint {
+    id: number;
+    reference: string;
+    title: string;
+    module: string;
+    description: string;
+    version: string;
+    /** Linked in an older version; the latest version changed or dropped it. */
+    outdated: boolean;
+}
+
 export interface TaskDetail extends TaskSummary {
     project_id: number;
     description: string | null;
+    requirement_points?: LinkedRequirementPoint[];
+    requirements_latest?: string | null;
     completed_at: string | null;
     creator?: Pick<User, 'id' | 'name'> | null;
     created_at: string;

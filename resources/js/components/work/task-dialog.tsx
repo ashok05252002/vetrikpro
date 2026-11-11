@@ -6,9 +6,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import ReferencePicker, { type Reference } from '@/components/work/reference-picker';
 import type { Option, TaskDetail, User } from '@/types';
 import { useForm } from '@inertiajs/react';
-import { FormEventHandler, useEffect } from 'react';
+import { FormEventHandler, useEffect, useState } from 'react';
 
 const UNASSIGNED = 'unassigned';
 
@@ -39,6 +40,8 @@ export default function TaskDialog({
     canChangeStatus = true,
 }: Props) {
     const editing = Boolean(task);
+    // The requirement points picked, as chips; their ids go to the server.
+    const [points, setPoints] = useState<Reference[]>([]);
 
     const { data, setData, post, put, processing, errors, reset, clearErrors, transform } = useForm({
         project_id: projectId,
@@ -55,6 +58,7 @@ export default function TaskDialog({
     transform((payload) => ({
         ...payload,
         assigned_to: payload.assigned_to === UNASSIGNED ? '' : payload.assigned_to,
+        requirement_point_ids: points.map((p) => p.id),
     }));
 
     // Refill whenever the dialog opens, so it never shows the previous task.
@@ -73,6 +77,7 @@ export default function TaskDialog({
             assigned_to: task?.assignee ? String(task.assignee.id) : UNASSIGNED,
             due_date: task?.due_date ?? '',
         });
+        setPoints((task?.requirement_points ?? []).map((p) => ({ id: p.id, reference: p.reference, title: p.title })));
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, task?.id, defaultStatus]);
 
@@ -115,6 +120,27 @@ export default function TaskDialog({
                                 placeholder="Ship the payroll export"
                             />
                             <InputError message={errors.title} />
+                        </div>
+
+                        <div className="grid gap-2">
+                            <Label>
+                                Requirement points <span className="text-muted-foreground">(optional)</span>
+                            </Label>
+                            <ReferencePicker
+                                projectId={projectId}
+                                kind="requirement-points"
+                                value={points}
+                                onChange={setPoints}
+                                renderMeta={(item) => {
+                                    const linked = (item as Reference & { tasks_count?: number }).tasks_count ?? 0;
+                                    return linked > 0 ? (
+                                        <span className="text-muted-foreground shrink-0 text-[11px]">
+                                            {linked} task{linked === 1 ? '' : 's'}
+                                        </span>
+                                    ) : null;
+                                }}
+                            />
+                            <InputError message={(errors as Record<string, string>).requirement_point_ids} />
                         </div>
 
                         <div className="grid gap-2">

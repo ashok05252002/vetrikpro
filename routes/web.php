@@ -64,7 +64,7 @@ Route::middleware(['auth'])->group(function () {
         Route::patch('members/{user}', [ProjectMemberController::class, 'update'])->name('members.update');
         Route::delete('members/{user}', [ProjectMemberController::class, 'destroy'])->name('members.destroy');
 
-        Route::get('lookups/{kind}', ReferenceLookupController::class)->whereIn('kind', ['tasks', 'test-points'])->name('lookups');
+        Route::get('lookups/{kind}', ReferenceLookupController::class)->whereIn('kind', ['tasks', 'test-points', 'requirement-points'])->name('lookups');
 
         // Requirements, the developer module and merge requests belong to their project.
         Route::scopeBindings()->group(function () {

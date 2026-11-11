@@ -17,7 +17,7 @@ import AppLayout from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
 import type { BreadcrumbItem, Option, TaskDetail, TaskStatus, User } from '@/types';
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { AlignLeft, History, Info, Pencil } from 'lucide-react';
+import { AlertTriangle, AlignLeft, History, Info, ListChecks, Pencil } from 'lucide-react';
 import { FormEventHandler, useState } from 'react';
 
 interface Props {
@@ -116,6 +116,48 @@ export default function ShowTask({ task, statuses, priorities, assignees, can }:
                                     <p className="text-sm whitespace-pre-wrap">{task.description}</p>
                                 ) : (
                                     <p className="text-muted-foreground text-sm">No description.</p>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader>
+                                <CardHeading icon={ListChecks} tone="indigo">
+                                    Requirement points
+                                </CardHeading>
+                            </CardHeader>
+                            <CardContent>
+                                {(task.requirement_points ?? []).length === 0 ? (
+                                    <p className="text-muted-foreground text-sm">
+                                        None linked.{can.update && ' Use Edit to pick the points this task delivers.'}
+                                    </p>
+                                ) : (
+                                    <ul className="divide-y">
+                                        {task.requirement_points!.map((p) => (
+                                            <li key={p.id} className="flex items-start gap-3 py-2 text-sm first:pt-0 last:pb-0">
+                                                <Link
+                                                    href={route('projects.requirements.index', [
+                                                        task.project_id,
+                                                        { search: String(p.reference).slice(1) },
+                                                    ])}
+                                                    className="text-muted-foreground w-12 shrink-0 font-mono text-xs hover:underline"
+                                                >
+                                                    {p.reference}
+                                                </Link>
+                                                <div className="min-w-0 flex-1">
+                                                    <span className="font-medium">{p.module}</span>
+                                                    <span className="text-muted-foreground"> · {p.version}</span>
+                                                    <p className="whitespace-pre-line">{p.description}</p>
+                                                    {p.outdated && (
+                                                        <p className="mt-1 inline-flex items-center gap-1 text-xs text-amber-700 dark:text-amber-400">
+                                                            <AlertTriangle className="size-3.5" aria-hidden />
+                                                            Changed or removed in {task.requirements_latest}. Check it and re-link the point.
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            </li>
+                                        ))}
+                                    </ul>
                                 )}
                             </CardContent>
                         </Card>

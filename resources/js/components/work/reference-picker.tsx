@@ -14,7 +14,7 @@ export interface Reference {
 
 interface Props<T extends Reference> {
     projectId: number;
-    kind: 'tasks' | 'test-points';
+    kind: 'tasks' | 'test-points' | 'requirement-points';
     /** What is already picked, shown as chips. */
     value: T[];
     onChange: (next: T[]) => void;
@@ -37,7 +37,8 @@ function branchList(item: Reference): string {
 }
 
 /**
- * Pick tasks or test points from a project by number ("T-12", "12") or title.
+ * Pick tasks or test points from a project by number ("T-12", "12") or title;
+ * or requirement points from its latest version by S.No, module or words.
  */
 export default function ReferencePicker<T extends Reference>({
     projectId,
@@ -118,7 +119,8 @@ export default function ReferencePicker<T extends Reference>({
 
             {(!single || value.length === 0) && (
                 <Button type="button" variant="outline" size="sm" onClick={() => setOpen((o) => !o)}>
-                    <Plus className="size-4" /> {placeholder ?? (kind === 'tasks' ? 'Add task' : 'Add testing point')}
+                    <Plus className="size-4" />{' '}
+                    {placeholder ?? (kind === 'tasks' ? 'Add task' : kind === 'requirement-points' ? 'Add requirement point' : 'Add testing point')}
                 </Button>
             )}
 
@@ -134,7 +136,9 @@ export default function ReferencePicker<T extends Reference>({
                             className="pl-9"
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            placeholder={kind === 'tasks' ? 'T-12 or a title…' : 'TP-4 or a title…'}
+                            placeholder={
+                                kind === 'tasks' ? 'T-12 or a title…' : kind === 'requirement-points' ? 'S.No, module or words…' : 'TP-4 or a title…'
+                            }
                         />
                     </div>
                     <ul role="listbox" className="max-h-64 overflow-y-auto">

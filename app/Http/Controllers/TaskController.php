@@ -6,6 +6,8 @@ use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
 use App\Http\Requests\TaskRequest;
 use App\Models\Project;
+use App\Models\RequirementPoint;
+use App\Models\RequirementVersion;
 use App\Models\Task;
 use App\Models\TestPoint;
 use App\Models\User;
@@ -86,7 +88,10 @@ class TaskController extends Controller
             'creator:id,name',
             'assigner:id,name',
             'comments.user:id,name',
+            'requirementPoints.version',
         ]);
+
+        $latest = $task->project ? RequirementVersion::latestFor($task->project) : null;
 
         return Inertia::render('tasks/show', [
             'task' => [
@@ -98,6 +103,17 @@ class TaskController extends Controller
                 'assignee' => $task->assignee?->only('id', 'name'),
                 'creator' => $task->creator?->only('id', 'name'),
                 'assigner' => $task->assigner?->only('id', 'name'),
+                'requirement_points' => $task->requirementPoints->map(fn (RequirementPoint $p) => [
+                    'id' => $p->id,
+                    'reference' => $p->reference(),
+                    'title' => "{$p->module} — {$p->description}",
+                    'module' => $p->module,
+                    'description' => $p->description,
+                    'version' => $p->version->label(),
+                    // Linked in an older version, and the latest one changed or dropped it.
+                    'outdated' => $latest !== null && $p->requirement_version_id !== $latest->id,
+                ])->values(),
+                'requirements_latest' => $latest?->label(),
                 'history' => Cards::history($task),
                 'is_overdue' => $task->isOverdue(),
                 'created_at' => $task->created_at,
@@ -121,6 +137,8 @@ class TaskController extends Controller
     public function store(TaskRequest $request): RedirectResponse
     {
         $data = $request->validated();
+        $points = $data['requirement_point_ids'] ?? [];
+        unset($data['requirement_point_ids']);
 
         $task = new Task($data);
         $this->authorize('create', $task);
@@ -128,9 +146,10 @@ class TaskController extends Controller
         $task->created_by = $request->user()->id;
 
         // In a transaction so the per-project number is allocated under lock.
-        DB::transaction(function () use ($task) {
+        DB::transaction(function () use ($task, $points) {
             $task->position = BoardOrdering::nextPosition($task, $task->status);
             $task->save();
+            $task->requirementPoints()->sync($points);
         });
 
         return back()->with('success', "Task “{$task->title}” created.");
@@ -141,7 +160,15 @@ class TaskController extends Controller
         $this->authorize('update', $task);
         self::guardStatus($request->user(), $task, $request->validated('status'));
 
-        $task->update($request->validated());
+        $data = $request->validated();
+
+        DB::transaction(function () use ($task, $data) {
+            $task->update(collect($data)->except('requirement_point_ids')->all());
+
+            if (array_key_exists('requirement_point_ids', $data)) {
+                $task->requirementPoints()->sync($data['requirement_point_ids']);
+            }
+        });
 
         return back()->with('success', 'Task updated.');
     }

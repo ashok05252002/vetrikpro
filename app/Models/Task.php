@@ -86,6 +86,12 @@ class Task extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    /** The requirement points this task delivers. */
+    public function requirementPoints(): BelongsToMany
+    {
+        return $this->belongsToMany(RequirementPoint::class, 'task_requirement_point')->orderBy('number');
+    }
+
     public function testPoints(): HasMany
     {
         return $this->hasMany(TestPoint::class);

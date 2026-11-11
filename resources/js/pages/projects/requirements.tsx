@@ -4,10 +4,11 @@ import { Button } from '@/components/ui/button';
 import Pill from '@/components/ui/pill';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import IconChip from '@/components/viz/icon-chip';
+import StageBadge from '@/components/work/stage-badge';
 import { useFormat } from '@/hooks/use-format';
 import ProjectWorkspaceLayout from '@/layouts/project/workspace-layout';
 import { cn } from '@/lib/utils';
-import type { Paginated, ProjectWorkspaceHeader, User } from '@/types';
+import type { Paginated, ProjectWorkspaceHeader, TaskStatus, User } from '@/types';
 import { Link } from '@inertiajs/react';
 import { Download, FileSpreadsheet, ListPlus, PencilLine } from 'lucide-react';
 
@@ -27,6 +28,7 @@ interface Point {
     module: string;
     description: string;
     notes: string | null;
+    tasks: { id: number; reference: string; title: string; status: TaskStatus; status_label: string }[];
 }
 
 interface Props {
@@ -36,7 +38,8 @@ interface Props {
     points: Paginated<Point> | null;
     modules: string[];
     next: string;
-    filters: { search?: string; module?: string };
+    filters: { search?: string; module?: string; coverage?: string };
+    coverage: { linked: number; total: number } | null;
     can: { manage: boolean };
 }
 
@@ -48,7 +51,7 @@ const moduleColor = (name: string) => {
     return `var(--tone-${MODULE_TONES[h % MODULE_TONES.length]})`;
 };
 
-export default function Requirements({ project, versions, current, points, modules, next, filters, can }: Props) {
+export default function Requirements({ project, versions, current, points, modules, next, filters, coverage, can }: Props) {
     const format = useFormat();
     const selected = versions.find((v) => v.id === current?.id) ?? null;
 
@@ -135,6 +138,11 @@ export default function Requirements({ project, versions, current, points, modul
                     )}
                     {selected.file_name && <span className="font-mono">{selected.file_name}</span>}
                     {selected.creator && <span>by {selected.creator.name}</span>}
+                    {coverage && coverage.total > 0 && (
+                        <span>
+                            · <strong className="text-foreground">{coverage.linked}</strong> of {coverage.total} points have a task
+                        </span>
+                    )}
                 </div>
             )}
 
@@ -143,7 +151,17 @@ export default function Requirements({ project, versions, current, points, modul
                 filters={filters}
                 keep={current ? { version: String(current.id) } : undefined}
                 searchPlaceholder="Search description, notes or S.No…"
-                selects={[{ name: 'module', placeholder: 'All modules', options: modules.map((m) => ({ value: m, label: m })) }]}
+                selects={[
+                    { name: 'module', placeholder: 'All modules', options: modules.map((m) => ({ value: m, label: m })) },
+                    {
+                        name: 'coverage',
+                        placeholder: 'With or without tasks',
+                        options: [
+                            { value: 'none', label: 'No task yet' },
+                            { value: 'linked', label: 'Has a task' },
+                        ],
+                    },
+                ]}
             />
 
             <div className="rounded-xl border">
@@ -154,12 +172,13 @@ export default function Requirements({ project, versions, current, points, modul
                             <TableHead className="w-44">Module</TableHead>
                             <TableHead>Description</TableHead>
                             <TableHead className="hidden lg:table-cell">Additional notes</TableHead>
+                            <TableHead className="w-64">Tasks</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {points?.data.length === 0 && (
                             <TableRow>
-                                <TableCell colSpan={4} className="text-muted-foreground py-10 text-center">
+                                <TableCell colSpan={5} className="text-muted-foreground py-10 text-center">
                                     No requirements match.
                                 </TableCell>
                             </TableRow>
@@ -173,6 +192,22 @@ export default function Requirements({ project, versions, current, points, modul
                                 <TableCell className="text-sm whitespace-pre-line">{point.description}</TableCell>
                                 <TableCell className="text-muted-foreground hidden text-sm whitespace-pre-line lg:table-cell">
                                     {point.notes ?? '—'}
+                                </TableCell>
+                                <TableCell>
+                                    {point.tasks.length === 0 ? (
+                                        <span className="text-muted-foreground text-xs">No task yet</span>
+                                    ) : (
+                                        <ul className="space-y-1">
+                                            {point.tasks.map((t) => (
+                                                <li key={t.id} className="flex items-center gap-2 text-xs">
+                                                    <Link href={route('tasks.show', t.id)} className="min-w-0 truncate hover:underline">
+                                                        <span className="text-muted-foreground font-mono">{t.reference}</span> {t.title}
+                                                    </Link>
+                                                    <StageBadge status={t.status} className="shrink-0" />
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
                                 </TableCell>
                             </TableRow>
                         ))}
