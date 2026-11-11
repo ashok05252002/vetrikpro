@@ -127,11 +127,25 @@ final class Permissions
                     'edit' => 'Edit them and switch them off',
                     'delete' => 'Delete ones never invoiced',
                 ]],
+                'renewals' => ['label' => 'Renewals', 'actions' => [
+                    'view' => 'See renewals (domains, servers, AMCs…) and their due dates',
+                    'create' => 'Add renewals',
+                    'edit' => 'Edit renewals, pause reminders, cancel or restart them',
+                    'delete' => 'Delete renewals that have no payments',
+                    'pay' => 'Record payments, delete wrong ones and write off balances',
+                    'cost' => 'See what the company pays the vendor',
+                ]],
             ],
             'Configuration' => [
                 'settings' => ['label' => 'Organisation settings', 'actions' => [
                     'view' => 'See organisation settings',
                     'edit' => 'Change organisation settings',
+                ]],
+                'renewal_types' => ['label' => 'Renewal types', 'actions' => [
+                    'view' => 'See renewal types (Domain, AMC…)',
+                    'create' => 'Add renewal types',
+                    'edit' => 'Rename renewal types, change their defaults, switch them off',
+                    'delete' => 'Delete renewal types no renewal uses',
                 ]],
                 'document_types' => ['label' => 'Document types', 'actions' => [
                     'view' => 'See the document checklist',

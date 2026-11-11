@@ -42,11 +42,12 @@ const adminNavItems: AdminItem[] = [
         title: 'Accounts',
         url: '/accounts/invoices',
         ...s('accounts'),
-        permission: ['invoices.view', 'customers.view', 'products.view'],
+        permission: ['invoices.view', 'customers.view', 'products.view', 'renewals.view'],
         children: [
             { title: 'Invoices', url: '/accounts/invoices', ...s('invoices'), permission: 'invoices.view' },
             { title: 'Customers', url: '/accounts/customers', ...s('customers'), permission: 'customers.view' },
             { title: 'Products & services', url: '/accounts/products', ...s('products'), permission: 'products.view' },
+            { title: 'Renewals', url: '/accounts/renewals', ...s('renewals'), permission: 'renewals.view' },
         ],
     },
     // The hub's overview shows every area the person may open.
@@ -54,7 +55,7 @@ const adminNavItems: AdminItem[] = [
         title: 'Configuration hub',
         url: '/admin/config',
         ...s('config'),
-        permission: ['settings.view', 'document_types.view'],
+        permission: ['settings.view', 'document_types.view', 'renewal_types.view'],
         match: ['/admin/settings', '/admin/config'],
     },
 ];

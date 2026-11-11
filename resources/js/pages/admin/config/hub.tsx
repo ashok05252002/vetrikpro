@@ -11,6 +11,7 @@ interface Props {
         notifications: { on: number; overdue: string | null } | null;
         invoices: { state: string; due_days: number; bank: boolean } | null;
         documents: { active: number; required: number } | null;
+        renewalTypes: { active: number; names: string[] } | null;
         offer: { title: string; signatory: string; valid_days: number } | null;
     };
 }
@@ -58,7 +59,7 @@ function Area({
 }
 
 export default function ConfigHub({ areas }: Props) {
-    const { organisation, notifications, invoices, documents, offer } = areas;
+    const { organisation, notifications, invoices, documents, renewalTypes, offer } = areas;
     const section = (key: keyof typeof CONFIG_SECTIONS) => ({
         icon: CONFIG_SECTIONS[key].icon,
         tone: CONFIG_SECTIONS[key].tone,
@@ -107,6 +108,17 @@ export default function ConfigHub({ areas }: Props) {
                             types.
                         </p>
                         <p>What every new employee is asked to upload during onboarding.</p>
+                    </Area>
+                )}
+
+                {renewalTypes && (
+                    <Area {...section('renewal-types')} status={renewalTypes.active > 0 ? 'ok' : 'attention'}>
+                        <p>
+                            <span className="text-foreground font-medium">{renewalTypes.active} active types</span>
+                            {renewalTypes.names.length > 0 &&
+                                `: ${renewalTypes.names.join(', ')}${renewalTypes.active > renewalTypes.names.length ? '…' : ''}`}
+                        </p>
+                        <p>Offered when adding a renewal, each with its usual cycle and reminder notice.</p>
                     </Area>
                 )}
 

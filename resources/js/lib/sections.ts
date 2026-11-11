@@ -1,6 +1,7 @@
 import type { Tone } from '@/components/viz/icon-chip';
 import {
     Boxes,
+    CalendarClock,
     Briefcase,
     Building2,
     Contact,
@@ -43,6 +44,7 @@ export const SECTIONS = {
     invoices: { icon: ReceiptIndianRupee, tone: 'green' },
     customers: { icon: Contact, tone: 'green' },
     products: { icon: Boxes, tone: 'green' },
+    renewals: { icon: CalendarClock, tone: 'green' },
     config: { icon: Settings2, tone: 'slate' },
     mail: { icon: Mail, tone: 'blue' },
 } satisfies Record<string, { icon: LucideIcon; tone: Tone }>;

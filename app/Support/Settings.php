@@ -85,6 +85,18 @@ class Settings
             'notify.summary.emails' => ['type' => 'array', 'default' => [], 'group' => 'notify'],
             'notify.summary.projects' => ['type' => 'bool', 'default' => true, 'group' => 'notify'],
             'notify.summary.time' => ['type' => 'string', 'default' => '18:00', 'group' => 'notify'],
+            // Renewal reminders (renewals:remind). The owner of each renewal and the
+            // addresses below get one email a day listing what is due; customers
+            // are emailed only when this master switch AND the renewal's own
+            // switch are on, and then only every `customer_every` days.
+            'notify.renewal.enabled' => ['type' => 'bool', 'default' => true, 'group' => 'notify'],
+            'notify.renewal.time' => ['type' => 'string', 'default' => '10:00', 'group' => 'notify'],
+            'notify.renewal.emails' => ['type' => 'array', 'default' => [], 'group' => 'notify'],
+            'notify.renewal.customer' => ['type' => 'bool', 'default' => true, 'group' => 'notify'],
+            'notify.renewal.customer_every' => ['type' => 'int', 'default' => 3, 'group' => 'notify'],
+            // The start confirmation ("your plan started on … next renewal on …"),
+            // sent to the customer when a renewal is added with its toggle on.
+            'notify.renewal.start' => ['type' => 'bool', 'default' => true, 'group' => 'notify'],
 
             // Offer letter template (Configuration hub → Offer letter). The body
             // is plain text with {placeholders}; see App\Services\OfferLetter.

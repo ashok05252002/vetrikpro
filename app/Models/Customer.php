@@ -18,8 +18,13 @@ class Customer extends Model
         return $this->hasMany(Invoice::class);
     }
 
+    public function renewals(): HasMany
+    {
+        return $this->hasMany(Renewal::class);
+    }
+
     public function isInUse(): bool
     {
-        return $this->invoices()->exists();
+        return $this->invoices()->exists() || $this->renewals()->exists();
     }
 }

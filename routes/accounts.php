@@ -3,10 +3,12 @@
 use App\Http\Controllers\Accounts\CustomerController;
 use App\Http\Controllers\Accounts\InvoiceController;
 use App\Http\Controllers\Accounts\ProductController;
+use App\Http\Controllers\Accounts\RenewalController;
 use Illuminate\Support\Facades\Route;
 
 /*
- * Accounts: invoices, and the customers and products they are raised from.
+ * Accounts: invoices, and the customers and products they are raised from;
+ * renewals (domains, servers, AMCs) and their reminders.
  * Each gated by its own permissions, one per action (App\Support\Permissions).
  */
 Route::middleware(['auth'])->prefix('accounts')->name('accounts.')->group(function () {
@@ -24,6 +26,21 @@ Route::middleware(['auth'])->prefix('accounts')->name('accounts.')->group(functi
     Route::post('invoices/{invoice}/mark-sent', [InvoiceController::class, 'markSent'])->middleware('can:invoices.send')->name('invoices.mark-sent');
     Route::post('invoices/{invoice}/mark-paid', [InvoiceController::class, 'markPaid'])->middleware('can:invoices.edit')->name('invoices.mark-paid');
     Route::post('invoices/{invoice}/cancel', [InvoiceController::class, 'cancel'])->middleware('can:invoices.edit')->name('invoices.cancel');
+
+    Route::get('renewals', [RenewalController::class, 'index'])->middleware('can:renewals.view')->name('renewals.index');
+    Route::post('renewals', [RenewalController::class, 'store'])->middleware('can:renewals.create')->name('renewals.store');
+    Route::get('renewals/{renewal}', [RenewalController::class, 'show'])->middleware('can:renewals.view')->name('renewals.show');
+    Route::put('renewals/{renewal}', [RenewalController::class, 'update'])->middleware('can:renewals.edit')->name('renewals.update');
+    Route::delete('renewals/{renewal}', [RenewalController::class, 'destroy'])->middleware('can:renewals.delete')->name('renewals.destroy');
+    Route::post('renewals/{renewal}/snooze', [RenewalController::class, 'snooze'])->middleware('can:renewals.edit')->name('renewals.snooze');
+    Route::post('renewals/{renewal}/cancel', [RenewalController::class, 'cancel'])->middleware('can:renewals.edit')->name('renewals.cancel');
+    Route::post('renewals/{renewal}/reactivate', [RenewalController::class, 'reactivate'])->middleware('can:renewals.edit')->name('renewals.reactivate');
+    Route::post('renewals/{renewal}/payments', [RenewalController::class, 'pay'])->middleware('can:renewals.pay')->name('renewals.pay');
+    Route::delete('renewals/{renewal}/payments/{payment}', [RenewalController::class, 'destroyPayment'])->middleware('can:renewals.pay')->name('renewals.payments.destroy');
+    Route::post('renewals/{renewal}/write-off', [RenewalController::class, 'writeOff'])->middleware('can:renewals.pay')->name('renewals.write-off');
+    Route::get('renewals/{renewal}/preview/{audience}', [RenewalController::class, 'preview'])->middleware('can:renewals.view')
+        ->whereIn('audience', ['team', 'customer', 'start'])->name('renewals.preview');
+    Route::post('renewals/{renewal}/send-start', [RenewalController::class, 'sendStart'])->middleware('can:renewals.edit')->name('renewals.send-start');
 
     foreach (['customers' => CustomerController::class, 'products' => ProductController::class] as $module => $controller) {
         $param = rtrim($module, 's');

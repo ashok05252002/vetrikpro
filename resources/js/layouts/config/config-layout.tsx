@@ -3,10 +3,10 @@ import { type Tone } from '@/components/viz/icon-chip';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
-import { BellRing, Building2, FileCheck2, FileSignature, Settings2, type LucideIcon } from 'lucide-react';
+import { BellRing, Building2, CalendarClock, FileCheck2, FileSignature, Settings2, type LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 
-export type ConfigTab = 'hub' | 'organisation' | 'notifications' | 'document-types' | 'offer-letter';
+export type ConfigTab = 'hub' | 'organisation' | 'notifications' | 'document-types' | 'renewal-types' | 'offer-letter';
 
 /** Every section of the hub: its title, what it is for, its icon and colour. The hub's cards use the same. */
 export const CONFIG_SECTIONS: Record<
@@ -33,6 +33,13 @@ export const CONFIG_SECTIONS: Record<
         icon: FileCheck2,
         tone: 'teal',
         href: () => route('admin.config.document-types.index'),
+    },
+    'renewal-types': {
+        title: 'Renewal types',
+        description: 'The kinds of renewal (Domain, AMC, Server…) and the cycle and reminder notice each suggests.',
+        icon: CalendarClock,
+        tone: 'green',
+        href: () => route('admin.config.renewal-types.index'),
     },
     'offer-letter': {
         title: 'Offer letter',

@@ -43,6 +43,12 @@ class NotificationSettingsController extends Controller
                 'summary_emails' => array_values((array) $s->get('notify.summary.emails')),
                 'summary_projects' => (bool) $s->get('notify.summary.projects'),
                 'summary_time' => (string) $s->get('notify.summary.time'),
+                'renewal_enabled' => (bool) $s->get('notify.renewal.enabled'),
+                'renewal_time' => (string) $s->get('notify.renewal.time'),
+                'renewal_emails' => array_values((array) $s->get('notify.renewal.emails')),
+                'renewal_customer' => (bool) $s->get('notify.renewal.customer'),
+                'renewal_customer_every' => (int) $s->get('notify.renewal.customer_every'),
+                'renewal_start' => (bool) $s->get('notify.renewal.start'),
             ],
             'taskStatuses' => TaskStatus::options(),
             'bugStatuses' => TestPointStatus::options(),
@@ -68,7 +74,15 @@ class NotificationSettingsController extends Controller
             'summary_emails.*' => ['required', 'string', 'email:rfc', 'max:255'],
             'summary_projects' => ['required', 'boolean'],
             'summary_time' => ['required', 'date_format:H:i'],
+            'renewal_enabled' => ['sometimes', 'required', 'boolean'],
+            'renewal_time' => ['required_with:renewal_enabled', 'date_format:H:i'],
+            'renewal_emails' => ['nullable', 'array', 'max:'.self::MAX_LEADERS],
+            'renewal_emails.*' => ['required', 'string', 'email:rfc', 'max:255'],
+            'renewal_customer' => ['required_with:renewal_enabled', 'boolean'],
+            'renewal_customer_every' => ['required_with:renewal_enabled', 'integer', 'min:1', 'max:30'],
+            'renewal_start' => ['required_with:renewal_enabled', 'boolean'],
         ], [
+            'renewal_emails.*.email' => 'Each renewal reminder address must be a valid email address.',
             'summary_emails.*.email' => 'Each leadership address must be a valid email address.',
             'summary_emails.max' => 'Up to '.self::MAX_LEADERS.' leadership addresses.',
         ]);
@@ -87,6 +101,18 @@ class NotificationSettingsController extends Controller
             'notify.summary.projects' => (bool) $data['summary_projects'],
             'notify.summary.time' => $data['summary_time'],
         ]);
+
+        // The renewal card is sent with the rest of the page; older clients may not send it.
+        if (array_key_exists('renewal_enabled', $data)) {
+            $this->settings->set([
+                'notify.renewal.enabled' => (bool) $data['renewal_enabled'],
+                'notify.renewal.time' => $data['renewal_time'],
+                'notify.renewal.emails' => array_values(array_unique(array_map(fn (string $e) => strtolower(trim($e)), $data['renewal_emails'] ?? []))),
+                'notify.renewal.customer' => (bool) $data['renewal_customer'],
+                'notify.renewal.customer_every' => (int) $data['renewal_customer_every'],
+                'notify.renewal.start' => (bool) $data['renewal_start'],
+            ]);
+        }
 
         return back()->with('success', 'Email notifications saved.');
     }

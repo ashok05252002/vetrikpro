@@ -7,7 +7,7 @@ import type { BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
 import type { ReactNode } from 'react';
 
-export type AccountsTab = 'invoices' | 'customers' | 'products';
+export type AccountsTab = 'invoices' | 'customers' | 'products' | 'renewals';
 
 /**
  * Accounts: invoices, and the customers and products they are raised from.
@@ -38,6 +38,7 @@ export default function AccountsLayout({
             { key: 'invoices', label: 'Invoices', href: route('accounts.invoices.index'), show: can('invoices.view') },
             { key: 'customers', label: 'Customers', href: route('accounts.customers.index'), show: can('customers.view') },
             { key: 'products', label: 'Products & services', href: route('accounts.products.index'), show: can('products.view') },
+            { key: 'renewals', label: 'Renewals', href: route('accounts.renewals.index'), show: can('renewals.view') },
         ] as (TabLink<AccountsTab> & { show: boolean })[]
     ).filter((t) => t.show);
 

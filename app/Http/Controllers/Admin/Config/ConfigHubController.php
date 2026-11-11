@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin\Config;
 
 use App\Http\Controllers\Controller;
 use App\Models\DocumentType;
+use App\Models\RenewalType;
 use App\Support\Settings;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -18,7 +19,7 @@ class ConfigHubController extends Controller
     public function __invoke(Request $request, Settings $settings): Response
     {
         $user = $request->user();
-        abort_unless($user->canAny(['settings.view', 'document_types.view']), 403);
+        abort_unless($user->canAny(['settings.view', 'document_types.view', 'renewal_types.view']), 403);
         $missing = fn (string $key) => blank($settings->get($key));
 
         return Inertia::render('admin/config/hub', [
@@ -37,6 +38,10 @@ class ConfigHubController extends Controller
                 'documents' => $user->can('document_types.view') ? [
                     'active' => DocumentType::active()->count(),
                     'required' => DocumentType::active()->where('is_required', true)->count(),
+                ] : null,
+                'renewalTypes' => $user->can('renewal_types.view') ? [
+                    'active' => RenewalType::where('is_active', true)->count(),
+                    'names' => RenewalType::where('is_active', true)->ordered()->limit(4)->pluck('name')->all(),
                 ] : null,
                 'notifications' => $user->can('settings.view') ? [
                     'on' => count(array_filter([

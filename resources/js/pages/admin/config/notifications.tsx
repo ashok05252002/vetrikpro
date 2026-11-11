@@ -10,7 +10,7 @@ import ConfigLayout from '@/layouts/config/config-layout';
 import { SECTIONS } from '@/lib/sections';
 import type { Option } from '@/types';
 import { useForm } from '@inertiajs/react';
-import { AlarmClock, ExternalLink, Info, Newspaper, X } from 'lucide-react';
+import { AlarmClock, CalendarClock, ExternalLink, Info, Newspaper, X } from 'lucide-react';
 import { useState, type FormEventHandler, type KeyboardEvent, type ReactNode } from 'react';
 
 type Form = {
@@ -25,6 +25,12 @@ type Form = {
     summary_emails: string[];
     summary_projects: boolean;
     summary_time: string;
+    renewal_enabled: boolean;
+    renewal_time: string;
+    renewal_emails: string[];
+    renewal_customer: boolean;
+    renewal_customer_every: number;
+    renewal_start: boolean;
 };
 
 interface Props {
@@ -60,6 +66,82 @@ function Trigger({
                 {hint && <p className="text-muted-foreground text-xs">{hint}</p>}
             </div>
             <Switch id={id} checked={checked} disabled={disabled} onCheckedChange={onChange} />
+        </div>
+    );
+}
+
+/** A list of email addresses, added one at a time; saved with the page. */
+function AddressList({
+    id,
+    value,
+    onChange,
+    canEdit,
+    empty,
+    error,
+}: {
+    id: string;
+    value: string[];
+    onChange: (emails: string[]) => void;
+    canEdit: boolean;
+    empty: string;
+    error?: string;
+}) {
+    const [address, setAddress] = useState('');
+    const [addressError, setAddressError] = useState<string | null>(null);
+
+    const add = () => {
+        const email = address.trim().toLowerCase();
+        if (email === '') return;
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            setAddressError('That doesn’t look like an email address.');
+            return;
+        }
+        if (!value.includes(email)) onChange([...value, email]);
+        setAddress('');
+        setAddressError(null);
+    };
+
+    return (
+        <div className="space-y-2">
+            <div className="flex flex-wrap gap-1.5">
+                {value.length === 0 && <p className="text-muted-foreground text-xs">{empty}</p>}
+                {value.map((email) => (
+                    <span key={email} className="bg-muted inline-flex items-center gap-1 rounded-md border py-0.5 pr-1 pl-2 text-xs">
+                        {email}
+                        {canEdit && (
+                            <button
+                                type="button"
+                                aria-label={`Remove ${email}`}
+                                className="hover:bg-background rounded p-0.5"
+                                onClick={() => onChange(value.filter((e) => e !== email))}
+                            >
+                                <X className="size-3" />
+                            </button>
+                        )}
+                    </span>
+                ))}
+            </div>
+            {canEdit && (
+                <div className="flex gap-2">
+                    <Input
+                        id={id}
+                        type="email"
+                        placeholder="name@company.com"
+                        value={address}
+                        onChange={(e) => setAddress(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ',') {
+                                e.preventDefault();
+                                add();
+                            }
+                        }}
+                    />
+                    <Button type="button" variant="outline" onClick={add} disabled={address.trim() === ''}>
+                        Add
+                    </Button>
+                </div>
+            )}
+            <InputError message={addressError ?? error} />
         </div>
     );
 }
@@ -337,6 +419,89 @@ export default function NotificationSettings({ settings, taskStatuses, bugStatus
                                 Every day, {timezone} time. Someone on both lists gets one email covering all their projects.
                             </p>
                             <InputError message={errors.summary_time} />
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card className="lg:col-span-2">
+                    <CardHeader className="flex-row items-start gap-3 space-y-0">
+                        <IconChip icon={CalendarClock} tone="green" />
+                        <div className="space-y-1">
+                            <CardTitle className="text-base">Renewal reminders</CardTitle>
+                            <CardDescription>
+                                Domains, servers, AMCs and other renewals (Accounts → Renewals). From each renewal’s notice period until it is fully
+                                paid, its owner and the addresses below get one email a day listing everything due.
+                            </CardDescription>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="grid gap-x-8 md:grid-cols-2">
+                        <div className="divide-y">
+                            <Trigger
+                                id="renewal-enabled"
+                                label="Send renewal reminders"
+                                checked={data.renewal_enabled}
+                                disabled={!canEdit}
+                                onChange={(on) => setData('renewal_enabled', on)}
+                            />
+                            <div className="space-y-2 py-3">
+                                <Label htmlFor="renewal_email">Also remind these addresses</Label>
+                                <AddressList
+                                    id="renewal_email"
+                                    value={data.renewal_emails}
+                                    onChange={(emails) => setData('renewal_emails', emails)}
+                                    canEdit={canEdit}
+                                    empty="None — only each renewal’s owner is reminded (or the company email if it has none)."
+                                    error={Object.entries(errors).find(([k]) => k.startsWith('renewal_emails'))?.[1]}
+                                />
+                            </div>
+                            <Trigger
+                                id="renewal-start"
+                                label="Send customers a start email"
+                                hint="“Your plan started on …, next renewal on …”, once, when a renewal is added with its “start email” switch on."
+                                checked={data.renewal_start}
+                                disabled={!canEdit}
+                                onChange={(on) => setData('renewal_start', on)}
+                            />
+                            <Trigger
+                                id="renewal-customer"
+                                label="Allow reminders to customers"
+                                hint="Master switch. A customer is emailed only when this is on AND “Remind the customer” is on for that renewal."
+                                checked={data.renewal_customer}
+                                disabled={!canEdit}
+                                onChange={(on) => setData('renewal_customer', on)}
+                            />
+                            <div className="grid gap-2 py-3">
+                                <Label htmlFor="renewal_customer_every">Email customers every</Label>
+                                <div className="flex items-center gap-2">
+                                    <Input
+                                        id="renewal_customer_every"
+                                        type="number"
+                                        min={1}
+                                        max={30}
+                                        className="w-20"
+                                        value={data.renewal_customer_every}
+                                        disabled={!canEdit || !data.renewal_customer}
+                                        onChange={(e) => setData('renewal_customer_every', Number(e.target.value))}
+                                    />
+                                    <span className="text-muted-foreground text-sm">days</span>
+                                </div>
+                                <p className="text-muted-foreground text-xs">
+                                    Plus on the first day of the notice period and on the due date. Use 1 for every day.
+                                </p>
+                                <InputError message={errors.renewal_customer_every} />
+                            </div>
+                        </div>
+                        <div className="grid content-start gap-2 py-3">
+                            <Label htmlFor="renewal_time">Send at</Label>
+                            <Input
+                                id="renewal_time"
+                                type="time"
+                                className="w-36"
+                                value={data.renewal_time}
+                                disabled={!canEdit || !data.renewal_enabled}
+                                onChange={(e) => setData('renewal_time', e.target.value)}
+                            />
+                            <p className="text-muted-foreground text-xs">Every day, {timezone} time.</p>
+                            <InputError message={errors.renewal_time} />
                         </div>
                     </CardContent>
                 </Card>

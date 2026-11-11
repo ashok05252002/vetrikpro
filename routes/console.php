@@ -27,3 +27,12 @@ Schedule::command('summaries:daily')
     ->dailyAt(rescue(fn () => (string) app(Settings::class)->get('notify.summary.time', '18:00'), '18:00', false) ?: '18:00')
     ->timezone(rescue(fn () => (string) app(Settings::class)->get('display.timezone', 'UTC'), 'UTC', false) ?: 'UTC')
     ->withoutOverlapping();
+
+/*
+ * Renewal reminders (domains, servers, AMCs…), daily at their own time in
+ * Configuration hub → Email notifications, until each one is paid.
+ */
+Schedule::command('renewals:remind')
+    ->dailyAt(rescue(fn () => (string) app(Settings::class)->get('notify.renewal.time', '10:00'), '10:00', false) ?: '10:00')
+    ->timezone(rescue(fn () => (string) app(Settings::class)->get('display.timezone', 'UTC'), 'UTC', false) ?: 'UTC')
+    ->withoutOverlapping();

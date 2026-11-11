@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\Config\ConfigHubController;
 use App\Http\Controllers\Admin\Config\DocumentTypeController;
 use App\Http\Controllers\Admin\Config\NotificationSettingsController;
 use App\Http\Controllers\Admin\Config\OfferLetterTemplateController;
+use App\Http\Controllers\Admin\Config\RenewalTypeController;
 use App\Http\Controllers\Admin\DepartmentController;
 use App\Http\Controllers\Admin\DesignationController;
 use App\Http\Controllers\Admin\EmployeeController;
@@ -115,6 +116,11 @@ Route::middleware(['auth'])
             Route::get('notifications', [NotificationSettingsController::class, 'edit'])->middleware('can:settings.view')->name('notifications.edit');
             Route::put('notifications', [NotificationSettingsController::class, 'update'])->middleware('can:settings.edit')->name('notifications.update');
             Route::get('notifications/summary-preview', [NotificationSettingsController::class, 'preview'])->middleware('can:settings.view')->name('notifications.summary-preview');
+
+            Route::get('renewal-types', [RenewalTypeController::class, 'index'])->middleware('can:renewal_types.view')->name('renewal-types.index');
+            Route::post('renewal-types', [RenewalTypeController::class, 'store'])->middleware('can:renewal_types.create')->name('renewal-types.store');
+            Route::put('renewal-types/{renewalType}', [RenewalTypeController::class, 'update'])->middleware('can:renewal_types.edit')->name('renewal-types.update');
+            Route::delete('renewal-types/{renewalType}', [RenewalTypeController::class, 'destroy'])->middleware('can:renewal_types.delete')->name('renewal-types.destroy');
 
             Route::get('document-types', [DocumentTypeController::class, 'index'])->middleware('can:document_types.view')->name('document-types.index');
             Route::post('document-types', [DocumentTypeController::class, 'store'])->middleware('can:document_types.create')->name('document-types.store');
